@@ -1,0 +1,80 @@
+/* Gunakan CSS yang sama dengan products.css */
+@import '../products/products.css';
+
+/* Additional Styles for Materials */
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.alert-warning {
+  background: #fef5e7;
+  border: 2px solid #f39c12;
+  color: #7d6608;
+}
+
+.alert svg {
+  flex-shrink: 0;
+}
+
+.filter-section {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  border-color: #3182ce;
+  color: #3182ce;
+}
+
+.filter-btn.active {
+  background: #3182ce;
+  color: white;
+  border-color: #3182ce;
+}
+
+.filter-btn-warning.active {
+  background: #ed8936;
+  border-color: #ed8936;
+}
+
+.badge-danger {
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.text-danger {
+  color: #e53e3e;
+  font-weight: 700;
+}
+
+.material-name {
+  font-weight: 600;
+  color: #1a202c;
+}
