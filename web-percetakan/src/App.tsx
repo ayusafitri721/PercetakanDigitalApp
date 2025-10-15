@@ -13,8 +13,12 @@ import './pages/products/ProductForm';
 import './pages/products/ProductDelete';
 import './pages/materials/MaterialForm';
 import './pages/materials/MaterialDelete';
-import './pages/orders/OrderForm'
-import './pages/orders/OrderDetail'
+import './pages/orders/OrderForm';
+import './pages/orders/OrderDetail';
+import './pages/reports/ReportList'; 
+import './pages/reports/SalesReport'; 
+import './pages/reports/StockReport';
+import './pages/reports/FinanceReport'; 
 
 function App() {
   return (

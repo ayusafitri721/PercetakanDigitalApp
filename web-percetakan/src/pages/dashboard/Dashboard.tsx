@@ -4,6 +4,7 @@ import UsersManagement from '../users/UsersManagement';
 import ProductList from '../products/ProductList';
 import MaterialList from '../materials/MaterialList';
 import OrdersList from '../orders/OrdersList';
+import ReportList from '../reports/ReportList';
 import './Dashboard.css';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
@@ -47,6 +48,7 @@ const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -59,19 +61,68 @@ const Dashboard: React.FC = () => {
 
     const userData = JSON.parse(userStr);
     setUser(userData);
-    fetchStats();
   }, []);
+
+  // Fetch stats setiap kali menu berubah ke dashboard atau ada refresh trigger
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user, refreshTrigger, activeMenu]);
+
+  // Setup polling untuk auto-refresh setiap 10 detik
+  useEffect(() => {
+    if (activeMenu === 'dashboard') {
+      const interval = setInterval(() => {
+        fetchStats();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeMenu]);
 
   const fetchStats = async () => {
     try {
+      setLoading(true);
+
+      // Fetch users
       const usersRes = await axios.get(`${API_BASE_URL}/users.php`);
       const totalCustomers = usersRes.data.data?.total || 0;
 
+      // Fetch products
       const productsRes = await axios.get(`${API_BASE_URL}/products.php`);
       const totalProducts = productsRes.data.data?.total || 0;
 
-      const materialsRes = await axios.get(`${API_BASE_URL}/materials.php`);
-      const materialsData = materialsRes.data.materials || [];
+      // Fetch materials dengan parsing yang lebih robust
+      const materialsRes = await axios.get(`${API_BASE_URL}/materials.php`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+
+      console.log('Materials API Response:', materialsRes.data);
+
+      // Parse materials data - handle berbagai struktur response
+      let materialsData: any[] = [];
+
+      if (
+        materialsRes.data.data &&
+        Array.isArray(materialsRes.data.data.materials)
+      ) {
+        materialsData = materialsRes.data.data.materials;
+      } else if (
+        materialsRes.data.materials &&
+        Array.isArray(materialsRes.data.materials)
+      ) {
+        materialsData = materialsRes.data.materials;
+      } else if (Array.isArray(materialsRes.data.data)) {
+        materialsData = materialsRes.data.data;
+      } else if (Array.isArray(materialsRes.data)) {
+        materialsData = materialsRes.data;
+      }
+
+      console.log('Parsed materials:', materialsData);
+
       const totalMaterials = materialsData.length;
       const lowStockCount = materialsData.filter(
         (m: any) => m.status_stok === 'rendah',
@@ -110,6 +161,11 @@ const Dashboard: React.FC = () => {
     window.location.href = '/login';
   };
 
+  // Trigger refresh dari child component
+  const triggerRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const menuItems = [
     { id: 'dashboard' as MenuItem, label: 'Dashboard', icon: '📊' },
     { id: 'users' as MenuItem, label: 'Users', icon: '👥' },
@@ -127,6 +183,7 @@ const Dashboard: React.FC = () => {
             stats={stats}
             loading={loading}
             onMenuChange={setActiveMenu}
+            onRefresh={triggerRefresh}
           />
         );
       case 'users':
@@ -138,13 +195,14 @@ const Dashboard: React.FC = () => {
       case 'orders':
         return <OrdersList />;
       case 'reports':
-        return <ReportsManagement />;
+        return <ReportList />;
       default:
         return (
           <DashboardContent
             stats={stats}
             loading={loading}
             onMenuChange={setActiveMenu}
+            onRefresh={triggerRefresh}
           />
         );
     }
@@ -219,12 +277,18 @@ const DashboardContent: React.FC<{
   stats: Stats;
   loading: boolean;
   onMenuChange: (menu: MenuItem) => void;
-}> = ({ stats, loading, onMenuChange }) => {
+  onRefresh: () => void;
+}> = ({ stats, loading, onMenuChange, onRefresh }) => {
   return (
     <>
       <div className="welcome-card">
-        <h2>Admin Dashboard</h2>
-        <p>Digital Printing Management System</p>
+        <div>
+          <h2>Admin Dashboard</h2>
+          <p>Digital Printing Management System</p>
+        </div>
+        <button className="btn-refresh" onClick={onRefresh}>
+          🔄 Refresh
+        </button>
       </div>
 
       {loading ? (
@@ -346,18 +410,6 @@ const DashboardContent: React.FC<{
         </div>
       </div>
     </>
-  );
-};
-
-const ReportsManagement: React.FC = () => {
-  return (
-    <div className="management-container">
-      <div className="coming-soon">
-        <div className="coming-soon-icon">📈</div>
-        <h2>Reports</h2>
-        <p>This feature is under development</p>
-      </div>
-    </div>
   );
 };
 
