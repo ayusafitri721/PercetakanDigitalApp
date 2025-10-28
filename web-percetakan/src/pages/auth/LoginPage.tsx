@@ -38,18 +38,14 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      // Log semua info untuk debug
       const fullUrl = `${API_BASE_URL}${API_LOGIN}`;
       console.log('=== LOGIN DEBUG ===');
       console.log('1. Full URL:', fullUrl);
       console.log('2. Email:', email);
-      console.log('3. Password:', password);
 
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', password);
-
-      console.log('4. Sending request...');
 
       const response = await axios.post<LoginResponse>(fullUrl, formData, {
         headers: {
@@ -57,56 +53,49 @@ const LoginPage: React.FC = () => {
         },
       });
 
-      console.log('5. Response Status:', response.status);
-      console.log('6. Response Data:', response.data);
-      console.log('7. Success?', response.data.success);
-      console.log('8. Message:', response.data.message);
+      console.log('Response:', response.data);
 
       if (response.data.success) {
-        console.log('9. User Data:', response.data.data?.user);
-        console.log('10. User Role:', response.data.data?.user.role);
+        const userData = response.data.data?.user;
+        const userRole = userData?.role;
 
-        // Validasi role admin
-        if (response.data.data?.user.role !== 'admin') {
-          console.log('11. Role validation failed!');
-          setError('Akses ditolak. Hanya admin yang bisa login.');
+        console.log('User Role:', userRole);
+
+        // ✅ VALIDASI ROLE: Hanya admin dan kasir yang bisa login
+        if (userRole !== 'admin' && userRole !== 'kasir') {
+          console.log('Role validation failed!');
+          setError('Akses ditolak. Hanya admin dan kasir yang bisa login.');
           return;
         }
 
-        console.log('12. Saving to localStorage...');
-        localStorage.setItem('token', response.data.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        // ✅ SIMPAN DATA KE LOCALSTORAGE
+        localStorage.setItem('token', response.data.data!.token);
+        localStorage.setItem('user', JSON.stringify(userData));
 
-        console.log('13. Login success!');
-        alert(`Login berhasil! Welcome ${response.data.data.user.nama}`);
+        console.log('Login success!');
+        alert(`Login berhasil! Welcome ${userData?.nama}`);
 
-        // Redirect ke dashboard
-        window.location.href = '/dashboard';
+        // ✅ REDIRECT BERDASARKAN ROLE
+        if (userRole === 'kasir') {
+          console.log('Redirecting to kasir dashboard...');
+          window.location.href = '/dashboard/kasir';
+        } else if (userRole === 'admin') {
+          console.log('Redirecting to admin dashboard...');
+          window.location.href = '/dashboard';
+        }
       } else {
-        console.log('14. Login failed - success is false');
-        console.log('15. Error message:', response.data.message);
+        console.log('Login failed - success is false');
         setError(response.data.message || 'Login gagal');
       }
     } catch (err: any) {
       console.error('=== LOGIN ERROR ===');
       console.error('Error:', err);
-      console.error('Error Message:', err.message);
-      console.error('Error Response:', err.response);
-      console.error('Error Response Data:', err.response?.data);
-      console.error('Error Response Status:', err.response?.status);
-      console.error('Error Request:', err.request);
 
       if (err.response) {
-        // Server responded with error
-        console.log('Server Error Response:', err.response.data);
         setError(err.response.data?.message || 'Email atau password salah');
       } else if (err.request) {
-        // Request made but no response
-        console.log('No response from server');
         setError('Tidak dapat terhubung ke server. Pastikan API berjalan.');
       } else {
-        // Something else happened
-        console.log('Unknown error:', err.message);
         setError('Terjadi kesalahan. Silakan coba lagi.');
       }
     } finally {
@@ -118,7 +107,7 @@ const LoginPage: React.FC = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>Login Admin</h1>
+          <h1>Login</h1>
           <p>Sistem Percetakan Digital</p>
         </div>
 
@@ -134,7 +123,7 @@ const LoginPage: React.FC = () => {
             <input
               id="email"
               type="email"
-              placeholder="admin@percetakan.com"
+              placeholder="email@percetakan.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               disabled={loading}
@@ -171,9 +160,13 @@ const LoginPage: React.FC = () => {
 
         <div className="login-footer">
           <p>Demo Account:</p>
-          <small>Email: admin@percetakan.com</small>
+          <small>
+            <strong>Admin:</strong> admin@percetakan.com / password
+          </small>
           <br />
-          <small>Password: password</small>
+          <small>
+            <strong>Kasir:</strong> kasir@percetakan.com / password
+          </small>
         </div>
       </div>
     </div>

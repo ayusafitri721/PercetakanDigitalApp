@@ -14,7 +14,7 @@ interface Order {
   alamat_pengiriman: string;
   total_harga: number;
   status_order: string;
-  status_pembayaran: string;
+  // ❌ REMOVED: status_pembayaran (pakai status_order aja)
   tanggal_order: string;
   catatan: string;
 }
@@ -92,8 +92,11 @@ const OrdersList: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const statusMap: { [key: string]: { label: string; class: string } } = {
       pending: { label: 'Pending', class: 'badge-warning' },
+      dibayar: { label: 'Dibayar', class: 'badge-success' },
       dikonfirmasi: { label: 'Dikonfirmasi', class: 'badge-info' },
+      diproses: { label: 'Diproses', class: 'badge-primary' },
       proses: { label: 'Proses', class: 'badge-primary' },
+      validasi: { label: 'Validasi', class: 'badge-info' },
       selesai: { label: 'Selesai', class: 'badge-success' },
       dibatalkan: { label: 'Dibatalkan', class: 'badge-danger' },
     };
@@ -107,15 +110,33 @@ const OrdersList: React.FC = () => {
     );
   };
 
-  const getPaymentBadge = (status: string) => {
+  // ✅ NEW: Fungsi untuk convert status_order ke status pembayaran
+  const getStatusPembayaran = (status_order: string): string => {
+    if (
+      status_order === 'dibayar' ||
+      status_order === 'diproses' ||
+      status_order === 'proses' ||
+      status_order === 'selesai'
+    ) {
+      return 'lunas';
+    }
+    if (status_order === 'dibatalkan') {
+      return 'gagal';
+    }
+    return 'pending';
+  };
+
+  const getPaymentBadge = (status_order: string) => {
+    const paymentStatus = getStatusPembayaran(status_order);
+
     const paymentMap: { [key: string]: { label: string; class: string } } = {
       pending: { label: 'Belum Bayar', class: 'badge-warning' },
-      dibayar: { label: 'Lunas', class: 'badge-success' },
+      lunas: { label: 'Lunas', class: 'badge-success' },
       gagal: { label: 'Gagal', class: 'badge-danger' },
     };
 
-    const paymentInfo = paymentMap[status] || {
-      label: status,
+    const paymentInfo = paymentMap[paymentStatus] || {
+      label: paymentStatus,
       class: 'badge-secondary',
     };
     return (
@@ -128,7 +149,7 @@ const OrdersList: React.FC = () => {
     setShowDetail(true);
   };
 
-  // Filter orders
+  // ✅ FIXED: Filter orders pakai status_order
   const filteredOrders = orders.filter(order => {
     const matchSearch =
       order.id_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -137,16 +158,19 @@ const OrdersList: React.FC = () => {
 
     const matchStatus =
       filterStatus === 'all' || order.status_order === filterStatus;
+
+    // ✅ FIXED: Filter payment pakai getStatusPembayaran()
+    const paymentStatus = getStatusPembayaran(order.status_order);
     const matchPayment =
-      filterPayment === 'all' || order.status_pembayaran === filterPayment;
+      filterPayment === 'all' || paymentStatus === filterPayment;
 
     return matchSearch && matchStatus && matchPayment;
   });
 
-  // Stats
+  // ✅ FIXED: Stats pakai status_order
   const pendingCount = orders.filter(o => o.status_order === 'pending').length;
   const unpaidCount = orders.filter(
-    o => o.status_pembayaran === 'pending',
+    o => getStatusPembayaran(o.status_order) === 'pending',
   ).length;
 
   return (
@@ -227,12 +251,24 @@ const OrdersList: React.FC = () => {
               Pending ({orders.filter(o => o.status_order === 'pending').length}
               )
             </option>
+            <option value="dibayar">
+              Dibayar ({orders.filter(o => o.status_order === 'dibayar').length}
+              )
+            </option>
             <option value="dikonfirmasi">
               Dikonfirmasi (
               {orders.filter(o => o.status_order === 'dikonfirmasi').length})
             </option>
+            <option value="diproses">
+              Diproses (
+              {orders.filter(o => o.status_order === 'diproses').length})
+            </option>
             <option value="proses">
               Proses ({orders.filter(o => o.status_order === 'proses').length})
+            </option>
+            <option value="validasi">
+              Validasi (
+              {orders.filter(o => o.status_order === 'validasi').length})
             </option>
             <option value="selesai">
               Selesai ({orders.filter(o => o.status_order === 'selesai').length}
@@ -252,15 +288,30 @@ const OrdersList: React.FC = () => {
             <option value="all">Semua Pembayaran</option>
             <option value="pending">
               Belum Bayar (
-              {orders.filter(o => o.status_pembayaran === 'pending').length})
+              {
+                orders.filter(
+                  o => getStatusPembayaran(o.status_order) === 'pending',
+                ).length
+              }
+              )
             </option>
-            <option value="dibayar">
+            <option value="lunas">
               Lunas (
-              {orders.filter(o => o.status_pembayaran === 'dibayar').length})
+              {
+                orders.filter(
+                  o => getStatusPembayaran(o.status_order) === 'lunas',
+                ).length
+              }
+              )
             </option>
             <option value="gagal">
               Gagal (
-              {orders.filter(o => o.status_pembayaran === 'gagal').length})
+              {
+                orders.filter(
+                  o => getStatusPembayaran(o.status_order) === 'gagal',
+                ).length
+              }
+              )
             </option>
           </select>
         </div>
@@ -335,7 +386,8 @@ const OrdersList: React.FC = () => {
                       <strong>{formatRupiah(order.total_harga)}</strong>
                     </td>
                     <td>{getStatusBadge(order.status_order)}</td>
-                    <td>{getPaymentBadge(order.status_pembayaran)}</td>
+                    {/* ✅ FIXED: Pakai getPaymentBadge dengan status_order */}
+                    <td>{getPaymentBadge(order.status_order)}</td>
                     <td>
                       <button
                         className="btn-detail"
