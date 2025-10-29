@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/auth/LoginPage';
 import Dashboard from './pages/dashboard/Dashboard';
 import KasirDashboard from './pages/dashboard/kasir/KasirDashboard';
+import OperatorDashboard from './pages/dashboard/operator/Dashboard'; // ✅ TAMBAH INI
 import UsersManagement from './pages/users/UsersManagement';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -36,6 +37,11 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/kasir" element={<KasirDashboard />} />
+        <Route
+          path="/dashboard/operator"
+          element={<OperatorDashboard />}
+        />{' '}
+        {/* ✅ TAMBAH INI */}
         <Route path="/users" element={<UsersManagement />} />
       </Routes>
     </Router>

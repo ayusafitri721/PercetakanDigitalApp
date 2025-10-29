@@ -5,11 +5,10 @@ import './kasir.css';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
 
-// ✅ FIXED INTERFACE - Match dengan orders.php response
 interface Order {
   id_order: string;
   kode_order: string;
-  nama_customer: string; // ✅ Konsisten dengan backend
+  nama_customer: string;
   email_customer?: string;
   telepon_customer?: string;
   total_harga: number;
@@ -61,49 +60,87 @@ const KasirDashboard: React.FC = () => {
     }
   };
 
+  // ✅ FIXED: Fungsi helper untuk mendapatkan tanggal saja (YYYY-MM-DD)
+  const getDateOnly = (dateString: string): string => {
+    // Parse tanggal dari berbagai format
+    const date = new Date(dateString);
+
+    // Konversi ke timezone lokal dan ambil YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
   const filterOrdersByPeriod = () => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
 
+    // ✅ Get today's date in YYYY-MM-DD format
+    const todayDate = getDateOnly(now.toISOString());
+
+    // ✅ Start of week (Monday)
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(
-      now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1),
-    );
-    const weekStart = startOfWeek.toISOString().split('T')[0];
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(now.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const weekStartDate = getDateOnly(startOfWeek.toISOString());
 
+    // ✅ Start of month
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthStart = startOfMonth.toISOString().split('T')[0];
+    const monthStartDate = getDateOnly(startOfMonth.toISOString());
+
+    console.log('=== FILTER DEBUG ===');
+    console.log('Today:', todayDate);
+    console.log('Week Start:', weekStartDate);
+    console.log('Month Start:', monthStartDate);
 
     let filtered: Order[] = [];
 
     if (filterPeriod === 'today') {
-      filtered = allOrders.filter(order =>
-        order.tanggal_order.startsWith(today),
-      );
+      filtered = allOrders.filter(order => {
+        const orderDate = getDateOnly(order.tanggal_order);
+        console.log(
+          `Comparing: ${orderDate} === ${todayDate}`,
+          orderDate === todayDate,
+        );
+        return orderDate === todayDate;
+      });
     } else if (filterPeriod === 'week') {
-      filtered = allOrders.filter(order => order.tanggal_order >= weekStart);
+      filtered = allOrders.filter(order => {
+        const orderDate = getDateOnly(order.tanggal_order);
+        return orderDate >= weekStartDate;
+      });
     } else if (filterPeriod === 'month') {
-      filtered = allOrders.filter(order => order.tanggal_order >= monthStart);
+      filtered = allOrders.filter(order => {
+        const orderDate = getDateOnly(order.tanggal_order);
+        return orderDate >= monthStartDate;
+      });
     }
 
+    console.log('Filtered orders:', filtered.length);
     setFilteredOrders(filtered);
   };
 
   const calculateStats = (orders: Order[]) => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const todayDate = getDateOnly(now.toISOString());
 
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(
-      now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1),
-    );
-    const weekStart = startOfWeek.toISOString().split('T')[0];
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(now.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const weekStartDate = getDateOnly(startOfWeek.toISOString());
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthStart = startOfMonth.toISOString().split('T')[0];
+    const monthStartDate = getDateOnly(startOfMonth.toISOString());
 
     // Today stats
-    const todayOrders = orders.filter(o => o.tanggal_order.startsWith(today));
+    const todayOrders = orders.filter(
+      o => getDateOnly(o.tanggal_order) === todayDate,
+    );
     const todayOrdersCount = todayOrders.length;
     const todayRevenue = todayOrders
       .filter(
@@ -114,7 +151,9 @@ const KasirDashboard: React.FC = () => {
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
     // Week stats
-    const weekOrders = orders.filter(o => o.tanggal_order >= weekStart);
+    const weekOrders = orders.filter(
+      o => getDateOnly(o.tanggal_order) >= weekStartDate,
+    );
     const weekRevenue = weekOrders
       .filter(
         o =>
@@ -124,7 +163,9 @@ const KasirDashboard: React.FC = () => {
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
     // Month stats
-    const monthOrders = orders.filter(o => o.tanggal_order >= monthStart);
+    const monthOrders = orders.filter(
+      o => getDateOnly(o.tanggal_order) >= monthStartDate,
+    );
     const monthRevenue = monthOrders
       .filter(
         o =>
@@ -133,12 +174,17 @@ const KasirDashboard: React.FC = () => {
       )
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
-    // Pending payment - cek status_pembayaran dulu, fallback ke status_order
+    // Pending payment
     const pendingPayment = orders.filter(
       o =>
         o.status_pembayaran === 'pending' ||
         (o.status_order === 'pending' && !o.status_pembayaran),
     ).length;
+
+    console.log('=== STATS DEBUG ===');
+    console.log('Today orders:', todayOrdersCount);
+    console.log('Week orders:', weekOrders.length);
+    console.log('Month orders:', monthOrders.length);
 
     setStats({
       todayOrders: todayOrdersCount,
@@ -159,17 +205,20 @@ const KasirDashboard: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000)
-      .toISOString()
-      .split('T')[0];
+    const now = new Date();
 
-    if (dateString.startsWith(today)) {
+    const todayDate = getDateOnly(now.toISOString());
+    const yesterdayDate = getDateOnly(
+      new Date(Date.now() - 86400000).toISOString(),
+    );
+    const orderDate = getDateOnly(dateString);
+
+    if (orderDate === todayDate) {
       return (
         'Hari ini, ' +
         date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
       );
-    } else if (dateString.startsWith(yesterday)) {
+    } else if (orderDate === yesterdayDate) {
       return (
         'Kemarin, ' +
         date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -198,11 +247,9 @@ const KasirDashboard: React.FC = () => {
   };
 
   const getStatusPembayaran = (order: Order) => {
-    // Cek status_pembayaran dulu (prioritas)
     if (order.status_pembayaran) {
       return order.status_pembayaran === 'dibayar' ? 'Lunas' : 'Pending';
     }
-    // Fallback ke status_order (untuk data lama)
     if (['dibayar', 'proses', 'selesai'].includes(order.status_order)) {
       return 'Lunas';
     }

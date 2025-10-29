@@ -61,10 +61,13 @@ const LoginPage: React.FC = () => {
 
         console.log('User Role:', userRole);
 
-        // ✅ VALIDASI ROLE: Hanya admin dan kasir yang bisa login
-        if (userRole !== 'admin' && userRole !== 'kasir') {
+        // ✅ VALIDASI ROLE: Admin, Kasir, dan Operator bisa login
+        const allowedRoles = ['admin', 'kasir', 'operator'];
+        if (!allowedRoles.includes(userRole || '')) {
           console.log('Role validation failed!');
-          setError('Akses ditolak. Hanya admin dan kasir yang bisa login.');
+          setError(
+            'Akses ditolak. Hanya admin, kasir, dan operator yang bisa login.',
+          );
           return;
         }
 
@@ -79,6 +82,9 @@ const LoginPage: React.FC = () => {
         if (userRole === 'kasir') {
           console.log('Redirecting to kasir dashboard...');
           window.location.href = '/dashboard/kasir';
+        } else if (userRole === 'operator') {
+          console.log('Redirecting to operator dashboard...');
+          window.location.href = '/dashboard/operator';
         } else if (userRole === 'admin') {
           console.log('Redirecting to admin dashboard...');
           window.location.href = '/dashboard';
@@ -166,6 +172,10 @@ const LoginPage: React.FC = () => {
           <br />
           <small>
             <strong>Kasir:</strong> kasir@percetakan.com / password
+          </small>
+          <br />
+          <small>
+            <strong>Operator:</strong> operator@percetakan.com / password
           </small>
         </div>
       </div>

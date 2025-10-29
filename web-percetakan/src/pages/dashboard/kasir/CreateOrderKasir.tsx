@@ -11,6 +11,16 @@ interface Product {
   nama_category: string;
 }
 
+interface OrderItem {
+  id_product: string;
+  nama_product: string;
+  jumlah: number;
+  ukuran: string;
+  harga_satuan: number;
+  subtotal: number;
+  catatan: string;
+}
+
 interface CreateOrderKasirProps {
   onClose: (success: boolean) => void;
 }
@@ -21,13 +31,26 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [step, setStep] = useState<'order' | 'payment'>('order');
 
-  const [formData, setFormData] = useState({
+  // Customer data
+  const [customerData, setCustomerData] = useState({
     nama_pelanggan: 'Pelanggan Umum',
     no_telepon: '',
     email: '',
     alamat: '',
+  });
+
+  // Items array - MULTIPLE ITEMS SUPPORT
+  const [items, setItems] = useState<OrderItem[]>([]);
+  
+  // Current item being added
+  const [currentItem, setCurrentItem] = useState({
     id_product: '',
     jumlah: 1,
+    ukuran: 'Standard',
+    catatan: '',
+  });
+
+  const [orderSettings, setOrderSettings] = useState({
     kecepatan_pengerjaan: 'normal' as 'normal' | 'express',
     diskon: 0,
   });
@@ -50,13 +73,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
   useEffect(() => {
     calculateTotal();
-  }, [
-    formData.id_product,
-    formData.jumlah,
-    formData.kecepatan_pengerjaan,
-    formData.diskon,
-    products,
-  ]);
+  }, [items, orderSettings.kecepatan_pengerjaan, orderSettings.diskon]);
 
   useEffect(() => {
     calculateKembalian();
@@ -75,38 +92,71 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
       if (response.data.status === 'success') {
         const productsData = response.data.data?.products || [];
         setProducts(productsData);
-      } else {
-        alert('Gagal memuat produk: ' + response.data.message);
       }
     } catch (error: any) {
-      alert('Gagal terhubung ke server.\n' + (error.message || ''));
+      alert('Gagal memuat produk');
     } finally {
       setLoadingProducts(false);
     }
   };
 
-  const calculateTotal = () => {
-    const product = products.find(p => p.id_product === formData.id_product);
-    if (product) {
-      let calculatedSubtotal = Number(product.harga_dasar) * formData.jumlah;
-      setSubtotal(calculatedSubtotal);
-
-      let total = calculatedSubtotal - formData.diskon;
-
-      if (formData.kecepatan_pengerjaan === 'express') {
-        total = total * 1.5;
-      }
-
-      setTotalHarga(Math.max(0, total));
-      setPaymentData(prev => ({
-        ...prev,
-        jumlah_bayar: Math.max(0, total),
-        uang_diterima: Math.max(0, total),
-      }));
-    } else {
-      setSubtotal(0);
-      setTotalHarga(0);
+  // ✅ ADD ITEM to cart
+  const handleAddItem = () => {
+    if (!currentItem.id_product) {
+      alert('Pilih produk terlebih dahulu!');
+      return;
     }
+
+    const product = products.find(p => p.id_product === currentItem.id_product);
+    if (!product) return;
+
+    const itemSubtotal = Number(product.harga_dasar) * currentItem.jumlah;
+
+    const newItem: OrderItem = {
+      id_product: currentItem.id_product,
+      nama_product: product.nama_product,
+      jumlah: currentItem.jumlah,
+      ukuran: currentItem.ukuran,
+      harga_satuan: Number(product.harga_dasar),
+      subtotal: itemSubtotal,
+      catatan: currentItem.catatan,
+    };
+
+    setItems([...items, newItem]);
+
+    // Reset form
+    setCurrentItem({
+      id_product: '',
+      jumlah: 1,
+      ukuran: 'Standard',
+      catatan: '',
+    });
+  };
+
+  // ✅ REMOVE ITEM from cart
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const calculateTotal = () => {
+    // Sum all items subtotal
+    const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    setSubtotal(itemsSubtotal);
+
+    // Apply discount
+    let total = itemsSubtotal - orderSettings.diskon;
+
+    // Apply express fee
+    if (orderSettings.kecepatan_pengerjaan === 'express') {
+      total = total * 1.5;
+    }
+
+    setTotalHarga(Math.max(0, total));
+    setPaymentData(prev => ({
+      ...prev,
+      jumlah_bayar: Math.max(0, total),
+      uang_diterima: Math.max(0, total),
+    }));
   };
 
   const calculateKembalian = () => {
@@ -120,22 +170,15 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
   const generateQRCode = () => {
     const qrData = `QRIS_PAYMENT|AMOUNT:${totalHarga}|MERCHANT:PERCETAKAN_XYZ`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-      qrData,
-    )}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
     setQrCodeUrl(qrUrl);
   };
 
   const handleNextToPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.id_product) {
-      alert('Produk wajib dipilih');
-      return;
-    }
-
-    if (formData.jumlah < 1) {
-      alert('Jumlah minimal 1');
+    if (items.length === 0) {
+      alert('Tambahkan minimal 1 produk!');
       return;
     }
 
@@ -147,19 +190,9 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
     if (paymentData.metode_pembayaran === 'cash') {
       if (paymentData.uang_diterima < totalHarga) {
-        alert('Uang yang diterima kurang dari total pembayaran!');
+        alert('Uang yang diterima kurang!');
         return;
       }
-    } else if (
-      paymentData.metode_pembayaran === 'transfer' ||
-      paymentData.metode_pembayaran === 'qris'
-    ) {
-      const confirm = window.confirm(
-        `Apakah pembayaran via ${paymentData.metode_pembayaran.toUpperCase()} sebesar ${formatRupiah(
-          totalHarga,
-        )} sudah diterima?`,
-      );
-      if (!confirm) return;
     }
 
     setLoading(true);
@@ -167,118 +200,84 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-      console.log('=== CREATING ORDER WITH PAYMENT ===');
-
+      // Step 1: Create or get user
       let userId = null;
       let customerCode = '';
 
-      if (formData.email && showCustomerDetails) {
-        try {
-          const checkResponse = await axios.get(`${API_BASE_URL}/users.php`);
-          if (checkResponse.data.status === 'success') {
-            const users = checkResponse.data.data?.users || [];
-            const existingUser = users.find(
-              (u: any) => u.email === formData.email,
-            );
-            if (existingUser) {
-              userId = existingUser.id_user;
-              customerCode = existingUser.nama || 'CUS-' + userId;
-            }
+      if (customerData.email && showCustomerDetails) {
+        const checkResponse = await axios.get(`${API_BASE_URL}/users.php`);
+        if (checkResponse.data.status === 'success') {
+          const users = checkResponse.data.data?.users || [];
+          const existingUser = users.find((u: any) => u.email === customerData.email);
+          if (existingUser) {
+            userId = existingUser.id_user;
+            customerCode = existingUser.nama || 'CUS-' + userId;
           }
-        } catch (err) {
-          console.log('Error checking user');
         }
       }
 
       if (!userId) {
-        try {
-          const allUsersResponse = await axios.get(`${API_BASE_URL}/users.php`);
-          let nextNumber = 1;
+        const allUsersResponse = await axios.get(`${API_BASE_URL}/users.php`);
+        let nextNumber = 1;
 
-          if (allUsersResponse.data.status === 'success') {
-            const allUsers = allUsersResponse.data.data?.users || [];
-            const customerCodes = allUsers
-              .filter((u: any) => u.nama && u.nama.startsWith('CUS-'))
-              .map((u: any) => {
-                const match = u.nama.match(/CUS-(\d+)/);
-                return match ? parseInt(match[1]) : 0;
-              });
+        if (allUsersResponse.data.status === 'success') {
+          const allUsers = allUsersResponse.data.data?.users || [];
+          const customerCodes = allUsers
+            .filter((u: any) => u.nama && u.nama.startsWith('CUS-'))
+            .map((u: any) => {
+              const match = u.nama.match(/CUS-(\d+)/);
+              return match ? parseInt(match[1]) : 0;
+            });
 
-            if (customerCodes.length > 0) {
-              nextNumber = Math.max(...customerCodes) + 1;
-            }
+          if (customerCodes.length > 0) {
+            nextNumber = Math.max(...customerCodes) + 1;
           }
-
-          customerCode = `CUS-${String(nextNumber).padStart(3, '0')}`;
-        } catch (err) {
-          customerCode = `CUS-${Date.now().toString().slice(-6)}`;
         }
+
+        customerCode = `CUS-${String(nextNumber).padStart(3, '0')}`;
 
         const userData = new FormData();
         userData.append(
           'nama',
-          showCustomerDetails && formData.nama_pelanggan !== 'Pelanggan Umum'
-            ? `${customerCode} - ${formData.nama_pelanggan}`
+          showCustomerDetails && customerData.nama_pelanggan !== 'Pelanggan Umum'
+            ? `${customerCode} - ${customerData.nama_pelanggan}`
             : customerCode,
         );
-        userData.append(
-          'email',
-          formData.email || `${customerCode.toLowerCase()}@guest.local`,
-        );
+        userData.append('email', customerData.email || `${customerCode.toLowerCase()}@guest.local`);
         userData.append('password', 'guest123');
         userData.append('role', 'pelanggan');
-        userData.append('no_telepon', formData.no_telepon || '');
-        userData.append('alamat', formData.alamat || '');
+        userData.append('no_telepon', customerData.no_telepon || '');
+        userData.append('alamat', customerData.alamat || '');
 
-        const userResponse = await axios.post(
-          `${API_BASE_URL}/users.php?op=create`,
-          userData,
-        );
+        const userResponse = await axios.post(`${API_BASE_URL}/users.php?op=create`, userData);
 
         if (userResponse.data.status === 'success') {
           userId = userResponse.data.data?.id_user;
-        } else {
-          throw new Error('Gagal membuat data pelanggan');
         }
       }
 
-      if (!userId) {
-        throw new Error('Gagal mendapatkan ID user');
-      }
+      if (!userId) throw new Error('Gagal mendapatkan ID user');
 
+      // Step 2: Create Order
       const orderData = new FormData();
       orderData.append('id_user', userId.toString());
-
-      if (currentUser.id_user && currentUser.role === 'kasir') {
-        orderData.append('id_kasir', currentUser.id_user.toString());
-      }
-
+      if (currentUser.id_user) orderData.append('id_kasir', currentUser.id_user.toString());
       orderData.append('jenis_order', 'offline');
-      orderData.append('kecepatan_pengerjaan', formData.kecepatan_pengerjaan);
+      orderData.append('kecepatan_pengerjaan', orderSettings.kecepatan_pengerjaan);
       orderData.append('subtotal', subtotal.toString());
-      orderData.append('diskon', formData.diskon.toString());
+      orderData.append('diskon', orderSettings.diskon.toString());
       orderData.append('ongkir', '0');
       orderData.append('total_harga', totalHarga.toString());
-      orderData.append(
-        'catatan_pelanggan',
-        `Pembayaran: ${paymentData.metode_pembayaran.toUpperCase()}`,
-      );
+      orderData.append('catatan_pelanggan', `Pembayaran: ${paymentData.metode_pembayaran.toUpperCase()}`);
       orderData.append(
         'catatan_internal',
         paymentData.metode_pembayaran === 'cash'
-          ? `Dibayar TUNAI - Diterima: Rp ${paymentData.uang_diterima.toLocaleString(
-              'id-ID',
-            )} - Kembalian: Rp ${kembalian.toLocaleString('id-ID')}`
-          : `Dibayar ${paymentData.metode_pembayaran.toUpperCase()} - Rp ${totalHarga.toLocaleString(
-              'id-ID',
-            )}`,
+          ? `TUNAI - Diterima: Rp ${paymentData.uang_diterima.toLocaleString()} - Kembalian: Rp ${kembalian.toLocaleString()}`
+          : `${paymentData.metode_pembayaran.toUpperCase()} - Rp ${totalHarga.toLocaleString()}`,
       );
       orderData.append('status_order', 'dibayar');
 
-      const orderResponse = await axios.post(
-        `${API_BASE_URL}/orders.php?op=create`,
-        orderData,
-      );
+      const orderResponse = await axios.post(`${API_BASE_URL}/orders.php?op=create`, orderData);
 
       if (orderResponse.data.status !== 'success') {
         throw new Error('Gagal membuat order');
@@ -287,88 +286,78 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
       const orderId = orderResponse.data.data?.id_order;
       const kodeOrder = orderResponse.data.data?.kode_order;
 
-      if (!orderId) {
-        throw new Error('ID Order tidak ditemukan');
+      if (!orderId) throw new Error('ID Order tidak ditemukan');
+
+      console.log('✅ Order created:', orderId, kodeOrder);
+
+      // Step 3: Create ALL Items
+      let itemsSaved = 0;
+      for (const item of items) {
+        try {
+          const itemData = new FormData();
+          itemData.append('id_order', orderId.toString());
+          itemData.append('id_product', item.id_product);
+          itemData.append('ukuran', item.ukuran);
+          itemData.append('jumlah', item.jumlah.toString());
+          itemData.append('harga_satuan', item.harga_satuan.toString());
+          itemData.append('subtotal', item.subtotal.toString());
+          itemData.append('keterangan', item.catatan);
+
+          console.log('Saving item:', item.nama_product);
+
+          const itemResponse = await axios.post(
+            `${API_BASE_URL}/order_items.php?op=create`,
+            itemData,
+          );
+
+          console.log('Item response:', itemResponse.data);
+
+          if (itemResponse.data.status === 'success') {
+            itemsSaved++;
+            console.log(`✅ Item ${itemsSaved}/${items.length} saved`);
+          } else {
+            console.error('❌ Item failed:', itemResponse.data);
+          }
+        } catch (itemError: any) {
+          console.error('❌ Error saving item:', itemError);
+          console.error('Response:', itemError.response?.data);
+        }
       }
 
-      const product = products.find(p => p.id_product === formData.id_product);
-      if (!product) {
-        throw new Error('Produk tidak ditemukan');
-      }
+      console.log(`Total items saved: ${itemsSaved}/${items.length}`);
 
-      const itemSubtotal = Number(product.harga_dasar) * formData.jumlah;
-
-      const itemData = new FormData();
-      itemData.append('id_order', orderId.toString());
-      itemData.append('id_product', formData.id_product);
-      itemData.append('ukuran', 'Standard');
-      itemData.append('jumlah', formData.jumlah.toString());
-      itemData.append('harga_satuan', product.harga_dasar.toString());
-      itemData.append('subtotal', itemSubtotal.toString());
-      itemData.append('keterangan', '');
-
-      const itemResponse = await axios.post(
-        `${API_BASE_URL}/order_items.php?op=create`,
-        itemData,
-      );
-
-      if (itemResponse.status !== 200 && itemResponse.status !== 201) {
-        throw new Error('Gagal membuat item pesanan');
-      }
-
-      console.log('Step 4: Creating Payment Record...');
-
+      // Step 4: Create Payment Record
       const paymentFormData = new FormData();
       paymentFormData.append('id_order', orderId.toString());
-      paymentFormData.append(
-        'metode_pembayaran',
-        paymentData.metode_pembayaran,
-      );
+      paymentFormData.append('metode_pembayaran', paymentData.metode_pembayaran);
       paymentFormData.append('nama_bank', '');
       paymentFormData.append('nomor_rekening', '');
-      paymentFormData.append('nama_pemilik', formData.nama_pelanggan);
+      paymentFormData.append('nama_pemilik', customerData.nama_pelanggan);
       paymentFormData.append('jumlah_bayar', totalHarga.toString());
       paymentFormData.append('bukti_bayar', '');
 
-      const paymentResponse = await axios.post(
-        `${API_BASE_URL}/payments.php?op=create`,
-        paymentFormData,
-      );
+      await axios.post(`${API_BASE_URL}/payments.php?op=create`, paymentFormData);
 
-      console.log('Payment record created:', paymentResponse.data);
+      // Success Message
+      let alertMessage = `✅ TRANSAKSI BERHASIL!\n\n🎫 Kode Order: ${kodeOrder}\n👤 Customer: ${customerCode}\n\n📦 Items (${items.length}):\n`;
+      
+      items.forEach((item, idx) => {
+        alertMessage += `${idx + 1}. ${item.nama_product} × ${item.jumlah} = ${formatRupiah(item.subtotal)}\n`;
+      });
 
-      if (paymentResponse.data.status !== 'success') {
-        console.warn('Payment creation warning:', paymentResponse.data);
-      }
-
-      let alertMessage = `✅ TRANSAKSI BERHASIL!\n\n🎫 Kode Order: ${kodeOrder}\n👤 Customer: ${customerCode}\n📦 ${
-        product.nama_product
-      } (${formData.jumlah} ${product.satuan})\n\n💰 Total: ${formatRupiah(
-        totalHarga,
-      )}\n`;
+      alertMessage += `\n💰 Total: ${formatRupiah(totalHarga)}\n`;
 
       if (paymentData.metode_pembayaran === 'cash') {
-        alertMessage += `💵 Uang Diterima: ${formatRupiah(
-          paymentData.uang_diterima,
-        )}\n💵 Kembalian: ${formatRupiah(kembalian)}\n`;
-      } else {
-        alertMessage += `💳 Bayar via: ${
-          paymentData.metode_pembayaran === 'qris' ? 'QRIS' : 'TRANSFER BANK'
-        }\n`;
+        alertMessage += `💵 Uang: ${formatRupiah(paymentData.uang_diterima)}\n💵 Kembalian: ${formatRupiah(kembalian)}\n`;
       }
 
-      alertMessage += `\n✅ Status: DIBAYAR LUNAS\n💳 Pembayaran tercatat di sistem\n🚀 Pesanan langsung masuk queue OPERATOR\n\nCustomer code: ${customerCode} untuk order berikutnya`;
+      alertMessage += `\n✅ Status: DIBAYAR LUNAS\n📋 ${itemsSaved}/${items.length} items tersimpan\n🚀 Pesanan masuk queue OPERATOR`;
 
       alert(alertMessage);
-
       onClose(true);
     } catch (error: any) {
-      console.error('Error:', error);
-      let errorMsg = error.message || 'Terjadi kesalahan';
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message;
-      }
-      alert('❌ Gagal:\n' + errorMsg);
+      console.error('❌ Error:', error);
+      alert('❌ Gagal: ' + (error.message || 'Terjadi kesalahan'));
     } finally {
       setLoading(false);
     }
@@ -396,6 +385,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
+        padding: '1rem',
       }}
     >
       <div
@@ -403,8 +393,8 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         style={{
           backgroundColor: 'white',
           borderRadius: '12px',
-          width: '90%',
-          maxWidth: '600px',
+          width: '100%',
+          maxWidth: '800px',
           maxHeight: '90vh',
           overflow: 'auto',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
@@ -417,6 +407,10 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
             alignItems: 'center',
             padding: '1.5rem',
             borderBottom: '1px solid #e0e0e0',
+            position: 'sticky',
+            top: 0,
+            background: 'white',
+            zIndex: 10,
           }}
         >
           <h2 style={{ margin: 0, fontSize: '1.5rem' }}>
@@ -439,6 +433,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         {step === 'order' ? (
           <form onSubmit={handleNextToPayment}>
             <div style={{ padding: '1.5rem' }}>
+              {/* Customer Section */}
               <div
                 style={{
                   background: '#f8f9fa',
@@ -455,9 +450,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                     marginBottom: showCustomerDetails ? '1rem' : '0',
                   }}
                 >
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-                    👤 Data Pelanggan
-                  </h3>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>👤 Data Pelanggan</h3>
                   <button
                     type="button"
                     onClick={() => setShowCustomerDetails(!showCustomerDetails)}
@@ -470,295 +463,177 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                       fontSize: '0.85rem',
                     }}
                   >
-                    {showCustomerDetails
-                      ? '➖ Sembunyikan'
-                      : '➕ Tambah Detail'}
+                    {showCustomerDetails ? '➖ Sembunyikan' : '➕ Tambah Detail'}
                   </button>
                 </div>
 
                 {!showCustomerDetails && (
-                  <p
-                    style={{
-                      margin: '0.5rem 0 0 0',
-                      color: '#666',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    🎫 Customer Code auto-generate:{' '}
-                    <strong>CUS-001, CUS-002, ...</strong>
+                  <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                    🎫 Customer Code auto: <strong>CUS-001, CUS-002...</strong>
                   </p>
                 )}
 
                 {showCustomerDetails && (
-                  <>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '1rem',
-                      }}
-                    >
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            marginBottom: '0.5rem',
-                            fontWeight: '500',
-                          }}
-                        >
-                          Nama
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.nama_pelanggan}
-                          onChange={e =>
-                            setFormData({
-                              ...formData,
-                              nama_pelanggan: e.target.value,
-                            })
-                          }
-                          placeholder="Nama lengkap"
-                          disabled={loading}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            borderRadius: '6px',
-                            border: '1px solid #ddd',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            marginBottom: '0.5rem',
-                            fontWeight: '500',
-                          }}
-                        >
-                          No. Telepon
-                        </label>
-                        <input
-                          type="tel"
-                          value={formData.no_telepon}
-                          onChange={e =>
-                            setFormData({
-                              ...formData,
-                              no_telepon: e.target.value,
-                            })
-                          }
-                          placeholder="08123456789"
-                          disabled={loading}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            borderRadius: '6px',
-                            border: '1px solid #ddd',
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div style={{ marginTop: '1rem' }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          marginBottom: '0.5rem',
-                          fontWeight: '500',
-                        }}
-                      >
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={e =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        placeholder="email@example.com"
-                        disabled={loading}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          borderRadius: '6px',
-                          border: '1px solid #ddd',
-                        }}
-                      />
-                    </div>
-                  </>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <input
+                      type="text"
+                      value={customerData.nama_pelanggan}
+                      onChange={e => setCustomerData({ ...customerData, nama_pelanggan: e.target.value })}
+                      placeholder="Nama lengkap"
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                    />
+                    <input
+                      type="tel"
+                      value={customerData.no_telepon}
+                      onChange={e => setCustomerData({ ...customerData, no_telepon: e.target.value })}
+                      placeholder="No. Telepon"
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                    />
+                  </div>
                 )}
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <h3 style={{ marginTop: 0, fontSize: '1.1rem' }}>
-                  📦 Detail Pesanan
-                </h3>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
+              {/* Add Item Form */}
+              <div style={{ background: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>➕ Tambah Produk</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <select
+                    value={currentItem.id_product}
+                    onChange={e => setCurrentItem({ ...currentItem, id_product: e.target.value })}
+                    disabled={loadingProducts}
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                  >
+                    <option value="">-- Pilih Produk --</option>
+                    {products.map(p => (
+                      <option key={p.id_product} value={p.id_product}>
+                        {p.nama_product} - {formatRupiah(Number(p.harga_dasar))}/{p.satuan}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <input
+                    type="number"
+                    value={currentItem.jumlah}
+                    onChange={e => setCurrentItem({ ...currentItem, jumlah: parseInt(e.target.value) || 1 })}
+                    min="1"
+                    placeholder="Jumlah"
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
                     style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: '500',
+                      padding: '0.5rem',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: '#28a745',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
                     }}
                   >
+                    ➕ Tambah
+                  </button>
+                </div>
+              </div>
+
+              {/* Items Cart */}
+              {items.length > 0 && (
+                <div style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>🛒 Keranjang ({items.length} items)</h3>
+                  
+                  {items.map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.75rem',
+                        background: 'white',
+                        borderRadius: '6px',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <strong>{item.nama_product}</strong>
+                        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                          {item.jumlah} × {formatRupiah(item.harga_satuan)} = <strong>{formatRupiah(item.subtotal)}</strong>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        style={{
+                          padding: '0.5rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: '#dc3545',
+                          color: 'white',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Order Settings */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                     Kecepatan
                   </label>
                   <select
-                    value={formData.kecepatan_pengerjaan}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        kecepatan_pengerjaan: e.target.value as
-                          | 'normal'
-                          | 'express',
-                      })
-                    }
-                    disabled={loading}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      borderRadius: '6px',
-                      border: '1px solid #ddd',
-                    }}
+                    value={orderSettings.kecepatan_pengerjaan}
+                    onChange={e => setOrderSettings({ ...orderSettings, kecepatan_pengerjaan: e.target.value as 'normal' | 'express' })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
                   >
                     <option value="normal">⏱️ Normal</option>
                     <option value="express">⚡ Express (+50%)</option>
                   </select>
                 </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: '500',
-                    }}
-                  >
-                    Produk *
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Diskon (Rp)
                   </label>
-                  <select
-                    value={formData.id_product}
-                    onChange={e =>
-                      setFormData({ ...formData, id_product: e.target.value })
-                    }
-                    required
-                    disabled={loading || loadingProducts}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      borderRadius: '6px',
-                      border: '1px solid #ddd',
-                    }}
-                  >
-                    <option value="">
-                      {loadingProducts ? '⏳ Loading...' : '-- Pilih Produk --'}
-                    </option>
-                    {products.map(product => (
-                      <option
-                        key={product.id_product}
-                        value={product.id_product}
-                      >
-                        {product.nama_product} -{' '}
-                        {formatRupiah(Number(product.harga_dasar))}/
-                        {product.satuan}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '1rem',
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        marginBottom: '0.5rem',
-                        fontWeight: '500',
-                      }}
-                    >
-                      Jumlah *
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.jumlah}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          jumlah: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      min="1"
-                      required
-                      disabled={loading}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        borderRadius: '6px',
-                        border: '1px solid #ddd',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        marginBottom: '0.5rem',
-                        fontWeight: '500',
-                      }}
-                    >
-                      Diskon (Rp)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.diskon}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          diskon: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      min="0"
-                      disabled={loading}
-                      placeholder="0"
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        borderRadius: '6px',
-                        border: '1px solid #ddd',
-                      }}
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    value={orderSettings.diskon}
+                    onChange={e => setOrderSettings({ ...orderSettings, diskon: parseFloat(e.target.value) || 0 })}
+                    min="0"
+                    placeholder="0"
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                  />
                 </div>
               </div>
 
+              {/* Total */}
               <div
                 style={{
-                  background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   padding: '1.5rem',
                   borderRadius: '12px',
                   textAlign: 'center',
                 }}
               >
-                <h3
-                  style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '0.95rem',
-                    opacity: 0.9,
-                  }}
-                >
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', opacity: 0.9 }}>
                   TOTAL
                 </h3>
-                <p
-                  style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold' }}
-                >
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold' }}>
                   {formatRupiah(totalHarga)}
                 </p>
+                {items.length > 0 && (
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+                    Subtotal: {formatRupiah(subtotal)} • {items.length} items
+                  </p>
+                )}
               </div>
             </div>
 
@@ -769,12 +644,14 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                 gap: '1rem',
                 padding: '1.5rem',
                 borderTop: '1px solid #e0e0e0',
+                position: 'sticky',
+                bottom: 0,
+                background: 'white',
               }}
             >
               <button
                 type="button"
                 onClick={() => onClose(false)}
-                disabled={loading}
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '6px',
@@ -787,14 +664,14 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
               </button>
               <button
                 type="submit"
-                disabled={loading || loadingProducts || products.length === 0}
+                disabled={items.length === 0}
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '6px',
                   border: 'none',
-                  background: '#667eea',
+                  background: items.length === 0 ? '#ccc' : '#667eea',
                   color: 'white',
-                  cursor: 'pointer',
+                  cursor: items.length === 0 ? 'not-allowed' : 'pointer',
                   fontWeight: '500',
                 }}
               >
@@ -804,112 +681,45 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
           </form>
         ) : (
           <form onSubmit={handleSubmitOrder}>
+            {/* Payment form - sama seperti sebelumnya, tapi tampilkan semua items */}
             <div style={{ padding: '1.5rem' }}>
-              <div
-                style={{
-                  background: '#f8f9fa',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  marginBottom: '1rem',
-                }}
-              >
-                <h4
-                  style={{
-                    margin: '0 0 0.75rem 0',
-                    fontSize: '0.9rem',
-                    color: '#666',
-                  }}
-                >
+              {/* Ringkasan Items */}
+              <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: '#666' }}>
                   📋 Ringkasan Pesanan
                 </h4>
-                <div style={{ fontSize: '0.9rem' }}>
+                {items.map((item, idx) => (
                   <div
+                    key={idx}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
                     }}
                   >
-                    <span>Produk:</span>
-                    <strong>
-                      {
-                        products.find(p => p.id_product === formData.id_product)
-                          ?.nama_product
-                      }
-                    </strong>
+                    <span>
+                      {idx + 1}. {item.nama_product} × {item.jumlah}
+                    </span>
+                    <strong>{formatRupiah(item.subtotal)}</strong>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <span>Jumlah:</span>
-                    <strong>{formData.jumlah}</strong>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <span>Subtotal:</span>
-                    <strong>{formatRupiah(subtotal)}</strong>
-                  </div>
-                  {formData.diskon > 0 && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        marginBottom: '0.5rem',
-                        color: '#e74c3c',
-                      }}
-                    >
-                      <span>Diskon:</span>
-                      <strong>- {formatRupiah(formData.diskon)}</strong>
-                    </div>
-                  )}
-                  {formData.kecepatan_pengerjaan === 'express' && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        marginBottom: '0.5rem',
-                        color: '#f39c12',
-                      }}
-                    >
-                      <span>Express:</span>
-                      <strong>+50%</strong>
-                    </div>
-                  )}
-                  <hr
-                    style={{
-                      margin: '0.75rem 0',
-                      border: 'none',
-                      borderTop: '1px solid #ddd',
-                    }}
-                  />
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    <strong>TOTAL:</strong>
-                    <strong style={{ color: '#667eea' }}>
-                      {formatRupiah(totalHarga)}
-                    </strong>
-                  </div>
+                ))}
+                <hr style={{ margin: '0.75rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  <strong>TOTAL:</strong>
+                  <strong style={{ color: '#667eea' }}>{formatRupiah(totalHarga)}</strong>
                 </div>
               </div>
 
+              {/* Metode Pembayaran */}
               <div>
-                <h3 style={{ marginTop: 0, fontSize: '1.1rem' }}>
-                  💳 Metode Pembayaran
-                </h3>
+                <h3 style={{ marginTop: 0, fontSize: '1.1rem' }}>💳 Metode Pembayaran</h3>
 
                 <div style={{ marginBottom: '1rem' }}>
                   <label
@@ -926,10 +736,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                     onChange={e =>
                       setPaymentData({
                         ...paymentData,
-                        metode_pembayaran: e.target.value as
-                          | 'cash'
-                          | 'transfer'
-                          | 'qris',
+                        metode_pembayaran: e.target.value as 'cash' | 'transfer' | 'qris',
                       })
                     }
                     disabled={loading}
@@ -980,48 +787,22 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                           fontWeight: 'bold',
                         }}
                       />
-                      {paymentData.uang_diterima < totalHarga && (
-                        <small
-                          style={{
-                            color: '#e74c3c',
-                            display: 'block',
-                            marginTop: '0.25rem',
-                          }}
-                        >
-                          ⚠️ Uang kurang! Min: {formatRupiah(totalHarga)}
-                        </small>
-                      )}
                     </div>
 
                     {kembalian > 0 && (
                       <div
                         style={{
-                          background:
-                            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                          background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
                           padding: '1.5rem',
                           borderRadius: '12px',
                           textAlign: 'center',
                           marginTop: '1rem',
                         }}
                       >
-                        <h4
-                          style={{
-                            margin: '0 0 0.5rem 0',
-                            fontSize: '1rem',
-                            color: 'white',
-                            opacity: 0.9,
-                          }}
-                        >
+                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'white', opacity: 0.9 }}>
                           💵 KEMBALIAN
                         </h4>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: '2.5rem',
-                            fontWeight: 'bold',
-                            color: 'white',
-                          }}
-                        >
+                        <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: 'white' }}>
                           {formatRupiah(kembalian)}
                         </p>
                       </div>
@@ -1039,43 +820,21 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                       marginTop: '1rem',
                     }}
                   >
-                    <h4
-                      style={{
-                        margin: '0 0 0.75rem 0',
-                        fontSize: '0.95rem',
-                        color: '#856404',
-                      }}
-                    >
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: '#856404' }}>
                       🏦 Transfer ke Rekening:
                     </h4>
                     <div style={{ fontSize: '0.9rem', color: '#856404' }}>
-                      <p style={{ margin: '0.25rem 0' }}>
-                        <strong>Bank:</strong> BCA
-                      </p>
-                      <p style={{ margin: '0.25rem 0' }}>
-                        <strong>No. Rekening:</strong> 1234567890
-                      </p>
-                      <p style={{ margin: '0.25rem 0' }}>
-                        <strong>Atas Nama:</strong> Percetakan XYZ
-                      </p>
+                      <p style={{ margin: '0.25rem 0' }}><strong>Bank:</strong> BCA</p>
+                      <p style={{ margin: '0.25rem 0' }}><strong>No. Rekening:</strong> 1234567890</p>
+                      <p style={{ margin: '0.25rem 0' }}><strong>Atas Nama:</strong> Percetakan XYZ</p>
                       <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold' }}>
-                        <strong>Jumlah Transfer:</strong>{' '}
-                        {formatRupiah(totalHarga)}
+                        <strong>Jumlah:</strong> {formatRupiah(totalHarga)}
                       </p>
                     </div>
-                    <p
-                      style={{
-                        margin: '0.75rem 0 0 0',
-                        fontSize: '0.85rem',
-                        color: '#856404',
-                      }}
-                    >
-                      ⚠️ Pastikan pembayaran sudah diterima sebelum konfirmasi!
-                    </p>
                   </div>
                 )}
 
-                {paymentData.metode_pembayaran === 'qris' && (
+                {paymentData.metode_pembayaran === 'qris' && qrCodeUrl && (
                   <div
                     style={{
                       background: '#e8f5e9',
@@ -1086,56 +845,14 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                       textAlign: 'center',
                     }}
                   >
-                    <h4
-                      style={{
-                        margin: '0 0 1rem 0',
-                        fontSize: '0.95rem',
-                        color: '#2e7d32',
-                      }}
-                    >
-                      📱 Scan QR Code untuk Pembayaran
+                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#2e7d32' }}>
+                      📱 Scan QR Code
                     </h4>
-
-                    {qrCodeUrl && (
-                      <div
-                        style={{
-                          background: 'white',
-                          padding: '1rem',
-                          borderRadius: '8px',
-                          display: 'inline-block',
-                        }}
-                      >
-                        <img
-                          src={qrCodeUrl}
-                          alt="QRIS Payment"
-                          style={{
-                            width: '250px',
-                            height: '250px',
-                            display: 'block',
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <p
-                      style={{
-                        margin: '1rem 0 0 0',
-                        fontSize: '1.1rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32',
-                      }}
-                    >
+                    <div style={{ background: 'white', padding: '1rem', borderRadius: '8px', display: 'inline-block' }}>
+                      <img src={qrCodeUrl} alt="QRIS" style={{ width: '250px', height: '250px' }} />
+                    </div>
+                    <p style={{ margin: '1rem 0 0 0', fontSize: '1.1rem', fontWeight: 'bold', color: '#2e7d32' }}>
                       Total: {formatRupiah(totalHarga)}
-                    </p>
-
-                    <p
-                      style={{
-                        margin: '0.5rem 0 0 0',
-                        fontSize: '0.85rem',
-                        color: '#2e7d32',
-                      }}
-                    >
-                      ⚠️ Pastikan pembayaran berhasil sebelum konfirmasi!
                     </p>
                   </div>
                 )}
@@ -1149,6 +866,9 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                 gap: '1rem',
                 padding: '1.5rem',
                 borderTop: '1px solid #e0e0e0',
+                position: 'sticky',
+                bottom: 0,
+                background: 'white',
               }}
             >
               <button
@@ -1169,24 +889,19 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                 type="submit"
                 disabled={
                   loading ||
-                  (paymentData.metode_pembayaran === 'cash' &&
-                    paymentData.uang_diterima < totalHarga)
+                  (paymentData.metode_pembayaran === 'cash' && paymentData.uang_diterima < totalHarga)
                 }
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '6px',
                   border: 'none',
                   background:
-                    loading ||
-                    (paymentData.metode_pembayaran === 'cash' &&
-                      paymentData.uang_diterima < totalHarga)
+                    loading || (paymentData.metode_pembayaran === 'cash' && paymentData.uang_diterima < totalHarga)
                       ? '#ccc'
                       : '#43e97b',
                   color: 'white',
                   cursor:
-                    loading ||
-                    (paymentData.metode_pembayaran === 'cash' &&
-                      paymentData.uang_diterima < totalHarga)
+                    loading || (paymentData.metode_pembayaran === 'cash' && paymentData.uang_diterima < totalHarga)
                       ? 'not-allowed'
                       : 'pointer',
                   fontWeight: '500',
