@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
-import DashboardScreen from './screens/dashboard/DashboardScreen.tsx';
+import DashboardScreen from './screens/customer/DashboardScreen';
 
 type Screen = 'login' | 'register' | 'dashboard';
 
