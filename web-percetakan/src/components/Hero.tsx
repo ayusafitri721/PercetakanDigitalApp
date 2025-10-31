@@ -51,7 +51,7 @@ const Hero = () => {
         }
 
         .hero-title .highlight {
-          color: #60a5fa;
+          color: #1E3A8A;
         }
 
         .hero-subtitle {

@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 const Navbar = () => {
   const navigate = useNavigate();
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -111,20 +118,26 @@ const Navbar = () => {
 
       <nav className="navbar">
         <div className="navbar-container">
-          <a className="navbar-logo">
+          <a className="navbar-logo" onClick={() => scrollToSection('home')}>
             <span className="logo-icon">🎨</span>
             <span>PrintyGo</span>
           </a>
 
           <ul className="navbar-menu">
             <li>
-              <a>About</a>
+              <a onClick={() => scrollToSection('about')}>About</a>
             </li>
             <li>
-              <a>Galery</a>
+              <a onClick={() => scrollToSection('gallery')}>Gallery</a>
             </li>
             <li>
-              <a>Contact</a>
+              <a onClick={() => scrollToSection('features')}>Features</a>
+            </li>
+            <li>
+              <a onClick={() => scrollToSection('location')}>Location</a>
+            </li>
+            <li>
+              <a onClick={() => scrollToSection('contact')}>Contact</a>
             </li>
           </ul>
 

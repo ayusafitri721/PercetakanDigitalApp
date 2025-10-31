@@ -6,7 +6,12 @@ import OperatorDashboard from './pages/dashboard/operator/Dashboard'; // ✅ TAM
 import UsersManagement from './pages/users/UsersManagement';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import Gallery from './components/Gallery';
 import AboutSection from './components/About';
+import Features from './components/Features';
+import Location from './components/Location';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
 import './pages/users/UserForm';
 import './pages/users/UserDelete';
 import './pages/products/ProductForm';
@@ -31,6 +36,11 @@ function App() {
               <Navbar />
               <Hero />
               <AboutSection />
+              <Gallery />
+              <Features/>
+              <Location/>
+              <Contact />
+              <Footer />
             </div>
           }
         />

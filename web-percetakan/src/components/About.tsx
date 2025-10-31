@@ -12,25 +12,25 @@ const AboutSection = ({
       icon: '⚡',
       title: 'Super Fast',
       description: 'Percetakan siap pasang terbang',
-      color: '#3b82f6',
+      color: '#60a5fa', // Soft Blue
     },
     {
       icon: '💰',
       title: 'Affordable',
       description: 'Harga lebih terjangkau dengan baik',
-      color: '#22c55e',
+      color: '#34d399', // Soft Green
     },
     {
       icon: '🌿',
       title: 'Eco-Friendly',
       description: 'Menggunakan tinta ramah lingkungan',
-      color: '#a855f7',
+      color: '#a78bfa', // Soft Purple
     },
     {
       icon: '🛡️',
       title: 'Safe & Comfortable',
       description: 'Pengiriman tanpa kontak fisik pokoak aman',
-      color: '#eab308',
+      color: '#fbbf24', // Soft Yellow
     },
   ];
 
@@ -38,7 +38,7 @@ const AboutSection = ({
     section: {
       position: 'relative' as const,
       padding: '80px 24px',
-      background: '#1E3A8A',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', // Soft Blue Gradient
       overflow: 'hidden',
     },
     background: {
@@ -56,9 +56,10 @@ const AboutSection = ({
       left: '40px',
       width: '256px',
       height: '256px',
-      background: 'white',
+      background: '#93c5fd',
       borderRadius: '50%',
       filter: 'blur(80px)',
+      opacity: 0.3,
     },
     bgCircle2: {
       position: 'absolute' as const,
@@ -66,9 +67,10 @@ const AboutSection = ({
       right: '40px',
       width: '384px',
       height: '384px',
-      background: 'white',
+      background: '#7dd3fc',
       borderRadius: '50%',
       filter: 'blur(80px)',
+      opacity: 0.3,
     },
     container: {
       maxWidth: '1280px',
@@ -119,34 +121,38 @@ const AboutSection = ({
       position: 'absolute' as const,
       bottom: 0,
       left: 0,
-      background: 'rgba(255, 255, 255, 0.2)',
-      backdropFilter: 'blur(10px)',
+      background: '#1E3A8A',
       color: 'white',
-      padding: '8px 16px',
-      borderRadius: '8px',
+      padding: '12px 24px',
+      borderRadius: '12px',
+      fontWeight: '600',
+      fontSize: '0.875rem',
+      boxShadow: '0 4px 12px rgba(30, 58, 138, 0.3)',
     },
     content: {
-      color: 'white',
+      color: '#1e293b', // Dark slate for better readability
     },
     title: {
       fontSize: '2.5rem',
       fontWeight: 'bold',
       marginBottom: '24px',
       lineHeight: '1.2',
+      color: '#0f172a', // Very dark slate
     },
     highlight: {
-      color: '#67e8f9',
+      color: '#1E3A8A', // Navy blue instead of cyan
     },
     description: {
       fontSize: '1.125rem',
       marginBottom: '32px',
-      color: '#bfdbfe',
+      color: '#475569', // Medium slate
       lineHeight: '1.75',
     },
     featuresTitle: {
       fontSize: '1.5rem',
       fontWeight: '600',
       marginBottom: '24px',
+      color: '#1e293b',
     },
     featuresList: {
       display: 'flex',
@@ -157,16 +163,17 @@ const AboutSection = ({
       display: 'flex',
       alignItems: 'flex-start',
       gap: '16px',
-      background: 'rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '12px',
-      padding: '16px',
+      background: 'white',
+      borderRadius: '16px',
+      padding: '20px',
       transition: 'all 0.3s ease',
       cursor: 'pointer',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      border: '1px solid #e2e8f0',
     },
     featureIcon: {
       padding: '12px',
-      borderRadius: '8px',
+      borderRadius: '12px',
       color: 'white',
       flexShrink: 0,
       fontSize: '1.5rem',
@@ -183,15 +190,16 @@ const AboutSection = ({
       fontWeight: '600',
       fontSize: '1.125rem',
       marginBottom: '4px',
+      color: '#1e293b',
     },
     featureDescription: {
-      color: '#bfdbfe',
+      color: '#64748b',
       fontSize: '0.875rem',
     },
   };
 
   return (
-    <section style={styles.section}>
+    <section id="about" style={styles.section}>
       <div style={styles.background}>
         <div style={styles.bgCircle1}></div>
         <div style={styles.bgCircle2}></div>
@@ -237,12 +245,14 @@ const AboutSection = ({
                     key={index}
                     style={styles.featureCard}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background =
-                        'rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow =
+                        '0 8px 24px rgba(30, 58, 138, 0.15)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background =
-                        'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow =
+                        '0 2px 8px rgba(0, 0, 0, 0.05)';
                     }}
                   >
                     <div
