@@ -13,11 +13,14 @@ import {
 
 interface OrderFormScreenProps {
   service: {
-    id: number;
-    name: string;
-    icon: string;
-    color: string;
-    category: string;
+    id_product: string;
+    nama_product: string;
+    nama_category: string;
+    deskripsi: string;
+    media_cetak: string;
+    ukuran_standar: string;
+    satuan: string;
+    harga_dasar: string;
   } | null;
   onBack: () => void;
 }
@@ -65,41 +68,17 @@ export default function OrderFormScreen({
     ]);
   };
 
-  // Hapus file
   const handleRemoveFile = () => {
     setUploadedFile(null);
   };
 
-  // Hitung estimasi harga
+  // Hitung estimasi harga dari database
   const calculatePrice = (): number => {
-    if (!orderDetails.material || !orderDetails.size) return 0;
+    if (!service || !orderDetails.material || !orderDetails.size) return 0;
 
-    let basePrice = 0;
+    // Ambil harga dasar dari database
+    let basePrice = parseInt(service.harga_dasar);
     const { quantity, speed } = orderDetails;
-
-    // Base price berdasarkan kategori
-    switch (service?.category) {
-      case 'document':
-        basePrice = 500;
-        break;
-      case 'banner':
-        basePrice = 25000;
-        break;
-      case 'textile':
-        basePrice = 15000;
-        break;
-      case 'sticker':
-        basePrice = 10000;
-        break;
-      case 'packaging':
-        basePrice = 5000;
-        break;
-      case 'photo':
-        basePrice = 2000;
-        break;
-      default:
-        basePrice = 1000;
-    }
 
     // Kalikan dengan jumlah
     let total = basePrice * quantity;
@@ -113,6 +92,42 @@ export default function OrderFormScreen({
   };
 
   const estimatedPrice = calculatePrice();
+
+  // Parse material dari database (misal: "HVS 70g, HVS 80g, Art Paper")
+  const getMaterialOptions = (): string[] => {
+    if (!service || !service.media_cetak) return ['Standard'];
+    return service.media_cetak.split(',').map(m => m.trim());
+  };
+
+  // Parse ukuran dari database (misal: "A4, F4, Legal")
+  const getSizeOptions = (): string[] => {
+    if (!service || !service.ukuran_standar) return ['Standard'];
+    return service.ukuran_standar.split(',').map(s => s.trim());
+  };
+
+  // Get icon dari kategori
+  const getIconByCategory = (categoryName: string): string => {
+    const lower = categoryName.toLowerCase();
+    if (lower.includes('dokumen')) return '📄';
+    if (lower.includes('banner')) return '🎴';
+    if (lower.includes('kaos')) return '👕';
+    if (lower.includes('stiker')) return '🖼️';
+    if (lower.includes('packaging')) return '🎁';
+    if (lower.includes('foto')) return '📸';
+    return '🖨️';
+  };
+
+  // Get color dari kategori
+  const getColorByCategory = (categoryName: string): string => {
+    const lower = categoryName.toLowerCase();
+    if (lower.includes('dokumen')) return '#4F46E5';
+    if (lower.includes('banner')) return '#10B981';
+    if (lower.includes('kaos')) return '#F59E0B';
+    if (lower.includes('stiker')) return '#EF4444';
+    if (lower.includes('packaging')) return '#8B5CF6';
+    if (lower.includes('foto')) return '#EC4899';
+    return '#6366F1';
+  };
 
   // Submit order
   const handleSubmitOrder = () => {
@@ -133,12 +148,14 @@ export default function OrderFormScreen({
 
     setLoading(true);
 
-    // Simulasi API call
+    // Simulasi API call (nanti ganti dengan API order)
     setTimeout(() => {
       setLoading(false);
       Alert.alert(
         '✅ Pesanan Berhasil Dibuat!',
-        `Total: Rp ${estimatedPrice.toLocaleString(
+        `Produk: ${
+          service?.nama_product
+        }\nTotal: Rp ${estimatedPrice.toLocaleString(
           'id-ID',
         )}\n\nSilakan lanjutkan ke pembayaran.`,
         [
@@ -157,10 +174,13 @@ export default function OrderFormScreen({
   if (!service) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Service tidak ditemukan</Text>
+        <Text style={styles.errorText}>Produk tidak ditemukan</Text>
       </View>
     );
   }
+
+  const icon = getIconByCategory(service.nama_category);
+  const color = getColorByCategory(service.nama_category);
 
   return (
     <View style={styles.container}>
@@ -178,11 +198,17 @@ export default function OrderFormScreen({
         showsVerticalScrollIndicator={false}
       >
         {/* Service Info */}
-        <View
-          style={[styles.serviceInfoCard, { borderLeftColor: service.color }]}
-        >
-          <Text style={styles.serviceIcon}>{service.icon}</Text>
-          <Text style={styles.serviceName}>{service.name}</Text>
+        <View style={[styles.serviceInfoCard, { borderLeftColor: color }]}>
+          <Text style={styles.serviceIcon}>{icon}</Text>
+          <View style={styles.serviceInfo}>
+            <Text style={styles.serviceName}>{service.nama_product}</Text>
+            <Text style={styles.serviceCategory}>
+              📁 {service.nama_category}
+            </Text>
+            {service.deskripsi && (
+              <Text style={styles.serviceDescription}>{service.deskripsi}</Text>
+            )}
+          </View>
         </View>
 
         {/* Upload File Section */}
@@ -225,7 +251,7 @@ export default function OrderFormScreen({
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Jenis Material *</Text>
             <View style={styles.optionsRow}>
-              {getMaterialOptions(service.category).map(mat => (
+              {getMaterialOptions().map(mat => (
                 <TouchableOpacity
                   key={mat}
                   style={[
@@ -254,7 +280,7 @@ export default function OrderFormScreen({
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Ukuran *</Text>
             <View style={styles.optionsRow}>
-              {getSizeOptions(service.category).map(size => (
+              {getSizeOptions().map(size => (
                 <TouchableOpacity
                   key={size}
                   style={[
@@ -279,7 +305,7 @@ export default function OrderFormScreen({
 
           {/* Quantity */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Jumlah *</Text>
+            <Text style={styles.label}>Jumlah ({service.satuan}) *</Text>
             <View style={styles.quantityRow}>
               <TouchableOpacity
                 style={styles.quantityButton}
@@ -370,7 +396,7 @@ export default function OrderFormScreen({
         </View>
 
         {/* Price Estimation */}
-        <View style={styles.priceCard}>
+        <View style={[styles.priceCard, { backgroundColor: color }]}>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Estimasi Harga:</Text>
             <Text style={styles.priceValue}>
@@ -413,45 +439,6 @@ export default function OrderFormScreen({
       </View>
     </View>
   );
-}
-
-// Helper functions untuk options
-function getMaterialOptions(category: string): string[] {
-  switch (category) {
-    case 'document':
-      return ['HVS 70g', 'HVS 80g', 'Art Paper'];
-    case 'banner':
-      return ['MMT', 'Flexi', 'Vinyl'];
-    case 'textile':
-      return ['Cotton', 'Polyester', 'Combed'];
-    case 'sticker':
-      return ['Vinyl', 'Chromo', 'Transparan'];
-    case 'packaging':
-      return ['Art Carton', 'Duplex', 'Kraft'];
-    case 'photo':
-      return ['Glossy', 'Matte', 'Canvas'];
-    default:
-      return ['Standard'];
-  }
-}
-
-function getSizeOptions(category: string): string[] {
-  switch (category) {
-    case 'document':
-      return ['A4', 'F4', 'Legal'];
-    case 'banner':
-      return ['60x90 cm', '80x120 cm', 'Custom'];
-    case 'textile':
-      return ['S', 'M', 'L', 'XL'];
-    case 'sticker':
-      return ['A4', 'A5', 'Custom'];
-    case 'packaging':
-      return ['10x15 cm', '15x20 cm', 'Custom'];
-    case 'photo':
-      return ['4R', '5R', 'A4'];
-    default:
-      return ['Standard'];
-  }
 }
 
 const styles = StyleSheet.create({
@@ -497,7 +484,7 @@ const styles = StyleSheet.create({
   },
   serviceInfoCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
     marginTop: 20,
@@ -510,10 +497,24 @@ const styles = StyleSheet.create({
     fontSize: 32,
     marginRight: 16,
   },
+  serviceInfo: {
+    flex: 1,
+  },
   serviceName: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1F2937',
+    marginBottom: 4,
+  },
+  serviceCategory: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   section: {
     marginTop: 24,
@@ -692,7 +693,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   priceCard: {
-    backgroundColor: '#4F46E5',
     marginHorizontal: 24,
     marginTop: 24,
     borderRadius: 16,
@@ -708,7 +708,8 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E0E7FF',
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   priceValue: {
     fontSize: 24,
@@ -717,7 +718,8 @@ const styles = StyleSheet.create({
   },
   priceNote: {
     fontSize: 12,
-    color: '#C7D2FE',
+    color: '#FFFFFF',
+    opacity: 0.8,
     fontStyle: 'italic',
   },
   bottomBar: {
