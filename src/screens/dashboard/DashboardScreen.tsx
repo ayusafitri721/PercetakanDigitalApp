@@ -1,4 +1,5 @@
 // DashboardScreen.tsx
+// semenatara udh ngga kepakai dlu 
 import React from 'react';
 import {
   View,

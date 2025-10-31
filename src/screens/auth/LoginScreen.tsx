@@ -14,7 +14,7 @@ import {
   StatusBar,
 } from 'react-native';
 
-const API_URL = 'http://10.69.149.126/api-percetakan/api';
+const API_URL = 'http://172.26.150.126/api-percetakan/api';
 
 interface LoginScreenProps {
   onGoToRegister: () => void;

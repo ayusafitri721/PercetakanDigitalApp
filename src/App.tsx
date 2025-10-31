@@ -1,10 +1,11 @@
 // App.tsx - Simple Router (No Library)
 import React, { useState } from 'react';
+import WelcomeScreen from './screens/auth/WelcomeScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
 import DashboardScreen from './screens/customer/DashboardScreen';
 
-type Screen = 'login' | 'register' | 'dashboard';
+type Screen = 'welcome' | 'login' | 'register' | 'dashboard';
 
 interface UserData {
   user: {
@@ -19,7 +20,7 @@ interface UserData {
 }
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [userData, setUserData] = useState<UserData | null>(null);
 
   // Navigation functions
@@ -30,6 +31,14 @@ export default function App() {
 
   // Render screen berdasarkan state
   switch (currentScreen) {
+    case 'welcome':
+      return (
+        <WelcomeScreen
+          onGoToLogin={() => navigateTo('login')}
+          onGoToRegister={() => navigateTo('register')}
+        />
+      );
+
     case 'login':
       return (
         <LoginScreen
@@ -52,16 +61,16 @@ export default function App() {
           userData={userData}
           onLogout={() => {
             setUserData(null);
-            navigateTo('login');
+            navigateTo('welcome');
           }}
         />
       );
 
     default:
       return (
-        <LoginScreen
+        <WelcomeScreen
+          onGoToLogin={() => navigateTo('login')}
           onGoToRegister={() => navigateTo('register')}
-          onLoginSuccess={user => navigateTo('dashboard', user)}
         />
       );
   }
