@@ -49,15 +49,11 @@ const Navbar = () => {
           cursor: pointer;
         }
 
-        .logo-icon {
+        .logo-image {
           width: 32px;
           height: 32px;
-          background: white;
           border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.2rem;
+          object-fit: cover;
         }
 
         .navbar-menu {
@@ -119,7 +115,7 @@ const Navbar = () => {
       <nav className="navbar">
         <div className="navbar-container">
           <a className="navbar-logo" onClick={() => scrollToSection('home')}>
-            <span className="logo-icon">🎨</span>
+            <img src="/public/images/Logo-Im.png" alt="PrintyGo Logo" className="logo-image" />
             <span>PrintyGo</span>
           </a>
 

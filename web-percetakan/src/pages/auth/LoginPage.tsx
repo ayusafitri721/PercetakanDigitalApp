@@ -111,72 +111,103 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>Login</h1>
-          <p>Sistem Percetakan Digital</p>
+      <div className="login-box">
+        {/* LEFT SIDE - Illustration */}
+        <div className="login-left">
+          {/* <div className="brand">
+            <img
+              src="public/images/Logo-Prin.png"
+              alt="PrintyGo Logo"
+              className="brand-logo"
+            />
+          </div> */}
+          <div className="illustration">
+            <img
+              src="public/images/Login-Screen.png"
+              alt="Login Illustration"
+            />
+          </div>
         </div>
 
-        {error && (
-          <div className="alert alert-error">
-            <span>⚠️ {error}</span>
-          </div>
-        )}
+        {/* RIGHT SIDE - Form */}
+        <div className="login-right">
+          <div className="login-form-wrapper">
+            <h2 className="login-title">Login</h2>
+            <p className="login-subtitle">
+              Lorem Ipsum dolor sit amet is simply text of printing typeseting
+              industry
+            </p>
 
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="email@percetakan.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={loading}
-              autoComplete="email"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loading}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn-login" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                <span>Loading...</span>
-              </>
-            ) : (
-              'Login'
+            {error && (
+              <div className="alert alert-error">
+                <span>⚠️ {error}</span>
+              </div>
             )}
-          </button>
-        </form>
 
-        <div className="login-footer">
-          <p>Demo Account:</p>
-          <small>
-            <strong>Admin:</strong> admin@percetakan.com / password
-          </small>
-          <br />
-          <small>
-            <strong>Kasir:</strong> kasir@percetakan.com / password
-          </small>
-          <br />
-          <small>
-            <strong>Operator:</strong> operator@percetakan.com / password
-          </small>
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn-signin" disabled={loading}>
+                {loading ? 'Loading...' : 'Sign In'}
+              </button>
+            </form>
+
+            <div className="divider">
+              <span>Or Sign In with</span>
+            </div>
+
+            <div className="social-buttons">
+              <button className="social-btn">
+                <img src="/assets/google-icon.png" alt="Google" />
+              </button>
+              <button className="social-btn">
+                <img src="/assets/facebook-icon.png" alt="Facebook" />
+              </button>
+              <button className="social-btn">
+                <img src="/assets/twitter-icon.png" alt="Twitter" />
+              </button>
+            </div>
+
+            <p className="signup-link">
+              Don't have an account? <a href="/signup">Sign Up</a>
+            </p>
+
+            {/* Demo Accounts (Hidden by default) */}
+            <details className="demo-accounts">
+              <summary>Demo Accounts</summary>
+              <div className="demo-content">
+                <p>
+                  <strong>Admin:</strong> admin@percetakan.com / password
+                </p>
+                <p>
+                  <strong>Kasir:</strong> kasir@percetakan.com / password
+                </p>
+                <p>
+                  <strong>Operator:</strong> operator@percetakan.com / password
+                </p>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     </div>
