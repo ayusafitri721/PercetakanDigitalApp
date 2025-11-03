@@ -227,7 +227,7 @@ const Contact = () => {
         }
       `}</style>
 
-      <section className="contact">
+      <section id="contact" className="contact">
         <div className="contact-container">
           <div className="contact-header">
             <h2 className="contact-title">

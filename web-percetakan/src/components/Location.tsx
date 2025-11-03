@@ -257,7 +257,7 @@ const Location = () => {
         }
       `}</style>
 
-      <section className="location">
+      <section id="location" className="location">
         <div className="location-container">
           <div className="location-content">
             <span className="location-badge">Location</span>
