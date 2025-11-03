@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './products.css';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
+const BASE_URL = 'http://localhost/api-percetakan';
 
 interface Category {
   id_category: string;
@@ -29,6 +30,10 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     id_category: product?.id_category || '',
     nama_product: product?.nama_product || '',
@@ -37,8 +42,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     ukuran_standar: product?.ukuran_standar || '',
     satuan: product?.satuan || 'lembar',
     harga_dasar: product?.harga_dasar || 0,
-    gambar_preview: product?.gambar_preview || '',
   });
+
+  // Set preview dari produk yang ada
+  useEffect(() => {
+    if (product?.gambar_preview) {
+      // Jika ada gambar dari database, tampilkan dengan full URL
+      const fullImageUrl = product.gambar_preview.startsWith('http')
+        ? product.gambar_preview
+        : `${BASE_URL}/${product.gambar_preview}`;
+
+      setPreviewUrl(fullImageUrl);
+      console.log('Loading existing image:', fullImageUrl);
+    }
+  }, [product]);
 
   // Fetch categories
   useEffect(() => {
@@ -48,33 +65,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/categories.php`);
-
-      console.log('Categories Response:', response.data);
-
-      // Handle berbagai struktur response
       let categoriesData: Category[] = [];
 
       if (response.data.status === 'success') {
-        // Cek apakah ada data.categories
         if (
           response.data.data &&
           Array.isArray(response.data.data.categories)
         ) {
           categoriesData = response.data.data.categories;
-        }
-        // Cek apakah data langsung array
-        else if (Array.isArray(response.data.data)) {
+        } else if (Array.isArray(response.data.data)) {
           categoriesData = response.data.data;
-        }
-        // Cek apakah response.data.categories
-        else if (Array.isArray(response.data.categories)) {
+        } else if (Array.isArray(response.data.categories)) {
           categoriesData = response.data.categories;
         }
       } else if (Array.isArray(response.data)) {
         categoriesData = response.data;
       }
 
-      console.log('Categories parsed:', categoriesData);
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -94,10 +101,69 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     }));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      sizeInMB: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+    });
+
+    // Validasi tipe file
+    const validTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
+    if (!validTypes.includes(file.type)) {
+      alert('Format gambar tidak valid! Gunakan JPG, PNG, GIF, atau WebP');
+      e.target.value = '';
+      return;
+    }
+
+    // Validasi ukuran (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file terlalu besar! Maksimal 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    // Set file
+    setSelectedImage(file);
+    console.log('File set to state:', file.name);
+
+    // Buat preview URL
+    const reader = new FileReader();
+    reader.onload = event => {
+      if (event.target?.result) {
+        const preview = event.target.result as string;
+        setPreviewUrl(preview);
+        console.log('Preview created, length:', preview.length);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setPreviewUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi
     if (!formData.id_category || !formData.nama_product) {
       alert('Kategori dan Nama Produk wajib diisi!');
       return;
@@ -111,50 +177,80 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     setLoading(true);
 
     try {
-      console.log('Sending data:', formData); // Debug
+      const formDataToSend = new FormData();
 
-      // Gunakan URLSearchParams untuk FormData
-      const params = new URLSearchParams();
+      // Tambahkan semua field
       Object.entries(formData).forEach(([key, value]) => {
-        params.append(key, String(value));
+        formDataToSend.append(key, String(value));
       });
+
+      // Tambahkan file jika ada
+      if (selectedImage) {
+        formDataToSend.append('gambar_preview', selectedImage);
+        console.log('✅ Adding image to FormData:', {
+          name: selectedImage.name,
+          type: selectedImage.type,
+          size: selectedImage.size,
+        });
+      } else {
+        console.log('⚠️ No image selected');
+      }
 
       const url = product
         ? `${API_BASE_URL}/products.php?op=update&id=${product.id_product}`
         : `${API_BASE_URL}/products.php?op=create`;
 
-      console.log('Request URL:', url); // Debug
+      console.log('📤 Sending request to:', url);
 
-      const response = await axios.post(url, params, {
+      // Debug: Log FormData contents
+      console.log('📦 FormData contents:');
+      for (let pair of formDataToSend.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(pair[0] + ':', '(File)', pair[1].name);
+        } else {
+          console.log(pair[0] + ':', pair[1]);
+        }
+      }
+
+      const response = await axios.post(url, formDataToSend, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'multipart/form-data',
         },
       });
 
-      console.log('Full Response:', response); // Debug full response
-      console.log('Save Response:', response.data); // Debug log
+      console.log('✅ Response received:', response.data);
 
       if (
         response.data.status === 'success' ||
         response.data.status === 'created'
       ) {
+        // Log path gambar yang dikembalikan dari server
+        if (response.data.data?.gambar_preview) {
+          console.log(
+            '🖼️ Uploaded image path:',
+            response.data.data.gambar_preview,
+          );
+          console.log(
+            '🔗 Full URL:',
+            `${BASE_URL}/${response.data.data.gambar_preview}`,
+          );
+        }
+
         alert(
-          product
-            ? 'Produk berhasil diupdate!'
-            : 'Produk berhasil ditambahkan!',
+          '✅ ' +
+            (product
+              ? 'Produk berhasil diupdate!'
+              : 'Produk berhasil ditambahkan!'),
         );
-        onClose(true);
+        onClose(true); // Refresh parent component
       } else {
+        console.error('❌ Error response:', response.data);
         alert(response.data.message || 'Terjadi kesalahan');
-        console.error('Error response:', response.data);
       }
     } catch (error: any) {
-      console.error('Full Error:', error); // Full error object
-      console.error('Error saving product:', error.message);
-      console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-
+      console.error('❌ Error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
@@ -195,9 +291,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
                 </option>
               ))}
             </select>
-            {categories.length === 0 && (
-              <small className="text-muted">Loading categories...</small>
-            )}
           </div>
 
           {/* Nama Produk */}
@@ -291,22 +384,126 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
             </div>
           </div>
 
-          {/* URL Gambar Preview */}
+          {/* Upload Gambar */}
           <div className="form-group">
-            <label>URL Gambar Preview</label>
-            <input
-              type="url"
-              name="gambar_preview"
-              value={formData.gambar_preview}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
-              className="form-control"
-            />
-            {formData.gambar_preview && (
-              <div className="image-preview">
-                <img src={formData.gambar_preview} alt="Preview" />
-              </div>
-            )}
+            <label>📷 Gambar Produk</label>
+            <div
+              style={{
+                border: '2px dashed #ddd',
+                borderRadius: '8px',
+                padding: '20px',
+                textAlign: 'center',
+                backgroundColor: '#f9f9f9',
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+                id="file-upload"
+              />
+
+              {!previewUrl ? (
+                <div>
+                  <label
+                    htmlFor="file-upload"
+                    style={{
+                      cursor: 'pointer',
+                      padding: '10px 20px',
+                      backgroundColor: '#4CAF50',
+                      color: 'white',
+                      borderRadius: '5px',
+                      display: 'inline-block',
+                    }}
+                  >
+                    📁 Pilih Gambar
+                  </label>
+                  <p
+                    style={{
+                      marginTop: '10px',
+                      fontSize: '12px',
+                      color: '#666',
+                    }}
+                  >
+                    JPG, PNG, GIF, WebP (Max 5MB)
+                  </p>
+                </div>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '300px',
+                      borderRadius: '5px',
+                      objectFit: 'contain',
+                      border: '1px solid #ddd',
+                    }}
+                    onError={e => {
+                      console.error('Failed to load image:', previewUrl);
+                      e.currentTarget.src =
+                        'https://via.placeholder.com/300x200?text=Error+Loading+Image';
+                    }}
+                  />
+                  <div style={{ marginTop: '10px' }}>
+                    <label
+                      htmlFor="file-upload"
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 15px',
+                        backgroundColor: '#2196F3',
+                        color: 'white',
+                        borderRadius: '5px',
+                        marginRight: '10px',
+                        display: 'inline-block',
+                      }}
+                    >
+                      🔄 Ganti Gambar
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 15px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                      }}
+                    >
+                      🗑️ Hapus
+                    </button>
+                  </div>
+                  {selectedImage && (
+                    <p
+                      style={{
+                        marginTop: '10px',
+                        fontSize: '12px',
+                        color: '#666',
+                      }}
+                    >
+                      File baru: {selectedImage.name} (
+                      {(selectedImage.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
+                  {!selectedImage && product?.gambar_preview && (
+                    <p
+                      style={{
+                        marginTop: '10px',
+                        fontSize: '12px',
+                        color: '#666',
+                      }}
+                    >
+                      Gambar saat ini dari database
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Buttons */}

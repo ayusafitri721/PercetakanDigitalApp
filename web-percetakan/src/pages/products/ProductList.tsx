@@ -5,6 +5,7 @@ import ProductDelete from './ProductDelete';
 import './products.css';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
+const BASE_URL = 'http://localhost/api-percetakan'; // Base URL tanpa /api
 
 interface Product {
   id_product: string;
@@ -94,6 +95,21 @@ const ProductList: React.FC = () => {
     }).format(amount);
   };
 
+  // Get full image URL
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) {
+      return 'https://via.placeholder.com/80x80?text=No+Image';
+    }
+
+    // Jika sudah URL lengkap (http/https), return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    // Jika path relatif, tambahkan base URL
+    return `${BASE_URL}/${imagePath}`;
+  };
+
   // Handle Add
   const handleAdd = () => {
     setSelectedProduct(null);
@@ -174,13 +190,19 @@ const ProductList: React.FC = () => {
                     <td>{product.id_product}</td>
                     <td>
                       <div className="product-info">
-                        {product.gambar_preview && (
-                          <img
-                            src={product.gambar_preview}
-                            alt={product.nama_product}
-                            className="product-img"
-                          />
-                        )}
+                        <img
+                          src={getImageUrl(product.gambar_preview)}
+                          alt={product.nama_product}
+                          className="product-img"
+                          onError={e => {
+                            console.error(
+                              'Image failed to load:',
+                              product.gambar_preview,
+                            );
+                            e.currentTarget.src =
+                              'https://via.placeholder.com/80x80?text=Error';
+                          }}
+                        />
                         <div>
                           <div className="product-name">
                             {product.nama_product}
