@@ -3,26 +3,37 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
 
-interface Order {
+interface Transaction {
   id_order: string;
   kode_order: string;
   tanggal_order: string;
+  nama_customer: string;
+  email_customer: string;
   total_harga: number;
   status_order: string;
-  nama_customer?: string;
-  jumlah_item?: number;
+  jenis_order: string;
+  metode_pembayaran: string;
+  status_pembayaran: string;
+  jumlah_bayar: number;
+  tanggal_bayar: string;
+  id_kasir?: string;
+  nama_kasir?: string;
+  jumlah_item: number;
 }
 
 interface FinanceStats {
   total_pemasukan: number;
-  pending_revenue: number;
+  total_cash: number;
+  total_transfer: number;
+  total_qris: number;
+  total_pending: number;
   paid_transactions: number;
   pending_transactions: number;
   avg_transaction: number;
 }
 
 const FinanceReport: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<FinanceStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
@@ -37,42 +48,80 @@ const FinanceReport: React.FC = () => {
   const fetchFinanceData = async () => {
     setLoading(true);
     try {
-      console.log('=== FETCHING FINANCE DATA ===');
+      console.log('=== FETCHING REAL FINANCE DATA ===');
 
-      // Build query params
-      const params = new URLSearchParams();
-      if (dateRange.start) params.append('start_date', dateRange.start);
-      if (dateRange.end) params.append('end_date', dateRange.end);
-      params.append('_t', Date.now().toString());
-
-      // Fetch sales report (sudah include semua order)
-      const reportUrl = `${API_BASE_URL}/orders.php?op=sales_report&${params}`;
-      console.log('Fetching from:', reportUrl);
-
-      const response = await axios.get(reportUrl, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
+      // 1. Fetch ALL Orders
+      const ordersRes = await axios.get(`${API_BASE_URL}/orders.php`, {
+        params: { _t: Date.now() },
       });
 
-      console.log('Finance API Response:', response.data);
-
-      if (response.data.status === 'success' && response.data.data) {
-        const data = response.data.data;
-        const ordersData = data.orders || [];
-
-        setOrders(ordersData);
-
-        // Calculate stats dari data yang ada
-        calculateStats(ordersData);
-
-        console.log('✅ Finance data loaded:', ordersData.length, 'orders');
-      } else {
-        console.warn('⚠️ Unexpected response:', response.data);
-        setOrders([]);
-        setStats(null);
+      let ordersData = [];
+      if (ordersRes.data.status === 'success') {
+        ordersData = ordersRes.data.data?.orders || [];
       }
+
+      console.log('📦 Orders fetched:', ordersData.length);
+
+      // 2. Fetch ALL Payments
+      const paymentsRes = await axios.get(`${API_BASE_URL}/payments.php`, {
+        params: { _t: Date.now() },
+      });
+
+      let paymentsData = [];
+      if (paymentsRes.data.status === 'success') {
+        paymentsData = paymentsRes.data.data?.payments || [];
+      }
+
+      console.log('💳 Payments fetched:', paymentsData.length);
+
+      // 3. GABUNGKAN Data Orders dengan Payments
+      const enrichedTransactions: Transaction[] = ordersData.map(
+        (order: any) => {
+          // Cari payment untuk order ini
+          const payment = paymentsData.find(
+            (p: any) => p.id_order === order.id_order,
+          );
+
+          return {
+            id_order: order.id_order,
+            kode_order: order.kode_order,
+            tanggal_order: order.tanggal_order,
+            nama_customer: order.nama_customer || 'Guest',
+            email_customer: order.email_customer || '-',
+            total_harga: parseFloat(order.total_harga),
+            status_order: order.status_order,
+            jenis_order: order.jenis_order || 'online',
+            // Data dari payments
+            metode_pembayaran: payment?.metode_pembayaran || '-',
+            status_pembayaran: payment?.status_pembayaran || 'pending',
+            jumlah_bayar: payment ? parseFloat(payment.jumlah_bayar) : 0,
+            tanggal_bayar: payment?.tanggal_bayar || '-',
+            nama_kasir: order.nama_kasir || '-',
+            jumlah_item: parseInt(order.jumlah_item || 0),
+          };
+        },
+      );
+
+      console.log('✅ Enriched transactions:', enrichedTransactions.length);
+
+      // 4. Filter by date if needed
+      let filteredTransactions = enrichedTransactions;
+      if (dateRange.start || dateRange.end) {
+        filteredTransactions = enrichedTransactions.filter(t => {
+          const orderDate = new Date(t.tanggal_order);
+          const startDate = dateRange.start ? new Date(dateRange.start) : null;
+          const endDate = dateRange.end ? new Date(dateRange.end) : null;
+
+          if (startDate && orderDate < startDate) return false;
+          if (endDate && orderDate > endDate) return false;
+          return true;
+        });
+      }
+
+      setTransactions(filteredTransactions);
+
+      // 5. Calculate Statistics
+      calculateStats(filteredTransactions);
 
       setLoading(false);
     } catch (error) {
@@ -81,35 +130,67 @@ const FinanceReport: React.FC = () => {
     }
   };
 
-  const calculateStats = (ordersData: Order[]) => {
-    // Filter order yang lunas (paid)
-    const paidOrders = ordersData.filter(
-      o => o.status_order === 'selesai' || o.status_order === 'dibayar',
+  const calculateStats = (txs: Transaction[]) => {
+    // Filter PAID transactions (yang sudah bayar)
+    const paidTxs = txs.filter(
+      t =>
+        t.status_pembayaran === 'diterima' ||
+        t.status_order === 'dibayar' ||
+        t.status_order === 'selesai',
     );
 
-    // Filter order yang pending
-    const pendingOrders = ordersData.filter(
-      o => o.status_order === 'pending' || o.status_order === 'diproses',
+    // Filter PENDING transactions
+    const pendingTxs = txs.filter(
+      t =>
+        t.status_pembayaran === 'pending' ||
+        (t.status_order === 'pending' && !t.metode_pembayaran),
     );
 
-    // Calculate totals
-    const totalPemasukan = paidOrders.reduce(
-      (sum, o) => sum + o.total_harga,
+    // Total Pemasukan (yang sudah bayar)
+    const totalPemasukan = paidTxs.reduce(
+      (sum, t) => sum + (t.jumlah_bayar || t.total_harga),
       0,
     );
-    const pendingRevenue = pendingOrders.reduce(
-      (sum, o) => sum + o.total_harga,
-      0,
-    );
+
+    // Breakdown by payment method
+    const totalCash = paidTxs
+      .filter(t => t.metode_pembayaran === 'cash')
+      .reduce((sum, t) => sum + (t.jumlah_bayar || t.total_harga), 0);
+
+    const totalTransfer = paidTxs
+      .filter(t => t.metode_pembayaran === 'transfer')
+      .reduce((sum, t) => sum + (t.jumlah_bayar || t.total_harga), 0);
+
+    const totalQris = paidTxs
+      .filter(t => t.metode_pembayaran === 'qris')
+      .reduce((sum, t) => sum + (t.jumlah_bayar || t.total_harga), 0);
+
+    // Pending Revenue
+    const totalPending = pendingTxs.reduce((sum, t) => sum + t.total_harga, 0);
+
+    // Average
     const avgTransaction =
-      paidOrders.length > 0 ? totalPemasukan / paidOrders.length : 0;
+      paidTxs.length > 0 ? totalPemasukan / paidTxs.length : 0;
 
     setStats({
       total_pemasukan: totalPemasukan,
-      pending_revenue: pendingRevenue,
-      paid_transactions: paidOrders.length,
-      pending_transactions: pendingOrders.length,
+      total_cash: totalCash,
+      total_transfer: totalTransfer,
+      total_qris: totalQris,
+      total_pending: totalPending,
+      paid_transactions: paidTxs.length,
+      pending_transactions: pendingTxs.length,
       avg_transaction: avgTransaction,
+    });
+
+    console.log('📊 Stats calculated:', {
+      totalPemasukan,
+      totalCash,
+      totalTransfer,
+      totalQris,
+      totalPending,
+      paid: paidTxs.length,
+      pending: pendingTxs.length,
     });
   };
 
@@ -117,18 +198,44 @@ const FinanceReport: React.FC = () => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
+    if (!dateString || dateString === '-') return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
+  };
+
+  const getPaymentMethodIcon = (method: string) => {
+    const icons: Record<string, string> = {
+      cash: '💵',
+      transfer: '🏦',
+      qris: '📱',
+      ewallet: '💳',
+      cod: '📦',
+    };
+    return icons[method.toLowerCase()] || '💰';
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: '#FFA726',
+      diproses: '#42A5F5',
+      selesai: '#66BB6A',
+      dibayar: '#66BB6A',
+      diterima: '#66BB6A',
+      dibatalkan: '#EF5350',
+    };
+    return colors[status.toLowerCase()] || '#9E9E9E';
   };
 
   const handleFilter = () => {
@@ -138,17 +245,6 @@ const FinanceReport: React.FC = () => {
   const resetFilter = () => {
     setDateRange({ start: '', end: '' });
     setTimeout(() => fetchFinanceData(), 100);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: '#FFA726',
-      diproses: '#42A5F5',
-      selesai: '#66BB6A',
-      dibayar: '#66BB6A',
-      dibatalkan: '#EF5350',
-    };
-    return colors[status.toLowerCase()] || '#9E9E9E';
   };
 
   if (loading) {
@@ -173,15 +269,13 @@ const FinanceReport: React.FC = () => {
             animation: 'spin 1s linear infinite',
           }}
         ></div>
-        <p>Memuat laporan keuangan...</p>
+        <p>Memuat data keuangan...</p>
       </div>
     );
   }
 
-  const totalOrders = orders.length;
-  const totalPotensi = stats
-    ? stats.total_pemasukan + stats.pending_revenue
-    : 0;
+  const totalTx = transactions.length;
+  const totalPotensi = stats ? stats.total_pemasukan + stats.total_pending : 0;
 
   return (
     <div className="finance-report" style={{ padding: '20px' }}>
@@ -281,163 +375,254 @@ const FinanceReport: React.FC = () => {
         )}
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Main Stats Grid */}
       {stats && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '20px',
-            marginBottom: '30px',
-          }}
-        >
+        <>
           <div
             style={{
-              padding: '25px',
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              borderLeft: '5px solid #4CAF50',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '20px',
+              marginBottom: '30px',
             }}
           >
+            {/* Total Pemasukan */}
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '10px',
+                padding: '25px',
+                backgroundColor: '#fff',
+                borderRadius: '10px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                borderLeft: '5px solid #4CAF50',
               }}
             >
-              <span style={{ fontSize: '32px' }}>💰</span>
-              <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                Total Pemasukan
-              </h3>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ fontSize: '32px' }}>💰</span>
+                <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                  Total Pemasukan (Lunas)
+                </h3>
+              </div>
+              <p
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: '#4CAF50',
+                  margin: '10px 0',
+                }}
+              >
+                {formatRupiah(stats.total_pemasukan)}
+              </p>
+              <small style={{ color: '#999' }}>
+                {stats.paid_transactions} transaksi
+              </small>
             </div>
-            <p
+
+            {/* Pending */}
+            <div
               style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#4CAF50',
-                margin: '10px 0',
+                padding: '25px',
+                backgroundColor: '#fff',
+                borderRadius: '10px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                borderLeft: '5px solid #FFA726',
               }}
             >
-              {formatRupiah(stats.total_pemasukan)}
-            </p>
-            <small style={{ color: '#999' }}>
-              {stats.paid_transactions} transaksi lunas
-            </small>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ fontSize: '32px' }}>⏳</span>
+                <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                  Pending Payment
+                </h3>
+              </div>
+              <p
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: '#FFA726',
+                  margin: '10px 0',
+                }}
+              >
+                {formatRupiah(stats.total_pending)}
+              </p>
+              <small style={{ color: '#999' }}>
+                {stats.pending_transactions} transaksi
+              </small>
+            </div>
+
+            {/* Average */}
+            <div
+              style={{
+                padding: '25px',
+                backgroundColor: '#fff',
+                borderRadius: '10px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                borderLeft: '5px solid #2196F3',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ fontSize: '32px' }}>📊</span>
+                <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                  Rata-rata Transaksi
+                </h3>
+              </div>
+              <p
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: '#2196F3',
+                  margin: '10px 0',
+                }}
+              >
+                {formatRupiah(stats.avg_transaction)}
+              </p>
+              <small style={{ color: '#999' }}>Per transaksi</small>
+            </div>
+
+            {/* Total Tx */}
+            <div
+              style={{
+                padding: '25px',
+                backgroundColor: '#fff',
+                borderRadius: '10px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                borderLeft: '5px solid #9C27B0',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '10px',
+                }}
+              >
+                <span style={{ fontSize: '32px' }}>📈</span>
+                <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                  Total Transaksi
+                </h3>
+              </div>
+              <p
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: '#9C27B0',
+                  margin: '10px 0',
+                }}
+              >
+                {totalTx}
+              </p>
+              <small style={{ color: '#999' }}>Semua status</small>
+            </div>
           </div>
 
+          {/* Payment Methods Breakdown */}
           <div
             style={{
-              padding: '25px',
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              borderLeft: '5px solid #FFA726',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '15px',
+              marginBottom: '30px',
             }}
           >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '10px',
+                padding: '20px',
+                backgroundColor: '#E8F5E9',
+                borderRadius: '8px',
+                textAlign: 'center',
               }}
             >
-              <span style={{ fontSize: '32px' }}>⏳</span>
-              <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                Pendapatan Pending
-              </h3>
+              <div style={{ fontSize: '32px', marginBottom: '10px' }}>💵</div>
+              <div
+                style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}
+              >
+                Cash
+              </div>
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#4CAF50',
+                }}
+              >
+                {formatRupiah(stats.total_cash)}
+              </div>
             </div>
-            <p
-              style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#FFA726',
-                margin: '10px 0',
-              }}
-            >
-              {formatRupiah(stats.pending_revenue)}
-            </p>
-            <small style={{ color: '#999' }}>
-              {stats.pending_transactions} transaksi belum lunas
-            </small>
-          </div>
 
-          <div
-            style={{
-              padding: '25px',
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              borderLeft: '5px solid #2196F3',
-            }}
-          >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '10px',
+                padding: '20px',
+                backgroundColor: '#E3F2FD',
+                borderRadius: '8px',
+                textAlign: 'center',
               }}
             >
-              <span style={{ fontSize: '32px' }}>📊</span>
-              <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                Rata-rata Transaksi
-              </h3>
+              <div style={{ fontSize: '32px', marginBottom: '10px' }}>🏦</div>
+              <div
+                style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}
+              >
+                Transfer
+              </div>
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#2196F3',
+                }}
+              >
+                {formatRupiah(stats.total_transfer)}
+              </div>
             </div>
-            <p
-              style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#2196F3',
-                margin: '10px 0',
-              }}
-            >
-              {formatRupiah(stats.avg_transaction)}
-            </p>
-            <small style={{ color: '#999' }}>Per transaksi</small>
-          </div>
 
-          <div
-            style={{
-              padding: '25px',
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              borderLeft: '5px solid #9C27B0',
-            }}
-          >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '10px',
+                padding: '20px',
+                backgroundColor: '#F3E5F5',
+                borderRadius: '8px',
+                textAlign: 'center',
               }}
             >
-              <span style={{ fontSize: '32px' }}>📈</span>
-              <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                Total Transaksi
-              </h3>
+              <div style={{ fontSize: '32px', marginBottom: '10px' }}>📱</div>
+              <div
+                style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}
+              >
+                QRIS
+              </div>
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#9C27B0',
+                }}
+              >
+                {formatRupiah(stats.total_qris)}
+              </div>
             </div>
-            <p
-              style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#9C27B0',
-                margin: '10px 0',
-              }}
-            >
-              {totalOrders}
-            </p>
-            <small style={{ color: '#999' }}>Semua status</small>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Profit Summary */}
+      {/* Summary */}
       {stats && (
         <div
           style={{
@@ -485,7 +670,7 @@ const FinanceReport: React.FC = () => {
                 borderRadius: '5px',
               }}
             >
-              <span style={{ fontWeight: '500' }}>Pending (Belum Lunas):</span>
+              <span style={{ fontWeight: '500' }}>Pending (Belum Bayar):</span>
               <span
                 style={{
                   fontWeight: 'bold',
@@ -493,7 +678,7 @@ const FinanceReport: React.FC = () => {
                   fontSize: '18px',
                 }}
               >
-                {formatRupiah(stats.pending_revenue)}
+                {formatRupiah(stats.total_pending)}
               </span>
             </div>
             <div
@@ -517,27 +702,21 @@ const FinanceReport: React.FC = () => {
         </div>
       )}
 
-      {/* Recent Transactions */}
-      {orders.length > 0 && (
+      {/* Transactions Table */}
+      {transactions.length > 0 && (
         <div
           style={{
             padding: '25px',
             backgroundColor: '#fff',
             borderRadius: '10px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            marginBottom: '30px',
           }}
         >
           <h3 style={{ marginBottom: '20px', color: '#333' }}>
-            📋 Transaksi Terbaru
+            📋 Riwayat Transaksi
           </h3>
           <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-              }}
-            >
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr
                   style={{
@@ -554,35 +733,63 @@ const FinanceReport: React.FC = () => {
                   <th style={{ padding: '12px', textAlign: 'left' }}>
                     Customer
                   </th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>
+                    Metode
+                  </th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Total</th>
                   <th style={{ padding: '12px', textAlign: 'center' }}>
                     Status
                   </th>
+                  <th style={{ padding: '12px', textAlign: 'left' }}>Kasir</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.slice(0, 10).map(order => (
+                {transactions.slice(0, 20).map(tx => (
                   <tr
-                    key={order.id_order}
+                    key={tx.id_order}
                     style={{ borderBottom: '1px solid #eee' }}
                   >
                     <td style={{ padding: '12px' }}>
-                      <strong>{order.kode_order}</strong>
+                      <div>
+                        <strong>{tx.kode_order}</strong>
+                        <div style={{ fontSize: '12px', color: '#666' }}>
+                          {tx.jenis_order === 'offline'
+                            ? '🏪 Offline'
+                            : '🌐 Online'}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '13px' }}>
+                      {formatDate(tx.tanggal_order)}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      {formatDate(order.tanggal_order)}
+                      <div>
+                        <strong>{tx.nama_customer}</strong>
+                        {tx.email_customer !== '-' && (
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {tx.email_customer}
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      {order.nama_customer || '-'}
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px' }}>
+                        {getPaymentMethodIcon(tx.metode_pembayaran)}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: '#666',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {tx.metode_pembayaran}
+                      </div>
                     </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        textAlign: 'right',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {formatRupiah(order.total_harga)}
+                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                      <strong style={{ fontSize: '15px' }}>
+                        {formatRupiah(tx.jumlah_bayar || tx.total_harga)}
+                      </strong>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <span
@@ -592,63 +799,45 @@ const FinanceReport: React.FC = () => {
                           fontSize: '12px',
                           fontWeight: '500',
                           backgroundColor:
-                            getStatusColor(order.status_order) + '20',
-                          color: getStatusColor(order.status_order),
+                            getStatusColor(tx.status_pembayaran) + '20',
+                          color: getStatusColor(tx.status_pembayaran),
                         }}
                       >
-                        {order.status_order}
+                        {tx.status_pembayaran}
                       </span>
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '13px' }}>
+                      {tx.nama_kasir || '-'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {orders.length > 10 && (
+          {transactions.length > 20 && (
             <p
               style={{ textAlign: 'center', marginTop: '15px', color: '#666' }}
             >
-              Menampilkan 10 dari {orders.length} transaksi
+              Menampilkan 20 dari {transactions.length} transaksi
             </p>
           )}
         </div>
       )}
 
-      {/* Coming Soon Features */}
-      <div
-        style={{
-          padding: '25px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '10px',
-          border: '2px dashed #ddd',
-        }}
-      >
-        <h3 style={{ marginBottom: '15px', color: '#666' }}>
-          🚀 Fitur Segera Hadir
-        </h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {[
-            '💵 Pengeluaran & Biaya Operasional',
-            '📊 Profit & Loss Statement Detail',
-            '💳 Cash Flow Analysis',
-            '📄 Export ke PDF/Excel',
-            '📈 Grafik Trend Keuangan Bulanan',
-          ].map((feature, index) => (
-            <li
-              key={index}
-              style={{
-                padding: '10px',
-                marginBottom: '8px',
-                backgroundColor: 'white',
-                borderRadius: '5px',
-                color: '#666',
-              }}
-            >
-              {feature}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {transactions.length === 0 && (
+        <div
+          style={{
+            padding: '50px',
+            textAlign: 'center',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+          }}
+        >
+          <p style={{ fontSize: '18px', color: '#666' }}>
+            Tidak ada data transaksi
+          </p>
+        </div>
+      )}
     </div>
   );
 };
