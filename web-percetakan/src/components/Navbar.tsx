@@ -26,14 +26,16 @@ const Navbar = () => {
         }
 
         .navbar-container {
-          background: #1E3A8A;
-          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 50px;
           padding: 0.75rem 2rem;
           display: flex;
           align-items: center;
           gap: 3rem;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
           max-width: 900px;
           width: 100%;
         }
@@ -47,6 +49,11 @@ const Navbar = () => {
           color: white;
           text-decoration: none;
           cursor: pointer;
+          transition: opacity 0.3s;
+        }
+
+        .navbar-logo:hover {
+          opacity: 0.9;
         }
 
         .logo-image {
@@ -71,12 +78,28 @@ const Navbar = () => {
           text-decoration: none;
           font-weight: 500;
           font-size: 1rem;
-          transition: opacity 0.3s;
+          transition: all 0.3s;
           cursor: pointer;
+          position: relative;
+        }
+
+        .navbar-menu a::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: white;
+          transition: width 0.3s ease;
         }
 
         .navbar-menu a:hover {
-          opacity: 0.8;
+          opacity: 0.9;
+        }
+
+        .navbar-menu a:hover::after {
+          width: 100%;
         }
 
         .navbar-login {
@@ -88,15 +111,20 @@ const Navbar = () => {
           font-weight: 600;
           font-size: 1rem;
           cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
         }
 
         .navbar-login:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
         }
 
         @media (max-width: 768px) {
+          .navbar {
+            padding: 1rem;
+          }
+
           .navbar-container {
             gap: 1rem;
             padding: 0.5rem 1rem;
@@ -109,13 +137,22 @@ const Navbar = () => {
           .navbar-logo {
             font-size: 1rem;
           }
+
+          .logo-image {
+            width: 28px;
+            height: 28px;
+          }
         }
       `}</style>
 
       <nav className="navbar">
         <div className="navbar-container">
           <a className="navbar-logo" onClick={() => scrollToSection('home')}>
-            <img src="/public/images/Logo-Im.png" alt="PrintyGo Logo" className="logo-image" />
+            <img
+              src="/public/images/Logo-Im.png"
+              alt="PrintyGo Logo"
+              className="logo-image"
+            />
             <span>PrintyGo</span>
           </a>
 
