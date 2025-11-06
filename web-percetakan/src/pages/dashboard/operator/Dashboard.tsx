@@ -57,9 +57,20 @@ const OperatorDashboard: React.FC = () => {
         const allOrders = response.data.data.orders || [];
 
         const queue = allOrders.filter((o: Order) => {
+          // ✅ FIXED: Perbaiki logika untuk include pesanan dari kasir
           const isPaid =
-            o.status_pembayaran === 'dibayar' ||
-            ['dibayar', 'proses', 'dikonfirmasi'].includes(o.status_order);
+            // Cek status_pembayaran jika ada
+            (o.status_pembayaran &&
+              ['dibayar', 'diterima', 'lunas', 'confirmed'].includes(
+                o.status_pembayaran.toLowerCase(),
+              )) ||
+            // Atau cek status_order untuk pesanan offline/kasir
+            ['dikonfirmasi', 'proses', 'diproses', 'dikerjakan'].includes(
+              o.status_order,
+            ) ||
+            // Atau jika jenis_order offline, anggap sudah paid
+            (o.jenis_order === 'offline' && o.status_order !== 'pending');
+
           const notFinished = !['selesai', 'dibatalkan'].includes(
             o.status_order,
           );
@@ -197,6 +208,8 @@ const OperatorDashboard: React.FC = () => {
       pending: { label: '⏳ Waiting', color: '#ffc107' },
       dikonfirmasi: { label: '✅ Ready', color: '#17a2b8' },
       proses: { label: '🖨️ Printing', color: '#007bff' },
+      diproses: { label: '🖨️ Printing', color: '#007bff' },
+      dikerjakan: { label: '🖨️ Printing', color: '#007bff' },
     };
     const info = map[status] || { label: status, color: '#6c757d' };
     return (

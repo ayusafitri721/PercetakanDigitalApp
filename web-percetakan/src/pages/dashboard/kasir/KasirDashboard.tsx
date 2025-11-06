@@ -60,26 +60,18 @@ const KasirDashboard: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Fungsi helper untuk mendapatkan tanggal saja (YYYY-MM-DD)
   const getDateOnly = (dateString: string): string => {
-    // Parse tanggal dari berbagai format
     const date = new Date(dateString);
-
-    // Konversi ke timezone lokal dan ambil YYYY-MM-DD
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-
     return `${year}-${month}-${day}`;
   };
 
   const filterOrdersByPeriod = () => {
     const now = new Date();
-
-    // ✅ Get today's date in YYYY-MM-DD format
     const todayDate = getDateOnly(now.toISOString());
 
-    // ✅ Start of week (Monday)
     const startOfWeek = new Date(now);
     const dayOfWeek = now.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -87,24 +79,14 @@ const KasirDashboard: React.FC = () => {
     startOfWeek.setHours(0, 0, 0, 0);
     const weekStartDate = getDateOnly(startOfWeek.toISOString());
 
-    // ✅ Start of month
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthStartDate = getDateOnly(startOfMonth.toISOString());
-
-    console.log('=== FILTER DEBUG ===');
-    console.log('Today:', todayDate);
-    console.log('Week Start:', weekStartDate);
-    console.log('Month Start:', monthStartDate);
 
     let filtered: Order[] = [];
 
     if (filterPeriod === 'today') {
       filtered = allOrders.filter(order => {
         const orderDate = getDateOnly(order.tanggal_order);
-        console.log(
-          `Comparing: ${orderDate} === ${todayDate}`,
-          orderDate === todayDate,
-        );
         return orderDate === todayDate;
       });
     } else if (filterPeriod === 'week') {
@@ -119,7 +101,6 @@ const KasirDashboard: React.FC = () => {
       });
     }
 
-    console.log('Filtered orders:', filtered.length);
     setFilteredOrders(filtered);
   };
 
@@ -137,54 +118,45 @@ const KasirDashboard: React.FC = () => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthStartDate = getDateOnly(startOfMonth.toISOString());
 
-    // Today stats
     const todayOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) === todayDate,
     );
     const todayOrdersCount = todayOrders.length;
+
+    // ✅ FIXED: Perbaiki logika cek status lunas
+    const isOrderPaid = (o: Order) => {
+      if (o.status_pembayaran) {
+        const paidStatuses = ['dibayar', 'diterima', 'lunas', 'confirmed'];
+        return paidStatuses.includes(o.status_pembayaran.toLowerCase());
+      }
+      return ['diproses', 'dikerjakan', 'selesai'].includes(o.status_order);
+    };
+
     const todayRevenue = todayOrders
-      .filter(
-        o =>
-          o.status_pembayaran === 'dibayar' ||
-          ['dibayar', 'proses', 'selesai'].includes(o.status_order),
-      )
+      .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
-    // Week stats
     const weekOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) >= weekStartDate,
     );
     const weekRevenue = weekOrders
-      .filter(
-        o =>
-          o.status_pembayaran === 'dibayar' ||
-          ['dibayar', 'proses', 'selesai'].includes(o.status_order),
-      )
+      .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
-    // Month stats
     const monthOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) >= monthStartDate,
     );
     const monthRevenue = monthOrders
-      .filter(
-        o =>
-          o.status_pembayaran === 'dibayar' ||
-          ['dibayar', 'proses', 'selesai'].includes(o.status_order),
-      )
+      .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
 
-    // Pending payment
-    const pendingPayment = orders.filter(
-      o =>
-        o.status_pembayaran === 'pending' ||
-        (o.status_order === 'pending' && !o.status_pembayaran),
-    ).length;
-
-    console.log('=== STATS DEBUG ===');
-    console.log('Today orders:', todayOrdersCount);
-    console.log('Week orders:', weekOrders.length);
-    console.log('Month orders:', monthOrders.length);
+    // ✅ FIXED: Perbaiki logika pending payment
+    const pendingPayment = orders.filter(o => {
+      if (o.status_pembayaran) {
+        return o.status_pembayaran.toLowerCase() === 'pending';
+      }
+      return o.status_order === 'pending';
+    }).length;
 
     setStats({
       todayOrders: todayOrdersCount,
@@ -238,7 +210,8 @@ const KasirDashboard: React.FC = () => {
     const colors: { [key: string]: string } = {
       pending: '#ffc107',
       dikonfirmasi: '#17a2b8',
-      proses: '#007bff',
+      diproses: '#007bff',
+      dikerjakan: '#17a2b8',
       selesai: '#28a745',
       dibatalkan: '#dc3545',
       dibayar: '#28a745',
@@ -246,13 +219,21 @@ const KasirDashboard: React.FC = () => {
     return colors[status] || '#6c757d';
   };
 
+  // ✅ FIXED: Fungsi utama yang diperbaiki
   const getStatusPembayaran = (order: Order) => {
+    // Cek status_pembayaran dari tabel payments
     if (order.status_pembayaran) {
-      return order.status_pembayaran === 'dibayar' ? 'Lunas' : 'Pending';
+      const paidStatuses = ['dibayar', 'diterima', 'lunas', 'confirmed'];
+      return paidStatuses.includes(order.status_pembayaran.toLowerCase())
+        ? 'Lunas'
+        : 'Pending';
     }
-    if (['dibayar', 'proses', 'selesai'].includes(order.status_order)) {
+
+    // Fallback: cek dari status_order (untuk order lama atau offline)
+    if (['diproses', 'dikerjakan', 'selesai'].includes(order.status_order)) {
       return 'Lunas';
     }
+
     return 'Pending';
   };
 
