@@ -1,5 +1,5 @@
-// FINAL VERSION - Operator Dashboard
-// Tanpa debug panel, download langsung ke folder
+// FINAL VERSION - Operator Dashboard dengan Status Sinkron Database
+// Status order disesuaikan dengan ENUM database
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -50,6 +50,10 @@ const OperatorDashboard: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [uploadingResult, setUploadingResult] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [resultFile, setResultFile] = useState<File | null>(null);
+  const [orderToComplete, setOrderToComplete] = useState<string | null>(null);
   const [stats, setStats] = useState({
     todayQueue: 0,
     inProgress: 0,
@@ -73,22 +77,22 @@ const OperatorDashboard: React.FC = () => {
       if (response.data.status === 'success') {
         const allOrders = response.data.data.orders || [];
 
+        // ✅ Filter pesanan yang sudah dibayar dan belum selesai
+        // Status ENUM database: pending, dibayar, diproses, validasi, cetak, selesai, dikirim, dibatalkan
         const queue = allOrders.filter((o: Order) => {
           const isPaid =
             (o.status_pembayaran &&
               ['dibayar', 'diterima', 'lunas', 'confirmed'].includes(
                 o.status_pembayaran.toLowerCase(),
               )) ||
-            ['dikonfirmasi', 'proses', 'diproses', 'dikerjakan'].includes(
+            ['dibayar', 'diproses', 'validasi', 'cetak'].includes(
               o.status_order,
             ) ||
             (o.jenis_order === 'offline' && o.status_order !== 'pending');
 
-          const notFinished = ![
-            'siap_diambil',
-            'selesai',
-            'dibatalkan',
-          ].includes(o.status_order);
+          const notFinished = !['selesai', 'dikirim', 'dibatalkan'].includes(
+            o.status_order,
+          );
 
           return isPaid && notFinished;
         });
@@ -126,15 +130,19 @@ const OperatorDashboard: React.FC = () => {
     const todayQueue = queue.filter(o =>
       o.tanggal_order.startsWith(today),
     ).length;
-    const inProgress = queue.filter(o => o.status_order === 'proses').length;
+
+    // Status "diproses" atau "cetak" = sedang dikerjakan
+    const inProgress = queue.filter(o =>
+      ['diproses', 'cetak'].includes(o.status_order),
+    ).length;
+
     const expressQueue = queue.filter(
       o => o.kecepatan_pengerjaan === 'express',
     ).length;
 
+    // Status "selesai" = sudah selesai dikerjakan
     const todayCompleted = allOrders.filter(
-      o =>
-        ['siap_diambil', 'selesai'].includes(o.status_order) &&
-        o.tanggal_order.startsWith(today),
+      o => o.status_order === 'selesai' && o.tanggal_order.startsWith(today),
     ).length;
 
     setStats({ todayQueue, inProgress, todayCompleted, expressQueue });
@@ -178,19 +186,113 @@ const OperatorDashboard: React.FC = () => {
     }
   };
 
+  const handleStartComplete = (orderId: string) => {
+    setOrderToComplete(orderId);
+    setShowUploadModal(true);
+  };
+
+  const handleFileResultChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Ukuran file maksimal 20MB!');
+        return;
+      }
+
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'application/pdf',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Format file harus JPG, PNG, atau PDF!');
+        return;
+      }
+
+      setResultFile(file);
+    }
+  };
+
+  const handleUploadResultAndComplete = async () => {
+    if (!resultFile) {
+      alert('⚠️ Silakan upload file hasil terlebih dahulu!');
+      return;
+    }
+
+    if (!orderToComplete) return;
+
+    setUploadingResult(true);
+    try {
+      // Upload file hasil
+      const fileFormData = new FormData();
+      fileFormData.append('id_order', orderToComplete);
+      fileFormData.append('file_desain', resultFile);
+      fileFormData.append('keterangan', 'HASIL_OPERATOR');
+      fileFormData.append('is_result', '1');
+
+      const uploadResponse = await axios.post(
+        `${API_BASE_URL}/design_files.php?op=upload`,
+        fileFormData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
+
+      if (uploadResponse.data.status !== 'success') {
+        throw new Error('Gagal upload file hasil');
+      }
+
+      // ✅ Update status ke "selesai" (sesuai ENUM database)
+      const statusFormData = new FormData();
+      statusFormData.append('status_order', 'selesai');
+
+      const statusResponse = await axios.post(
+        `${API_BASE_URL}/orders.php?op=update&id=${orderToComplete}`,
+        statusFormData,
+        { headers: { Accept: 'application/json' } },
+      );
+
+      if (statusResponse.data.status === 'success') {
+        alert(
+          `✅ PESANAN SELESAI!\n\n📁 File hasil: ${resultFile.name}\n📦 Status: Selesai\n🎯 Pesanan sudah dikirim ke KASIR untuk diserahkan ke customer.\n\n✨ File hasil sudah tersimpan dan bisa di-download oleh kasir!`,
+        );
+
+        setShowUploadModal(false);
+        setResultFile(null);
+        setOrderToComplete(null);
+        fetchQueue();
+        if (showDetail) setShowDetail(false);
+      } else {
+        throw new Error('Gagal update status order');
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert(
+        '❌ Gagal menyimpan hasil: ' +
+          (error.response?.data?.message || error.message),
+      );
+    } finally {
+      setUploadingResult(false);
+    }
+  };
+
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    const statusLabel: { [key: string]: string } = {
-      proses: 'MULAI CETAK',
-      siap_diambil: 'SELESAI DIKERJAKAN',
+    // ✅ Mapping status yang benar sesuai ENUM database
+    const statusMap: { [key: string]: { db: string; label: string } } = {
+      start: { db: 'diproses', label: 'MULAI CETAK' },
+      complete: { db: 'selesai', label: 'SELESAI DIKERJAKAN' },
     };
 
-    if (!confirm(`Ubah status pesanan menjadi "${statusLabel[newStatus]}"?`))
-      return;
+    const statusInfo = statusMap[newStatus];
+    if (!statusInfo) return;
+
+    if (!confirm(`Ubah status pesanan menjadi "${statusInfo.label}"?`)) return;
 
     setUpdating(true);
     try {
       const formData = new FormData();
-      formData.append('status_order', newStatus);
+      formData.append('status_order', statusInfo.db);
 
       const response = await axios.post(
         `${API_BASE_URL}/orders.php?op=update&id=${orderId}`,
@@ -199,7 +301,7 @@ const OperatorDashboard: React.FC = () => {
       );
 
       if (response.data.status === 'success') {
-        if (newStatus === 'siap_diambil') {
+        if (newStatus === 'complete') {
           alert(
             '✅ Pesanan selesai dikerjakan!\n📦 Pesanan sudah dikirim ke kasir untuk diserahkan ke customer.',
           );
@@ -249,25 +351,30 @@ const OperatorDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
+    // ✅ Mapping status sesuai ENUM database
     const map: { [key: string]: { label: string; color: string } } = {
       pending: { label: '⏳ Menunggu', color: '#ffc107' },
-      dikonfirmasi: { label: '✅ Siap Dikerjakan', color: '#17a2b8' },
-      proses: { label: '🖨️ Sedang Diproses', color: '#007bff' },
+      dibayar: { label: '✅ Siap Dikerjakan', color: '#17a2b8' },
+      validasi: { label: '✅ Siap Dikerjakan', color: '#17a2b8' },
       diproses: { label: '🖨️ Sedang Diproses', color: '#007bff' },
-      dikerjakan: { label: '🖨️ Sedang Diproses', color: '#007bff' },
+      cetak: { label: '🖨️ Sedang Dicetak', color: '#007bff' },
+      selesai: { label: '✅ SELESAI', color: '#28a745' },
+      dikirim: { label: '🚚 Dikirim', color: '#6c757d' },
+      dibatalkan: { label: '❌ Dibatalkan', color: '#dc3545' },
     };
     const info = map[status] || { label: status, color: '#6c757d' };
     return (
-      <span className="status-badge" style={{ backgroundColor: info.color }}>
+      <span
+        className="status-badge"
+        style={{ backgroundColor: info.color, fontWeight: '700' }}
+      >
         {info.label}
       </span>
     );
   };
 
-  // ✅ FIXED: Download via PHP script
   const handleDownloadFile = (fileUrl: string, fileName: string) => {
     try {
-      // Use PHP download script
       const downloadUrl = `${API_BASE_URL}/download_file.php?file=${encodeURIComponent(
         fileUrl,
       )}`;
@@ -357,8 +464,10 @@ const OperatorDashboard: React.FC = () => {
           </div>
         ) : orders.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">✅</div>
-            <h3>Tidak Ada Pesanan</h3>
+            <div className="empty-icon" style={{ fontSize: '4rem' }}>
+              ✅
+            </div>
+            <h3 style={{ color: '#28a745' }}>Tidak Ada Pesanan di Queue</h3>
             <p>Semua pesanan sudah selesai dicetak!</p>
           </div>
         ) : (
@@ -384,6 +493,18 @@ const OperatorDashboard: React.FC = () => {
                         ? 'express-row'
                         : ''
                     }
+                    style={{
+                      background:
+                        order.status_order === 'selesai'
+                          ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)'
+                          : 'transparent',
+                      borderLeft:
+                        order.status_order === 'selesai'
+                          ? '4px solid #28a745'
+                          : order.kecepatan_pengerjaan === 'express'
+                          ? '4px solid #dc2626'
+                          : 'none',
+                    }}
                   >
                     <td>
                       <div
@@ -438,11 +559,13 @@ const OperatorDashboard: React.FC = () => {
                           👁️ Detail
                         </button>
 
-                        {(order.status_order === 'pending' ||
-                          order.status_order === 'dikonfirmasi') && (
+                        {/* ✅ Tombol Mulai Cetak: status pending/dibayar/validasi */}
+                        {['pending', 'dibayar', 'validasi'].includes(
+                          order.status_order,
+                        ) && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id_order, 'proses')
+                              handleUpdateStatus(order.id_order, 'start')
                             }
                             disabled={updating}
                             className="btn-start"
@@ -451,16 +574,32 @@ const OperatorDashboard: React.FC = () => {
                           </button>
                         )}
 
-                        {order.status_order === 'proses' && (
+                        {/* ✅ Tombol Selesai: status diproses/cetak */}
+                        {['diproses', 'cetak'].includes(order.status_order) && (
                           <button
-                            onClick={() =>
-                              handleUpdateStatus(order.id_order, 'siap_diambil')
-                            }
+                            onClick={() => handleStartComplete(order.id_order)}
                             disabled={updating}
                             className="btn-complete"
                           >
                             ✅ Selesai Dikerjakan
                           </button>
+                        )}
+
+                        {/* ✅ Badge Selesai: status selesai */}
+                        {order.status_order === 'selesai' && (
+                          <span
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: '#28a745',
+                              color: 'white',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '0.85rem',
+                              display: 'inline-block',
+                            }}
+                          >
+                            ✅ SELESAI - Menunggu Kasir
+                          </span>
                         )}
                       </div>
                     </td>
@@ -472,6 +611,7 @@ const OperatorDashboard: React.FC = () => {
         )}
       </div>
 
+      {/* Detail Modal - sama seperti sebelumnya */}
       {showDetail && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowDetail(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -738,11 +878,12 @@ const OperatorDashboard: React.FC = () => {
               </div>
 
               <div className="modal-actions">
-                {(selectedOrder.status_order === 'pending' ||
-                  selectedOrder.status_order === 'dikonfirmasi') && (
+                {['pending', 'dibayar', 'validasi'].includes(
+                  selectedOrder.status_order,
+                ) && (
                   <button
                     onClick={() =>
-                      handleUpdateStatus(selectedOrder.id_order, 'proses')
+                      handleUpdateStatus(selectedOrder.id_order, 'start')
                     }
                     disabled={updating}
                     className="btn-start btn-block"
@@ -751,17 +892,206 @@ const OperatorDashboard: React.FC = () => {
                   </button>
                 )}
 
-                {selectedOrder.status_order === 'proses' && (
+                {['diproses', 'cetak'].includes(selectedOrder.status_order) && (
                   <button
-                    onClick={() =>
-                      handleUpdateStatus(selectedOrder.id_order, 'siap_diambil')
-                    }
+                    onClick={() => handleStartComplete(selectedOrder.id_order)}
                     disabled={updating}
                     className="btn-complete btn-block"
                   >
                     ✅ Selesai Dikerjakan
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Upload File Hasil */}
+      {showUploadModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => !uploadingResult && setShowUploadModal(false)}
+        >
+          <div
+            className="modal-content"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '500px' }}
+          >
+            <div className="modal-header">
+              <div>
+                <h2>📤 Upload File Hasil</h2>
+                <p>Upload file hasil pekerjaan operator</p>
+              </div>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="modal-close"
+                disabled={uploadingResult}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div
+                style={{
+                  background: '#fff3cd',
+                  border: '2px solid #ffc107',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <h3
+                  style={{
+                    margin: '0 0 0.5rem 0',
+                    fontSize: '1rem',
+                    color: '#856404',
+                  }}
+                >
+                  ⚠️ PENTING
+                </h3>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: '1.5rem',
+                    color: '#856404',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.6',
+                  }}
+                >
+                  <li>Upload file hasil cetakan yang sudah jadi</li>
+                  <li>File bisa berupa gambar (JPG/PNG) atau PDF</li>
+                  <li>Maksimal ukuran file: 20MB</li>
+                  <li>File akan dikirim ke kasir untuk customer</li>
+                </ul>
+              </div>
+
+              <div
+                style={{
+                  background: '#f8f9fa',
+                  padding: '1.5rem',
+                  borderRadius: '8px',
+                  border: resultFile
+                    ? '2px solid #28a745'
+                    : '2px dashed #667eea',
+                }}
+              >
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.75rem',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    color: '#333',
+                  }}
+                >
+                  📁 Pilih File Hasil *
+                </label>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={handleFileResultChange}
+                  disabled={uploadingResult}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    border: '1px solid #ddd',
+                    background: 'white',
+                    cursor: uploadingResult ? 'not-allowed' : 'pointer',
+                  }}
+                />
+
+                {resultFile && (
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      padding: '1rem',
+                      background: '#d4edda',
+                      border: '1px solid #28a745',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                      }}
+                    >
+                      <div style={{ fontSize: '2rem' }}>
+                        {resultFile.type.includes('pdf') ? '📄' : '🖼️'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontWeight: 'bold',
+                            color: '#155724',
+                          }}
+                        >
+                          {resultFile.name}
+                        </p>
+                        <p
+                          style={{
+                            margin: '0.25rem 0 0 0',
+                            fontSize: '0.85rem',
+                            color: '#155724',
+                          }}
+                        >
+                          {(resultFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <div style={{ fontSize: '1.5rem', color: '#28a745' }}>
+                        ✅
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}
+              >
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploadingResult}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    border: '1px solid #ddd',
+                    background: 'white',
+                    cursor: uploadingResult ? 'not-allowed' : 'pointer',
+                    fontWeight: '600',
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUploadResultAndComplete}
+                  disabled={!resultFile || uploadingResult}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background:
+                      !resultFile || uploadingResult ? '#ccc' : '#28a745',
+                    color: 'white',
+                    cursor:
+                      !resultFile || uploadingResult
+                        ? 'not-allowed'
+                        : 'pointer',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                  }}
+                >
+                  {uploadingResult
+                    ? '⏳ Mengupload...'
+                    : '✅ Upload & Selesaikan'}
+                </button>
               </div>
             </div>
           </div>
