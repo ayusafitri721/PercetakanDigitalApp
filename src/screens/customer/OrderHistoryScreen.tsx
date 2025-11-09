@@ -1,5 +1,5 @@
 // screens/customer/OrderHistoryScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import axios from 'axios';
 
 interface OrderHistoryScreenProps {
   userId: string;
@@ -34,56 +37,319 @@ interface Order {
   estimatedDate?: string;
 }
 
-// Dummy data untuk demo
-const DUMMY_ORDERS: Order[] = [
-  {
-    id: '1',
-    orderNumber: 'ORD-2025-001',
-    serviceName: 'Cetak Banner',
-    serviceIcon: '🎴',
-    status: 'processing',
-    totalPrice: 150000,
-    quantity: 2,
-    date: '2025-01-15',
-    estimatedDate: '2025-01-18',
-  },
-  {
-    id: '2',
-    orderNumber: 'ORD-2025-002',
-    serviceName: 'Sablon Kaos',
-    serviceIcon: '👕',
-    status: 'validating',
-    totalPrice: 75000,
-    quantity: 5,
-    date: '2025-01-14',
-    estimatedDate: '2025-01-17',
-  },
-  {
-    id: '3',
-    orderNumber: 'ORD-2025-003',
-    serviceName: 'Cetak Foto',
-    serviceIcon: '📸',
-    status: 'completed',
-    totalPrice: 50000,
-    quantity: 25,
-    date: '2025-01-10',
-  },
-];
+const API_BASE_URL = 'http://192.168.0.153:3000/api';
+
+// Helper functions
+function getIconByCategory(cat: string): string {
+  const lower = cat.toLowerCase();
+  if (lower.includes('dokumen')) return '📄';
+  if (lower.includes('banner')) return '🎨';
+  if (lower.includes('kaos')) return '👕';
+  if (lower.includes('stiker')) return '🏷️';
+  if (lower.includes('packaging')) return '📦';
+  if (lower.includes('foto')) return '📸';
+  return '🖨️';
+}
+
+function mapOrderStatus(status: string): Order['status'] {
+  const statusMap: { [key: string]: Order['status'] } = {
+    pending: 'pending',
+    dibayar: 'validating',
+    diproses: 'processing',
+    selesai: 'completed',
+    dibatalkan: 'cancelled',
+    validasi: 'validating',
+    cetak: 'printing',
+    siap: 'ready',
+    dikirim: 'delivering',
+  };
+  return statusMap[status.toLowerCase()] || 'pending';
+}
+
+function getStatusConfig(status: Order['status']) {
+  const configs = {
+    pending: {
+      label: 'Menunggu',
+      bgColor: '#FEF3C7',
+      textColor: '#D97706',
+    },
+    validating: {
+      label: 'Validasi',
+      bgColor: '#DBEAFE',
+      textColor: '#2563EB',
+    },
+    processing: {
+      label: 'Diproses',
+      bgColor: '#E0E7FF',
+      textColor: '#4F46E5',
+    },
+    printing: {
+      label: 'Sedang Cetak',
+      bgColor: '#DDD6FE',
+      textColor: '#7C3AED',
+    },
+    ready: {
+      label: 'Siap',
+      bgColor: '#D1FAE5',
+      textColor: '#059669',
+    },
+    delivering: {
+      label: 'Dikirim',
+      bgColor: '#BFDBFE',
+      textColor: '#1D4ED8',
+    },
+    completed: {
+      label: 'Selesai',
+      bgColor: '#D1FAE5',
+      textColor: '#10B981',
+    },
+    cancelled: {
+      label: 'Dibatalkan',
+      bgColor: '#FEE2E2',
+      textColor: '#DC2626',
+    },
+  };
+  return configs[status] || configs.pending;
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  };
+  return date.toLocaleDateString('id-ID', options);
+}
 
 export default function OrderHistoryScreen({
   userId,
   onBack,
 }: OrderHistoryScreenProps) {
-  const [orders, setOrders] = useState<Order[]>(DUMMY_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  useEffect(() => {
+    fetchOrders();
+  }, [userId]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+
+      console.log('🔍 Fetching orders for userId:', userId);
+      console.log('🔍 UserId type:', typeof userId);
+
+      const ordersResponse = await axios.get(`${API_BASE_URL}/orders.php`);
+
+      console.log('📦 Orders response status:', ordersResponse.data.status);
+
+      if (ordersResponse.data.status !== 'success') {
+        throw new Error('Gagal mengambil data orders');
+      }
+
+      // Handle berbagai kemungkinan struktur response
+      let allOrders = [];
+
+      if (Array.isArray(ordersResponse.data.data)) {
+        allOrders = ordersResponse.data.data;
+      } else if (
+        ordersResponse.data.data?.orders &&
+        Array.isArray(ordersResponse.data.data.orders)
+      ) {
+        allOrders = ordersResponse.data.data.orders;
+      } else if (
+        ordersResponse.data.orders &&
+        Array.isArray(ordersResponse.data.orders)
+      ) {
+        allOrders = ordersResponse.data.orders;
+      }
+
+      console.log('📊 Total orders from API:', allOrders.length);
+      console.log('📊 First order sample:', allOrders[0]);
+
+      const userOrders = allOrders.filter((order: any) => {
+        const orderUserId = order.id_user?.toString();
+        const currentUserId = userId.toString();
+        return orderUserId === currentUserId;
+      });
+
+      console.log('✅ Filtered user orders:', userOrders.length);
+
+      if (userOrders.length === 0) {
+        console.warn('⚠️ No orders found for user:', userId);
+        setOrders([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const ordersWithDetails = await Promise.all(
+        userOrders.map(async (order: any) => {
+          try {
+            console.log('🔄 Fetching items for order:', order.id_order);
+
+            const itemsResponse = await axios.get(
+              `${API_BASE_URL}/order_items.php`,
+            );
+
+            // LOG FULL RESPONSE untuk debugging
+            console.log(
+              '📦 Order Items API Response:',
+              JSON.stringify(itemsResponse.data, null, 2),
+            );
+
+            // Handle berbagai kemungkinan struktur response
+            let allItems = [];
+
+            if (itemsResponse.data.status === 'success') {
+              if (Array.isArray(itemsResponse.data.data)) {
+                allItems = itemsResponse.data.data;
+              } else if (
+                itemsResponse.data.data?.order_items &&
+                Array.isArray(itemsResponse.data.data.order_items)
+              ) {
+                allItems = itemsResponse.data.data.order_items;
+              } else if (
+                itemsResponse.data.data?.items &&
+                Array.isArray(itemsResponse.data.data.items)
+              ) {
+                allItems = itemsResponse.data.data.items;
+              }
+            }
+
+            console.log(`📦 Total items from API: ${allItems.length}`);
+            console.log(
+              `📦 Items array type: ${
+                Array.isArray(allItems) ? 'Array' : typeof allItems
+              }`,
+            );
+
+            if (!Array.isArray(allItems)) {
+              console.error('❌ allItems is not an array!', allItems);
+              throw new Error('Invalid items data structure');
+            }
+
+            const orderItems = allItems.filter(
+              (item: any) =>
+                item.id_order?.toString() === order.id_order?.toString(),
+            );
+
+            console.log(
+              `✅ Items for order ${order.id_order}:`,
+              orderItems.length,
+            );
+
+            // LOG UNTUK DEBUG - Lihat struktur item yang sebenarnya
+            if (orderItems.length > 0) {
+              console.log(
+                '🔍 First item structure:',
+                JSON.stringify(orderItems[0], null, 2),
+              );
+            }
+
+            // PERBAIKAN: Coba berbagai kemungkinan nama field quantity
+            const totalQuantity = orderItems.reduce(
+              (sum: number, item: any) => {
+                // Coba berbagai kemungkinan nama field
+                const qty = parseInt(
+                  item.jumlah ||
+                    item.quantity ||
+                    item.qty ||
+                    item.total ||
+                    item.amount ||
+                    item.kuantitas ||
+                    item.jml ||
+                    '0',
+                );
+                console.log(
+                  `📊 Item quantity parsed: ${qty} (from field: ${JSON.stringify(
+                    {
+                      jumlah: item.jumlah,
+                      quantity: item.quantity,
+                      qty: item.qty,
+                      total: item.total,
+                      amount: item.amount,
+                    },
+                  )})`,
+                );
+                return sum + qty;
+              },
+              0,
+            );
+
+            console.log(`✅ Total quantity calculated: ${totalQuantity}`);
+
+            const productName = orderItems[0]?.nama_product || 'Produk';
+            const categoryName = orderItems[0]?.nama_category || '';
+
+            const orderDetail = {
+              id: order.id_order?.toString() || '',
+              orderNumber: order.kode_order || `ORD-${order.id_order}`,
+              serviceName: productName,
+              serviceIcon: getIconByCategory(categoryName),
+              status: mapOrderStatus(order.status_order),
+              totalPrice: parseFloat(order.total_harga || 0),
+              quantity: totalQuantity,
+              date:
+                order.tanggal_order || new Date().toISOString().split('T')[0],
+              estimatedDate: order.estimasi_selesai || undefined,
+            };
+
+            console.log(
+              '✅ Order detail created:',
+              JSON.stringify(orderDetail, null, 2),
+            );
+
+            return orderDetail;
+          } catch (error) {
+            console.error(
+              '❌ Error fetching items for order:',
+              order.id_order,
+              error,
+            );
+            return {
+              id: order.id_order?.toString() || '',
+              orderNumber: order.kode_order || `ORD-${order.id_order}`,
+              serviceName: 'Produk',
+              serviceIcon: '🖨️',
+              status: mapOrderStatus(order.status_order),
+              totalPrice: parseFloat(order.total_harga || 0),
+              quantity: 0,
+              date:
+                order.tanggal_order || new Date().toISOString().split('T')[0],
+              estimatedDate: order.estimasi_selesai || undefined,
+            };
+          }
+        }),
+      );
+
+      ordersWithDetails.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
+
+      console.log('🎉 Final orders with details:', ordersWithDetails.length);
+      console.log('🎉 Orders:', JSON.stringify(ordersWithDetails, null, 2));
+
+      setOrders(ordersWithDetails);
+    } catch (error: any) {
+      console.error('❌ Failed to fetch orders:', error);
+      console.error('❌ Error details:', error.response?.data);
+      Alert.alert(
+        'Error',
+        'Gagal memuat riwayat pesanan. Periksa koneksi Anda.',
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Simulasi refresh data
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    fetchOrders();
   };
 
   const getFilteredOrders = () => {
@@ -110,9 +376,26 @@ export default function OrderHistoryScreen({
 
   const filteredOrders = getFilteredOrders();
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Riwayat Pesanan</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={styles.loadingText}>Memuat riwayat pesanan...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
@@ -121,7 +404,6 @@ export default function OrderHistoryScreen({
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
@@ -202,7 +484,6 @@ export default function OrderHistoryScreen({
   );
 }
 
-// Order Card Component
 function OrderCard({ order }: { order: Order }) {
   const statusConfig = getStatusConfig(order.status);
 
@@ -255,68 +536,22 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
-// Helper functions
-function getStatusConfig(status: Order['status']) {
-  const configs = {
-    pending: {
-      label: 'Menunggu',
-      bgColor: '#FEF3C7',
-      textColor: '#D97706',
-    },
-    validating: {
-      label: 'Validasi',
-      bgColor: '#DBEAFE',
-      textColor: '#2563EB',
-    },
-    processing: {
-      label: 'Diproses',
-      bgColor: '#E0E7FF',
-      textColor: '#4F46E5',
-    },
-    printing: {
-      label: 'Sedang Cetak',
-      bgColor: '#DDD6FE',
-      textColor: '#7C3AED',
-    },
-    ready: {
-      label: 'Siap',
-      bgColor: '#D1FAE5',
-      textColor: '#059669',
-    },
-    delivering: {
-      label: 'Dikirim',
-      bgColor: '#BFDBFE',
-      textColor: '#1D4ED8',
-    },
-    completed: {
-      label: 'Selesai',
-      bgColor: '#D1FAE5',
-      textColor: '#10B981',
-    },
-    cancelled: {
-      label: 'Dibatalkan',
-      bgColor: '#FEE2E2',
-      textColor: '#DC2626',
-    },
-  };
-
-  return configs[status] || configs.pending;
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  };
-  return date.toLocaleDateString('id-ID', options);
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',

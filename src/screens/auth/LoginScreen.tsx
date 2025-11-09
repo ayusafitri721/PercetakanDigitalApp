@@ -53,25 +53,45 @@ export default function LoginScreen({
         password: password,
       });
 
+      console.log('🔐 Login Response:', JSON.stringify(data, null, 2));
+
       if (data.success && data.data) {
+        // DEBUGGING: Log userId yang didapat
+        console.log('✅ Login Success!');
+        console.log('✅ User ID:', data.data.user.id_user);
+        console.log('✅ User Name:', data.data.user.nama);
+        console.log('✅ User Email:', data.data.user.email);
+        console.log(
+          '✅ Full User Data:',
+          JSON.stringify(data.data.user, null, 2),
+        );
+
         Alert.alert(
           '✅ Login Berhasil!',
           `Selamat datang ${data.data.user.nama}`,
         );
 
         // Panggil callback success dengan data user
-        onLoginSuccess(data.data);
+        // PASTIKAN DATA INI SAMPAI KE PARENT DENGAN BENAR
+        onLoginSuccess({
+          ...data.data,
+          // Pastikan id_user ada di level atas juga
+          userId: data.data.user.id_user,
+          user: data.data.user,
+        });
 
         // Reset form
         setEmail('');
         setPassword('');
       } else {
+        console.log('❌ Login Failed:', data.message);
         Alert.alert(
           '❌ Login Gagal',
           data.message || 'Email atau password salah!',
         );
       }
     } catch (error: any) {
+      console.error('❌ Login Error:', error);
       Alert.alert('⚠️ Error', error.message || 'Tidak bisa connect ke server!');
     } finally {
       setLoading(false);
