@@ -9,47 +9,35 @@ const AboutSection = ({
 }: AboutSectionProps) => {
   const features = [
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-          <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z" />
-        </svg>
-      ),
+      id: 1,
       title: 'Fast Turnaround',
       description:
         'Professional printing with industry-leading speed and efficiency',
+      image: '/images/fast.jpg',
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" />
-        </svg>
-      ),
+      id: 2,
       title: 'Cost-Effective',
       description:
         'Competitive pricing with premium quality materials and service',
+      image: '/images/money.jpg',
       gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-          <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.30C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
-        </svg>
-      ),
+      id: 3,
       title: 'Eco-Friendly',
       description:
         'Sustainable printing solutions with environmentally safe materials',
+      image: '/images/eco.jpg',
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
-        </svg>
-      ),
+      id: 4,
       title: 'Secure & Reliable',
       description:
         'Safe handling and contactless delivery for your peace of mind',
+      image: '/images/secure.jpg',
       gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     },
   ];
@@ -211,15 +199,21 @@ const AboutSection = ({
 
         .about-feature-icon {
           padding: 16px;
-          border-radius: 16px;
-          color: white;
+          border-radius: 20px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-width: 56px;
-          min-height: 56px;
+          min-width: 64px;
+          min-height: 64px;
+          overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .about-feature-image {
+          width: 40px;
+          height: 40px;
+          object-fit: contain;
         }
 
         .about-feature-content {
@@ -261,9 +255,14 @@ const AboutSection = ({
           }
 
           .about-feature-icon {
-            min-width: 48px;
-            min-height: 48px;
+            min-width: 56px;
+            min-height: 56px;
             padding: 12px;
+          }
+
+          .about-feature-image {
+            width: 32px;
+            height: 32px;
           }
         }
       `}</style>
@@ -304,13 +303,17 @@ const AboutSection = ({
                 <h3 className="about-features-title">Our Key Advantages</h3>
 
                 <div className="about-features-list">
-                  {features.map((feature, index) => (
-                    <div key={index} className="about-feature-card">
+                  {features.map((feature) => (
+                    <div key={feature.id} className="about-feature-card">
                       <div
                         className="about-feature-icon"
                         style={{ background: feature.gradient }}
                       >
-                        {feature.icon}
+                        <img
+                          src={feature.image}
+                          alt={feature.title}
+                          className="about-feature-image"
+                        />
                       </div>
                       <div className="about-feature-content">
                         <h4 className="about-feature-title">{feature.title}</h4>
