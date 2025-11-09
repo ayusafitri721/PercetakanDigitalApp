@@ -1,6 +1,5 @@
-// FIXED VERSION - Kasir Dashboard dengan Status Sinkron Database
-// Status order disesuaikan dengan ENUM: pending, dibayar, diproses, validasi, cetak, selesai, dikirim, dibatalkan
-// FIXED: Offline order langsung selesai tanpa status "dikirim"
+// COMPLETE FIXED VERSION - Kasir Dashboard dengan File Hasil dari result_files
+// File hasil operator diambil dari tabel result_files (bukan design_files)
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -16,8 +15,17 @@ interface DesignFile {
   ukuran_file: number;
   tipe_file: string;
   tanggal_upload: string;
+}
+
+interface ResultFile {
+  id_result: string;
+  nama_file: string;
+  file_url: string;
+  ukuran_file: number;
+  tipe_file: string;
+  tanggal_upload: string;
   keterangan?: string;
-  is_result?: number;
+  uploaded_by?: string;
 }
 
 interface OrderItem {
@@ -43,12 +51,12 @@ interface Order {
   tanggal_selesai?: string;
   items?: OrderItem[];
   design_files?: DesignFile[];
+  result_files?: ResultFile[];
 }
 
 const KasirDashboard: React.FC = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [readyOrders, setReadyOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateOrder, setShowCreateOrder] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -79,17 +87,9 @@ const KasirDashboard: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/orders.php`);
-
       if (response.data.status === 'success') {
         const orders = response.data.data?.orders || [];
-
         setAllOrders(orders);
-
-        // ✅ Filter pesanan yang selesai (status = "selesai" dari operator)
-        // Kasir harus menyerahkan ke customer
-        const ready = orders.filter((o: Order) => o.status_order === 'selesai');
-        setReadyOrders(ready);
-
         calculateStats(orders);
       }
     } catch (error) {
@@ -110,63 +110,49 @@ const KasirDashboard: React.FC = () => {
   const filterOrdersByPeriod = () => {
     const now = new Date();
     const todayDate = getDateOnly(now.toISOString());
-
     const startOfWeek = new Date(now);
     const dayOfWeek = now.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     startOfWeek.setDate(now.getDate() + diffToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
     const weekStartDate = getDateOnly(startOfWeek.toISOString());
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthStartDate = getDateOnly(startOfMonth.toISOString());
 
     let filtered: Order[] = [];
-
     if (filterPeriod === 'today') {
-      filtered = allOrders.filter(order => {
-        const orderDate = getDateOnly(order.tanggal_order);
-        return orderDate === todayDate;
-      });
+      filtered = allOrders.filter(
+        order => getDateOnly(order.tanggal_order) === todayDate,
+      );
     } else if (filterPeriod === 'week') {
-      filtered = allOrders.filter(order => {
-        const orderDate = getDateOnly(order.tanggal_order);
-        return orderDate >= weekStartDate;
-      });
+      filtered = allOrders.filter(
+        order => getDateOnly(order.tanggal_order) >= weekStartDate,
+      );
     } else if (filterPeriod === 'month') {
-      filtered = allOrders.filter(order => {
-        const orderDate = getDateOnly(order.tanggal_order);
-        return orderDate >= monthStartDate;
-      });
+      filtered = allOrders.filter(
+        order => getDateOnly(order.tanggal_order) >= monthStartDate,
+      );
     }
-
     setFilteredOrders(filtered);
   };
 
   const calculateStats = (orders: Order[]) => {
     const now = new Date();
     const todayDate = getDateOnly(now.toISOString());
-
     const startOfWeek = new Date(now);
     const dayOfWeek = now.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     startOfWeek.setDate(now.getDate() + diffToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
     const weekStartDate = getDateOnly(startOfWeek.toISOString());
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthStartDate = getDateOnly(startOfMonth.toISOString());
 
     const todayOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) === todayDate,
     );
-    const todayOrdersCount = todayOrders.length;
-
     const isOrderPaid = (o: Order) => {
-      if (o.jenis_order === 'offline') {
-        return true;
-      }
-
+      if (o.jenis_order === 'offline') return true;
       if (o.status_pembayaran) {
         const paidStatuses = [
           'dibayar',
@@ -177,8 +163,6 @@ const KasirDashboard: React.FC = () => {
         ];
         return paidStatuses.includes(o.status_pembayaran.toLowerCase());
       }
-
-      // ✅ Status order yang menandakan sudah bayar
       return [
         'dibayar',
         'diproses',
@@ -192,29 +176,23 @@ const KasirDashboard: React.FC = () => {
     const todayRevenue = todayOrders
       .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
-
     const weekOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) >= weekStartDate,
     );
     const weekRevenue = weekOrders
       .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
-
     const monthOrders = orders.filter(
       o => getDateOnly(o.tanggal_order) >= monthStartDate,
     );
     const monthRevenue = monthOrders
       .filter(isOrderPaid)
       .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
-
     const pendingPayment = orders.filter(o => {
-      if (o.status_pembayaran) {
+      if (o.status_pembayaran)
         return o.status_pembayaran.toLowerCase() === 'pending';
-      }
       return o.status_order === 'pending';
     }).length;
-
-    // ✅ Pesanan yang diserahkan ke customer hari ini (status = selesai dengan tanggal_selesai)
     const completedToday = orders.filter(
       o =>
         o.status_order === 'selesai' &&
@@ -223,7 +201,7 @@ const KasirDashboard: React.FC = () => {
     ).length;
 
     setStats({
-      todayOrders: todayOrdersCount,
+      todayOrders: todayOrders.length,
       todayRevenue,
       weekRevenue,
       monthRevenue,
@@ -238,13 +216,11 @@ const KasirDashboard: React.FC = () => {
         params: { op: 'detail', id: order.id_order },
         headers: { Accept: 'application/json' },
       });
-
-      if (orderResponse.data.status !== 'success') {
+      if (orderResponse.data.status !== 'success')
         throw new Error('Gagal ambil detail order');
-      }
-
       let orderDetail = orderResponse.data.data;
 
+      // 🎯 Fetch design files (file awal dari customer)
       try {
         const filesResponse = await axios.get(
           `${API_BASE_URL}/design_files.php`,
@@ -253,12 +229,27 @@ const KasirDashboard: React.FC = () => {
             headers: { Accept: 'application/json' },
           },
         );
-
         if (filesResponse.data.status === 'success') {
           orderDetail.design_files = filesResponse.data.data?.files || [];
         }
       } catch (fileError) {
         orderDetail.design_files = [];
+      }
+
+      // 🎯 Fetch result files (file hasil dari operator)
+      try {
+        const resultResponse = await axios.get(
+          `${API_BASE_URL}/result_files.php`,
+          {
+            params: { op: 'by_order', id_order: order.id_order },
+            headers: { Accept: 'application/json' },
+          },
+        );
+        if (resultResponse.data.status === 'success') {
+          orderDetail.result_files = resultResponse.data.data?.files || [];
+        }
+      } catch (resultError) {
+        orderDetail.result_files = [];
       }
 
       setSelectedOrder(orderDetail);
@@ -273,7 +264,6 @@ const KasirDashboard: React.FC = () => {
       const downloadUrl = `${API_BASE_URL}/download_file.php?file=${encodeURIComponent(
         fileUrl,
       )}`;
-
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = fileName;
@@ -282,36 +272,6 @@ const KasirDashboard: React.FC = () => {
       document.body.removeChild(link);
     } catch (error) {
       alert('Gagal download file');
-    }
-  };
-
-  const handleSelesaikanOrder = async (orderId: string, kodeOrder: string) => {
-    if (
-      !confirm(
-        `✅ Serahkan pesanan ${kodeOrder} ke customer?\n\nPesanan akan ditandai sebagai "Selesai".`,
-      )
-    )
-      return;
-
-    try {
-      const formData = new FormData();
-      // ✅ Status "selesai" = pesanan diserahkan langsung (untuk offline)
-      formData.append('status_order', 'selesai');
-      formData.append('mark_completed', '1'); // Flag untuk set tanggal_selesai
-
-      const response = await axios.post(
-        `${API_BASE_URL}/orders.php?op=update&id=${orderId}`,
-        formData,
-        { headers: { Accept: 'application/json' } },
-      );
-
-      if (response.data.status === 'success') {
-        alert('✅ Pesanan berhasil diserahkan ke customer!');
-        fetchOrders();
-        if (showDetailModal) setShowDetailModal(false);
-      }
-    } catch (error: any) {
-      alert('❌ Gagal: ' + (error.message || 'Terjadi kesalahan'));
     }
   };
 
@@ -326,7 +286,6 @@ const KasirDashboard: React.FC = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-
     const todayDate = getDateOnly(now.toISOString());
     const yesterdayDate = getDateOnly(
       new Date(Date.now() - 86400000).toISOString(),
@@ -343,15 +302,14 @@ const KasirDashboard: React.FC = () => {
         'Kemarin, ' +
         date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
       );
-    } else {
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
     }
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -361,15 +319,14 @@ const KasirDashboard: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
-    // ✅ Mapping status sesuai ENUM database (tanpa dikirim untuk offline)
     const labels: { [key: string]: string } = {
       pending: '⏳ Pending',
       dibayar: '💳 Dibayar',
       diproses: '🔄 Diproses',
       validasi: '✅ Validasi',
       cetak: '🖨️ Cetak',
-      selesai: '✔️ Selesai - Diserahkan',
-      dikirim: '🚚 Dikirim', // Untuk online order saja
+      selesai: '✔️ Selesai',
+      dikirim: '🚚 Dikirim',
       dibatalkan: '❌ Dibatalkan',
     };
     return labels[status] || status;
@@ -396,7 +353,6 @@ const KasirDashboard: React.FC = () => {
         ? 'Lunas'
         : 'Pending';
     }
-
     if (
       [
         'dibayar',
@@ -406,41 +362,22 @@ const KasirDashboard: React.FC = () => {
         'selesai',
         'dikirim',
       ].includes(order.status_order)
-    ) {
+    )
       return 'Lunas';
-    }
-
     return 'Pending';
   };
 
   const getStatusPembayaranColor = (order: Order) => {
-    const status = getStatusPembayaran(order);
-    return status === 'Lunas' ? '#28a745' : '#ffc107';
+    return getStatusPembayaran(order) === 'Lunas' ? '#28a745' : '#ffc107';
   };
 
   const handlePrintInvoice = (order: Order) => {
     window.open(`/invoice/${order.id_order}`, '_blank');
   };
 
-  const getResultFiles = (files?: DesignFile[]) => {
-    return (
-      files?.filter(
-        f => f.is_result === 1 || f.keterangan === 'HASIL_OPERATOR',
-      ) || []
-    );
-  };
-
-  const getDesignFiles = (files?: DesignFile[]) => {
-    return (
-      files?.filter(
-        f => f.is_result !== 1 && f.keterangan !== 'HASIL_OPERATOR',
-      ) || []
-    );
-  };
-
   return (
     <div className="kasir-container">
-      {/* Header Stats */}
+      {/* Stats Cards */}
       <div className="kasir-stats">
         <div className="stat-card">
           <div className="stat-icon" style={{ background: '#667eea' }}>
@@ -451,7 +388,6 @@ const KasirDashboard: React.FC = () => {
             <p className="stat-number">{stats.todayOrders}</p>
           </div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon" style={{ background: '#43e97b' }}>
             💰
@@ -472,7 +408,6 @@ const KasirDashboard: React.FC = () => {
             </small>
           </div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon" style={{ background: '#fa709a' }}>
             ⏳
@@ -482,19 +417,18 @@ const KasirDashboard: React.FC = () => {
             <p className="stat-number">{stats.pendingPayment}</p>
           </div>
         </div>
-
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: '#6c757d' }}>
+          <div className="stat-icon" style={{ background: '#28a745' }}>
             ✅
           </div>
           <div className="stat-info">
-            <h3>Diserahkan Hari Ini</h3>
+            <h3>Selesai Hari Ini</h3>
             <p className="stat-number">{stats.completedToday}</p>
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Button */}
       <div className="kasir-actions">
         <button
           className="btn-primary btn-large"
@@ -505,137 +439,7 @@ const KasirDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Pesanan Siap Diambil Section */}
-      {readyOrders.length > 0 && (
-        <div style={{ marginBottom: '2rem' }}>
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              marginBottom: '1rem',
-            }}
-          >
-            <h2
-              style={{
-                margin: '0 0 0.5rem 0',
-                color: 'white',
-                fontSize: '1.5rem',
-              }}
-            >
-              📦 Pesanan Siap Diambil Customer ({readyOrders.length})
-            </h2>
-            <p style={{ margin: 0, color: 'white', opacity: 0.9 }}>
-              Pesanan yang sudah selesai dikerjakan operator, siap diserahkan
-              langsung ke customer
-            </p>
-          </div>
-
-          <div className="table-wrapper">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Kode Order</th>
-                  <th>Customer</th>
-                  <th>Total</th>
-                  <th>Jenis</th>
-                  <th>Waktu</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {readyOrders.map(order => (
-                  <tr
-                    key={order.id_order}
-                    style={{
-                      background:
-                        'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)',
-                      borderLeft: '4px solid #28a745',
-                      fontWeight: '500',
-                    }}
-                  >
-                    <td>
-                      <strong>{order.kode_order}</strong>
-                    </td>
-                    <td>
-                      {order.nama_customer}
-                      {order.telepon_customer && (
-                        <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                          📞 {order.telepon_customer}
-                        </div>
-                      )}
-                    </td>
-                    <td className="text-right">
-                      <strong>{formatRupiah(order.total_harga)}</strong>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          background:
-                            order.jenis_order === 'offline'
-                              ? '#6c757d'
-                              : '#17a2b8',
-                          color: 'white',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                        }}
-                      >
-                        {order.jenis_order === 'offline'
-                          ? '🏪 Offline'
-                          : '🌐 Online'}
-                      </span>
-                    </td>
-                    <td>{formatDate(order.tanggal_order)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => handleViewDetail(order)}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          👁️ Detail
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleSelesaikanOrder(
-                              order.id_order,
-                              order.kode_order,
-                            )
-                          }
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          ✅ Serahkan
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Orders Table with Filter */}
+      {/* Orders Table */}
       <div className="kasir-orders">
         <div
           style={{
@@ -646,63 +450,30 @@ const KasirDashboard: React.FC = () => {
           }}
         >
           <h2>Riwayat Pesanan</h2>
-
-          {/* Filter Buttons */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={() => setFilterPeriod('today')}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                border:
-                  filterPeriod === 'today'
-                    ? '2px solid #667eea'
-                    : '1px solid #ddd',
-                background: filterPeriod === 'today' ? '#667eea' : 'white',
-                color: filterPeriod === 'today' ? 'white' : '#333',
-                cursor: 'pointer',
-                fontWeight: filterPeriod === 'today' ? '600' : '400',
-                fontSize: '0.875rem',
-              }}
-            >
-              📅 Hari Ini
-            </button>
-            <button
-              onClick={() => setFilterPeriod('week')}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                border:
-                  filterPeriod === 'week'
-                    ? '2px solid #667eea'
-                    : '1px solid #ddd',
-                background: filterPeriod === 'week' ? '#667eea' : 'white',
-                color: filterPeriod === 'week' ? 'white' : '#333',
-                cursor: 'pointer',
-                fontWeight: filterPeriod === 'week' ? '600' : '400',
-                fontSize: '0.875rem',
-              }}
-            >
-              📊 Minggu Ini
-            </button>
-            <button
-              onClick={() => setFilterPeriod('month')}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                border:
-                  filterPeriod === 'month'
-                    ? '2px solid #667eea'
-                    : '1px solid #ddd',
-                background: filterPeriod === 'month' ? '#667eea' : 'white',
-                color: filterPeriod === 'month' ? 'white' : '#333',
-                cursor: 'pointer',
-                fontWeight: filterPeriod === 'month' ? '600' : '400',
-                fontSize: '0.875rem',
-              }}
-            >
-              📈 Bulan Ini
-            </button>
+            {['today', 'week', 'month'].map(period => (
+              <button
+                key={period}
+                onClick={() => setFilterPeriod(period as any)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  border:
+                    filterPeriod === period
+                      ? '2px solid #667eea'
+                      : '1px solid #ddd',
+                  background: filterPeriod === period ? '#667eea' : 'white',
+                  color: filterPeriod === period ? 'white' : '#333',
+                  cursor: 'pointer',
+                  fontWeight: filterPeriod === period ? '600' : '400',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {period === 'today' && '📅 Hari Ini'}
+                {period === 'week' && '📊 Minggu Ini'}
+                {period === 'month' && '📈 Bulan Ini'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -713,108 +484,129 @@ const KasirDashboard: React.FC = () => {
             <p>Belum ada pesanan di periode ini</p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Kode Order</th>
-                  <th>Pelanggan</th>
-                  <th>Total</th>
-                  <th>Status Pesanan</th>
-                  <th>Status Bayar</th>
-                  <th>Waktu</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map(order => (
-                  <tr key={order.id_order}>
-                    <td>
-                      <strong>{order.kode_order}</strong>
-                    </td>
-                    <td>{order.nama_customer}</td>
-                    <td className="text-right">
-                      <strong>{formatRupiah(order.total_harga)}</strong>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          background: getStatusColor(order.status_order),
-                          color: 'white',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '12px',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          display: 'inline-block',
-                          border: 'none',
-                        }}
-                      >
-                        {getStatusLabel(order.status_order)}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          background: getStatusPembayaranColor(order),
-                          color: 'white',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '12px',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          display: 'inline-block',
-                          border: 'none',
-                        }}
-                      >
-                        {getStatusPembayaran(order)}
-                      </span>
-                    </td>
-                    <td>{formatDate(order.tanggal_order)}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="btn-icon btn-print"
-                          onClick={() => handlePrintInvoice(order)}
-                          title="Cetak Invoice"
-                        >
-                          🖨️
-                        </button>
-                        <button
-                          className="btn-icon"
-                          onClick={() => handleViewDetail(order)}
-                          title="Lihat Detail"
-                          style={{ background: '#007bff' }}
-                        >
-                          👁️
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="table-wrapper">
+              <table className="orders-table">
+                <thead>
+                  <tr>
+                    <th>Kode Order</th>
+                    <th>Pelanggan</th>
+                    <th>Jenis</th>
+                    <th>Total</th>
+                    <th>Status Pesanan</th>
+                    <th>Status Bayar</th>
+                    <th>Waktu</th>
+                    <th>Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Summary */}
-        {filteredOrders.length > 0 && (
-          <div
-            style={{
-              marginTop: '1rem',
-              padding: '1rem',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              textAlign: 'center',
-            }}
-          >
-            <strong>Total {filteredOrders.length} pesanan</strong>
-            {filterPeriod === 'today' && ' hari ini'}
-            {filterPeriod === 'week' && ' minggu ini'}
-            {filterPeriod === 'month' && ' bulan ini'}
-          </div>
+                </thead>
+                <tbody>
+                  {filteredOrders.map(order => (
+                    <tr key={order.id_order}>
+                      <td>
+                        <strong>{order.kode_order}</strong>
+                      </td>
+                      <td>
+                        {order.nama_customer}
+                        {order.telepon_customer && (
+                          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                            📞 {order.telepon_customer}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            background:
+                              order.jenis_order === 'offline'
+                                ? '#6c757d'
+                                : '#17a2b8',
+                            color: 'white',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                          }}
+                        >
+                          {order.jenis_order === 'offline'
+                            ? '🏪 Offline'
+                            : '🌐 Online'}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <strong>{formatRupiah(order.total_harga)}</strong>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            background: getStatusColor(order.status_order),
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            display: 'inline-block',
+                          }}
+                        >
+                          {getStatusLabel(order.status_order)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            background: getStatusPembayaranColor(order),
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            display: 'inline-block',
+                          }}
+                        >
+                          {getStatusPembayaran(order)}
+                        </span>
+                      </td>
+                      <td>{formatDate(order.tanggal_order)}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="btn-icon btn-print"
+                            onClick={() => handlePrintInvoice(order)}
+                          >
+                            🖨️
+                          </button>
+                          <button
+                            className="btn-icon"
+                            onClick={() => handleViewDetail(order)}
+                            style={{ background: '#007bff' }}
+                          >
+                            👁️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                background: '#f8f9fa',
+                borderRadius: '8px',
+                textAlign: 'center',
+              }}
+            >
+              <strong>Total {filteredOrders.length} pesanan </strong>
+              {filterPeriod === 'today' && 'hari ini'}
+              {filterPeriod === 'week' && 'minggu ini'}
+              {filterPeriod === 'month' && 'bulan ini'}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Detail Modal - CONTINUED IN NEXT PART */}
+      {/* Detail Modal */}
       {showDetailModal && selectedOrder && (
         <div
           onClick={() => setShowDetailModal(false)}
@@ -843,6 +635,7 @@ const KasirDashboard: React.FC = () => {
               overflow: 'auto',
             }}
           >
+            {/* Modal Header */}
             <div
               style={{
                 display: 'flex',
@@ -876,139 +669,169 @@ const KasirDashboard: React.FC = () => {
               </button>
             </div>
 
+            {/* Modal Body */}
             <div style={{ padding: '1.5rem' }}>
-              {/* File Hasil Operator */}
-              {getResultFiles(selectedOrder.design_files).length > 0 && (
-                <div
-                  style={{
-                    background:
-                      'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-                    padding: '1.5rem',
-                    borderRadius: '12px',
-                    marginBottom: '1.5rem',
-                  }}
-                >
-                  <h3
+              {/* 🎯 FILE HASIL OPERATOR - PRIORITAS (dari result_files) */}
+              {selectedOrder.result_files &&
+                selectedOrder.result_files.length > 0 && (
+                  <div
                     style={{
-                      margin: '0 0 1rem 0',
-                      color: 'white',
-                      fontSize: '1.2rem',
+                      background:
+                        'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)',
+                      border: '3px solid #28a745',
+                      padding: '1.5rem',
+                      borderRadius: '12px',
+                      marginBottom: '1.5rem',
+                      boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
                     }}
                   >
-                    ✅ File Hasil dari Operator (
-                    {getResultFiles(selectedOrder.design_files).length})
-                  </h3>
-
-                  {getResultFiles(selectedOrder.design_files).map(
-                    (file, idx) => (
-                      <div
-                        key={file.id_file}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        marginBottom: '1rem',
+                      }}
+                    >
+                      <div style={{ fontSize: '2rem' }}>✅</div>
+                      <h3
                         style={{
-                          background: 'white',
-                          padding: '1rem',
-                          borderRadius: '8px',
-                          marginBottom:
-                            idx <
-                            getResultFiles(selectedOrder.design_files).length -
-                              1
-                              ? '1rem'
-                              : '0',
+                          margin: 0,
+                          color: '#155724',
+                          fontSize: '1.2rem',
+                          fontWeight: 'bold',
                         }}
                       >
+                        FILE HASIL OPERATOR - SIAP DISERAHKAN KE CUSTOMER
+                      </h3>
+                    </div>
+                    <div
+                      style={{
+                        background: 'white',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        border: '2px solid #28a745',
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: '0 0 1rem 0',
+                          fontSize: '0.95rem',
+                          color: '#155724',
+                          fontWeight: '600',
+                        }}
+                      >
+                        📦 Total {selectedOrder.result_files.length} file hasil
+                        dari operator
+                      </p>
+                      {selectedOrder.result_files.map((file, idx) => (
                         <div
+                          key={file.id_result}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
+                            background: '#f8f9fa',
+                            padding: '1rem',
+                            borderRadius: '6px',
+                            marginBottom:
+                              idx < selectedOrder.result_files!.length - 1
+                                ? '1rem'
+                                : '0',
+                            border: '1px solid #dee2e6',
                           }}
                         >
-                          <div style={{ fontSize: '2.5rem' }}>
-                            {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p
-                              style={{
-                                margin: '0 0 0.25rem 0',
-                                fontWeight: '600',
-                                fontSize: '1rem',
-                              }}
-                            >
-                              {file.nama_file}
-                            </p>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontSize: '0.85rem',
-                                color: '#666',
-                              }}
-                            >
-                              📦 {formatFileSize(file.ukuran_file)} • 📅{' '}
-                              {formatDate(file.tanggal_upload)}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleDownloadFile(file.file_url, file.nama_file)
-                            }
+                          <div
                             style={{
-                              padding: '0.75rem 1.5rem',
-                              background: '#007bff',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
                             }}
                           >
-                            📥 Download
-                          </button>
-                        </div>
-
-                        {file.tipe_file.match(/image/i) && (
-                          <div style={{ marginTop: '1rem' }}>
-                            <img
-                              src={file.file_url}
-                              alt={file.nama_file}
+                            <div style={{ fontSize: '2.5rem' }}>
+                              {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <p
+                                style={{
+                                  margin: '0 0 0.25rem 0',
+                                  fontWeight: '700',
+                                  fontSize: '1rem',
+                                  color: '#155724',
+                                }}
+                              >
+                                {idx + 1}. {file.nama_file}
+                              </p>
+                              <p
+                                style={{
+                                  margin: 0,
+                                  fontSize: '0.85rem',
+                                  color: '#6c757d',
+                                }}
+                              >
+                                📦 {formatFileSize(file.ukuran_file)} • 📅{' '}
+                                {formatDate(file.tanggal_upload)}
+                              </p>
+                              {file.keterangan && (
+                                <p
+                                  style={{
+                                    margin: '0.25rem 0 0 0',
+                                    fontSize: '0.8rem',
+                                    color: '#6c757d',
+                                    fontStyle: 'italic',
+                                  }}
+                                >
+                                  💬 {file.keterangan}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleDownloadFile(
+                                  file.file_url,
+                                  file.nama_file,
+                                )
+                              }
                               style={{
-                                maxWidth: '100%',
-                                maxHeight: '400px',
-                                objectFit: 'contain',
-                                border: '1px solid #e0e0e0',
-                                borderRadius: '6px',
+                                padding: '0.75rem 1.5rem',
+                                background: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: '700',
+                                fontSize: '0.95rem',
+                                boxShadow: '0 2px 6px rgba(40, 167, 69, 0.3)',
                               }}
-                            />
+                            >
+                              📥 Download
+                            </button>
                           </div>
-                        )}
-                      </div>
-                    ),
-                  )}
-                </div>
-              )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* File Design Customer */}
-              {getDesignFiles(selectedOrder.design_files).length > 0 && (
-                <div
-                  style={{
-                    background: '#f0f9ff',
-                    border: '2px solid #3b82f6',
-                    padding: '1.5rem',
-                    borderRadius: '8px',
-                    marginBottom: '1.5rem',
-                  }}
-                >
-                  <h3
+              {/* File Design Customer - Referensi (dari design_files) */}
+              {selectedOrder.design_files &&
+                selectedOrder.design_files.length > 0 && (
+                  <div
                     style={{
-                      margin: '0 0 1rem 0',
-                      color: '#1e40af',
-                      fontSize: '1.1rem',
+                      background: '#f8f9fa',
+                      border: '1px solid #dee2e6',
+                      padding: '1.5rem',
+                      borderRadius: '8px',
+                      marginBottom: '1.5rem',
                     }}
                   >
-                    📁 File Design Customer (
-                    {getDesignFiles(selectedOrder.design_files).length})
-                  </h3>
-
-                  {getDesignFiles(selectedOrder.design_files).map(
-                    (file, idx) => (
+                    <h3
+                      style={{
+                        margin: '0 0 1rem 0',
+                        color: '#6c757d',
+                        fontSize: '1rem',
+                      }}
+                    >
+                      📁 File Design Awal dari Customer (Referensi)
+                    </h3>
+                    {selectedOrder.design_files.map((file, idx) => (
                       <div
                         key={file.id_file}
                         style={{
@@ -1016,9 +839,7 @@ const KasirDashboard: React.FC = () => {
                           padding: '1rem',
                           borderRadius: '6px',
                           marginBottom:
-                            idx <
-                            getDesignFiles(selectedOrder.design_files).length -
-                              1
+                            idx < selectedOrder.design_files!.length - 1
                               ? '1rem'
                               : '0',
                           border: '1px solid #e2e8f0',
@@ -1031,7 +852,7 @@ const KasirDashboard: React.FC = () => {
                             gap: '1rem',
                           }}
                         >
-                          <div style={{ fontSize: '2rem' }}>
+                          <div style={{ fontSize: '1.5rem' }}>
                             {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
                           </div>
                           <div style={{ flex: 1 }}>
@@ -1039,6 +860,7 @@ const KasirDashboard: React.FC = () => {
                               style={{
                                 margin: '0 0 0.25rem 0',
                                 fontWeight: '600',
+                                fontSize: '0.9rem',
                               }}
                             >
                               {file.nama_file}
@@ -1046,8 +868,8 @@ const KasirDashboard: React.FC = () => {
                             <p
                               style={{
                                 margin: 0,
-                                fontSize: '0.85rem',
-                                color: '#64748b',
+                                fontSize: '0.8rem',
+                                color: '#6c757d',
                               }}
                             >
                               📦 {formatFileSize(file.ukuran_file)}
@@ -1059,23 +881,22 @@ const KasirDashboard: React.FC = () => {
                             }
                             style={{
                               padding: '0.5rem 1rem',
-                              background: '#3b82f6',
+                              background: '#6c757d',
                               color: 'white',
                               border: 'none',
                               borderRadius: '6px',
                               cursor: 'pointer',
                               fontWeight: '600',
-                              fontSize: '0.9rem',
+                              fontSize: '0.85rem',
                             }}
                           >
-                            📥 Download
+                            📥
                           </button>
                         </div>
                       </div>
-                    ),
-                  )}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
               {/* Info Customer */}
               <div
@@ -1245,7 +1066,7 @@ const KasirDashboard: React.FC = () => {
                 )}
               </div>
 
-              {/* Total */}
+              {/* Total Pembayaran */}
               <div
                 style={{
                   background:
@@ -1308,50 +1129,25 @@ const KasirDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              {selectedOrder.status_order === 'selesai' && (
-                <div
-                  style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}
+              {/* Action Button */}
+              <div style={{ marginTop: '1.5rem' }}>
+                <button
+                  onClick={() => handlePrintInvoice(selectedOrder)}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                  }}
                 >
-                  <button
-                    onClick={() => handlePrintInvoice(selectedOrder)}
-                    style={{
-                      flex: 1,
-                      padding: '1rem',
-                      background: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '1rem',
-                    }}
-                  >
-                    🖨️ Cetak Invoice
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleSelesaikanOrder(
-                        selectedOrder.id_order,
-                        selectedOrder.kode_order,
-                      )
-                    }
-                    style={{
-                      flex: 1,
-                      padding: '1rem',
-                      background: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '1rem',
-                    }}
-                  >
-                    ✅ Serahkan ke Customer
-                  </button>
-                </div>
-              )}
+                  🖨️ Cetak Invoice
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
-// FINAL VERSION - Operator Dashboard dengan Status Sinkron Database
-// Status order disesuaikan dengan ENUM database
+// FINAL VERSION - Operator Dashboard dengan Upload ke result_files
+// File hasil operator masuk ke tabel result_files (bukan design_files)
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -77,8 +77,6 @@ const OperatorDashboard: React.FC = () => {
       if (response.data.status === 'success') {
         const allOrders = response.data.data.orders || [];
 
-        // ✅ Filter pesanan yang sudah dibayar dan belum selesai
-        // Status ENUM database: pending, dibayar, diproses, validasi, cetak, selesai, dikirim, dibatalkan
         const queue = allOrders.filter((o: Order) => {
           const isPaid =
             (o.status_pembayaran &&
@@ -131,7 +129,6 @@ const OperatorDashboard: React.FC = () => {
       o.tanggal_order.startsWith(today),
     ).length;
 
-    // Status "diproses" atau "cetak" = sedang dikerjakan
     const inProgress = queue.filter(o =>
       ['diproses', 'cetak'].includes(o.status_order),
     ).length;
@@ -140,7 +137,6 @@ const OperatorDashboard: React.FC = () => {
       o => o.kecepatan_pengerjaan === 'express',
     ).length;
 
-    // Status "selesai" = sudah selesai dikerjakan
     const todayCompleted = allOrders.filter(
       o => o.status_order === 'selesai' && o.tanggal_order.startsWith(today),
     ).length;
@@ -224,26 +220,78 @@ const OperatorDashboard: React.FC = () => {
 
     setUploadingResult(true);
     try {
-      // Upload file hasil
-      const fileFormData = new FormData();
-      fileFormData.append('id_order', orderToComplete);
-      fileFormData.append('file_desain', resultFile);
-      fileFormData.append('keterangan', 'HASIL_OPERATOR');
-      fileFormData.append('is_result', '1');
+      // 📤 Step 1: Upload file ke server terlebih dahulu
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', resultFile);
+      uploadFormData.append('folder', 'result_files');
 
-      const uploadResponse = await axios.post(
-        `${API_BASE_URL}/design_files.php?op=upload`,
-        fileFormData,
+      console.log('Step 1: Uploading file to server...', {
+        fileName: resultFile.name,
+        fileSize: resultFile.size,
+        fileType: resultFile.type,
+      });
+
+      const fileUploadResponse = await axios.post(
+        `${API_BASE_URL}/upload_file.php`,
+        uploadFormData,
         {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+          },
         },
       );
 
-      if (uploadResponse.data.status !== 'success') {
-        throw new Error('Gagal upload file hasil');
+      console.log('File upload response:', fileUploadResponse.data);
+
+      if (fileUploadResponse.data.status !== 'success') {
+        throw new Error(
+          fileUploadResponse.data.message || 'Gagal upload file ke server',
+        );
       }
 
-      // ✅ Update status ke "selesai" (sesuai ENUM database)
+      const uploadedFileUrl = fileUploadResponse.data.data.file_url;
+      const uploadedFileName = fileUploadResponse.data.data.file_name;
+      const fileSize = resultFile.size;
+      const fileType = resultFile.type;
+
+      console.log('File uploaded successfully:', uploadedFileUrl);
+
+      // 🎯 Step 2: Simpan ke database result_files
+      const resultFormData = new FormData();
+      resultFormData.append('id_order', orderToComplete);
+      resultFormData.append('nama_file', uploadedFileName);
+      resultFormData.append('file_url', uploadedFileUrl);
+      resultFormData.append('ukuran_file', fileSize.toString());
+      resultFormData.append('tipe_file', fileType);
+      resultFormData.append('keterangan', 'File hasil cetakan dari operator');
+
+      console.log('Step 2: Creating result_files record...', {
+        id_order: orderToComplete,
+        nama_file: uploadedFileName,
+        file_url: uploadedFileUrl,
+      });
+
+      const createResponse = await axios.post(
+        `${API_BASE_URL}/result_files.php?op=create`,
+        resultFormData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+          },
+        },
+      );
+
+      console.log('Create result_files response:', createResponse.data);
+
+      if (createResponse.data.status !== 'success') {
+        throw new Error(
+          createResponse.data.message || 'Gagal menyimpan file hasil',
+        );
+      }
+
+      // ✅ Update status ke "selesai"
       const statusFormData = new FormData();
       statusFormData.append('status_order', 'selesai');
 
@@ -278,7 +326,6 @@ const OperatorDashboard: React.FC = () => {
   };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    // ✅ Mapping status yang benar sesuai ENUM database
     const statusMap: { [key: string]: { db: string; label: string } } = {
       start: { db: 'diproses', label: 'MULAI CETAK' },
       complete: { db: 'selesai', label: 'SELESAI DIKERJAKAN' },
@@ -351,7 +398,6 @@ const OperatorDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    // ✅ Mapping status sesuai ENUM database
     const map: { [key: string]: { label: string; color: string } } = {
       pending: { label: '⏳ Menunggu', color: '#ffc107' },
       dibayar: { label: '✅ Siap Dikerjakan', color: '#17a2b8' },
@@ -559,7 +605,6 @@ const OperatorDashboard: React.FC = () => {
                           👁️ Detail
                         </button>
 
-                        {/* ✅ Tombol Mulai Cetak: status pending/dibayar/validasi */}
                         {['pending', 'dibayar', 'validasi'].includes(
                           order.status_order,
                         ) && (
@@ -574,7 +619,6 @@ const OperatorDashboard: React.FC = () => {
                           </button>
                         )}
 
-                        {/* ✅ Tombol Selesai: status diproses/cetak */}
                         {['diproses', 'cetak'].includes(order.status_order) && (
                           <button
                             onClick={() => handleStartComplete(order.id_order)}
@@ -585,7 +629,6 @@ const OperatorDashboard: React.FC = () => {
                           </button>
                         )}
 
-                        {/* ✅ Badge Selesai: status selesai */}
                         {order.status_order === 'selesai' && (
                           <span
                             style={{
@@ -611,7 +654,7 @@ const OperatorDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Detail Modal - sama seperti sebelumnya */}
+      {/* Detail Modal */}
       {showDetail && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowDetail(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
