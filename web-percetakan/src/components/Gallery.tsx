@@ -9,7 +9,7 @@ const Gallery = () => {
       title: 'Business Cards',
       description:
         'Professional business card printing with premium quality materials and fast delivery',
-      image: '🎴',
+      image: '/src/img/bisnis-cards.jpg',
       category: 'Cards',
     },
     {
@@ -17,7 +17,7 @@ const Gallery = () => {
       title: 'Banners',
       description:
         'Large format banner printing for all your marketing needs with vibrant colors',
-      image: '🎪',
+      image: '/src/img/banners.jpg',
       category: 'Marketing',
     },
     {
@@ -25,7 +25,7 @@ const Gallery = () => {
       title: 'Brochures',
       description:
         'High-quality brochure printing for your business presentations and promotions',
-      image: '📋',
+      image: '/src/img/brosurs.jpg',
       category: 'Marketing',
     },
     {
@@ -33,7 +33,7 @@ const Gallery = () => {
       title: 'Stickers',
       description:
         'Custom sticker printing in any shape and size you need for your brand',
-      image: '🏷️',
+      image: '/src/img/stickers.jpg',
       category: 'Custom',
     },
     {
@@ -41,7 +41,7 @@ const Gallery = () => {
       title: 'Posters',
       description:
         'Eye-catching poster printing with brilliant colors and sharp details',
-      image: '🖼️',
+      image: '/src/img/posters.jpg',
       category: 'Marketing',
     },
     {
@@ -49,7 +49,7 @@ const Gallery = () => {
       title: 'T-Shirts',
       description:
         'Custom t-shirt printing with your unique designs and premium fabric',
-      image: '👕',
+      image: '/src/img/tshirts.jpg',
       category: 'Apparel',
     },
   ];
@@ -139,9 +139,18 @@ const Gallery = () => {
           padding: 2rem;
         }
 
-        .gallery-image-icon {
-          font-size: 10rem;
-          filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.1));
+        .gallery-image img {
+          width: 100%;
+          max-width: 400px;
+          height: 350px;
+          object-fit: cover;
+          border-radius: 20px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+          transition: transform 0.3s;
+        }
+
+        .gallery-image img:hover {
+          transform: scale(1.05);
         }
 
         .gallery-content {
@@ -261,8 +270,9 @@ const Gallery = () => {
             font-size: 2rem;
           }
 
-          .gallery-image-icon {
-            font-size: 6rem;
+          .gallery-image img {
+            max-width: 100%;
+            height: 280px;
           }
         }
       `}</style>
@@ -288,7 +298,7 @@ const Gallery = () => {
                 {galleryItems.map(item => (
                   <div key={item.id} className="gallery-slide">
                     <div className="gallery-image">
-                      <span className="gallery-image-icon">{item.image}</span>
+                      <img src={item.image} alt={item.title} />
                     </div>
 
                     <div className="gallery-content">
@@ -310,12 +320,11 @@ const Gallery = () => {
               </button>
 
               <div className="gallery-dots">
-                {galleryItems.map((_, index) => (
+                {galleryItems.map((item, index) => (
                   <button
-                    key={index}
-                    className={`gallery-dot ${
-                      index === currentIndex ? 'active' : ''
-                    }`}
+                    key={item.id}
+                    className={`gallery-dot ${index === currentIndex ? 'active' : ''
+                      }`}
                     onClick={() => goToSlide(index)}
                   />
                 ))}
