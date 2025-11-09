@@ -1,43 +1,49 @@
 const Features = () => {
   const features = [
     {
-      icon: '⚡',
+      id: 1,
       title: 'Super Fast Printing',
       description:
         'Hasil cetak berkualitas tinggi dalam waktu singkat dengan mesin modern kami',
+      image: '/images/fast.jpg',
       color: '#60a5fa',
     },
     {
-      icon: '💰',
+      id: 2,
       title: 'Affordable Price',
       description: 'Harga terjangkau tanpa mengorbankan kualitas cetakan Anda',
+      image: '/images/money.jpg',
       color: '#34d399',
     },
     {
-      icon: '🎨',
+      id: 3,
       title: 'High Quality',
       description:
         'Kualitas cetak terbaik dengan warna tajam dan detail sempurna',
+      image: '/images/quality.jpg',
       color: '#f472b6',
     },
     {
-      icon: '🌿',
+      id: 4,
       title: 'Eco-Friendly',
       description: 'Menggunakan tinta dan bahan yang ramah lingkungan',
+      image: '/images/eco.jpg',
       color: '#a78bfa',
     },
     {
-      icon: '🚚',
+      id: 5,
       title: 'Fast Delivery',
       description:
         'Pengiriman cepat ke seluruh Indonesia dengan tracking real-time',
+      image: '/images/delivery.jpg',
       color: '#fb923c',
     },
     {
-      icon: '🛡️',
+      id: 6,
       title: 'Safe & Secure',
       description:
         'Produk dikemas dengan aman dan dijamin sampai dengan sempurna',
+      image: '/images/secure.jpg',
       color: '#fbbf24',
     },
   ];
@@ -146,16 +152,29 @@ const Features = () => {
           transform: scaleX(1);
         }
 
-        .feature-icon {
-          width: 70px;
-          height: 70px;
+        .feature-card:hover .feature-image {
+          transform: scale(1.05);
+        }
+
+        .feature-image-wrapper {
+          width: 100%;
+          height: 180px;
           border-radius: 15px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
+          overflow: hidden;
           margin-bottom: 1.5rem;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s ease;
+        }
+
+        .feature-image.scale-down {
+          object-fit: contain;
+          padding: 20px;
         }
 
         .feature-title {
@@ -218,6 +237,10 @@ const Features = () => {
           .feature-card {
             padding: 2rem;
           }
+
+          .feature-image-wrapper {
+            height: 150px;
+          }
         }
       `}</style>
 
@@ -234,13 +257,17 @@ const Features = () => {
           </div>
 
           <div className="features-grid">
-            {features.map((feature, index) => (
-              <div key={index} className="feature-card">
-                <div
-                  className="feature-icon"
-                  style={{ background: feature.color, color: 'white' }}
-                >
-                  {feature.icon}
+            {features.map((feature) => (
+              <div key={feature.id} className="feature-card">
+                <div className="feature-image-wrapper">
+                  <img
+                    src={feature.image}
+                    alt={feature.title}
+                    className={`feature-image ${feature.id === 3 || feature.id === 5 || feature.id === 6
+                        ? 'scale-down'
+                        : ''
+                      }`}
+                  />
                 </div>
                 <h3 className="feature-title">{feature.title}</h3>
                 <p className="feature-description">{feature.description}</p>
