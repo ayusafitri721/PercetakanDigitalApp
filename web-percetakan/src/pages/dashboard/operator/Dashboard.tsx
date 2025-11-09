@@ -1,8 +1,20 @@
+// FINAL VERSION - Operator Dashboard
+// Tanpa debug panel, download langsung ke folder
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Dashboard.css';
 
 const API_BASE_URL = 'http://localhost/api-percetakan/api';
+
+interface DesignFile {
+  id_file: string;
+  nama_file: string;
+  file_url: string;
+  ukuran_file: number;
+  tipe_file: string;
+  tanggal_upload: string;
+}
 
 interface OrderItem {
   id_item: string;
@@ -10,6 +22,8 @@ interface OrderItem {
   jumlah: number;
   ukuran: string;
   catatan_item: string;
+  harga_satuan?: number;
+  file_desain?: string;
 }
 
 interface Order {
@@ -24,7 +38,10 @@ interface Order {
   tanggal_order: string;
   jenis_order: string;
   kecepatan_pengerjaan: string;
+  file_design?: string;
+  catatan?: string;
   items: OrderItem[];
+  design_files?: DesignFile[];
 }
 
 const OperatorDashboard: React.FC = () => {
@@ -57,23 +74,22 @@ const OperatorDashboard: React.FC = () => {
         const allOrders = response.data.data.orders || [];
 
         const queue = allOrders.filter((o: Order) => {
-          // ✅ FIXED: Perbaiki logika untuk include pesanan dari kasir
           const isPaid =
-            // Cek status_pembayaran jika ada
             (o.status_pembayaran &&
               ['dibayar', 'diterima', 'lunas', 'confirmed'].includes(
                 o.status_pembayaran.toLowerCase(),
               )) ||
-            // Atau cek status_order untuk pesanan offline/kasir
             ['dikonfirmasi', 'proses', 'diproses', 'dikerjakan'].includes(
               o.status_order,
             ) ||
-            // Atau jika jenis_order offline, anggap sudah paid
             (o.jenis_order === 'offline' && o.status_order !== 'pending');
 
-          const notFinished = !['selesai', 'dibatalkan'].includes(
-            o.status_order,
-          );
+          const notFinished = ![
+            'siap_diambil',
+            'selesai',
+            'dibatalkan',
+          ].includes(o.status_order);
+
           return isPaid && notFinished;
         });
 
@@ -116,7 +132,9 @@ const OperatorDashboard: React.FC = () => {
     ).length;
 
     const todayCompleted = allOrders.filter(
-      o => o.status_order === 'selesai' && o.tanggal_order.startsWith(today),
+      o =>
+        ['siap_diambil', 'selesai'].includes(o.status_order) &&
+        o.tanggal_order.startsWith(today),
     ).length;
 
     setStats({ todayQueue, inProgress, todayCompleted, expressQueue });
@@ -124,16 +142,37 @@ const OperatorDashboard: React.FC = () => {
 
   const handleViewDetail = async (order: Order) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/orders.php`, {
+      const orderResponse = await axios.get(`${API_BASE_URL}/orders.php`, {
         params: { op: 'detail', id: order.id_order },
         headers: { Accept: 'application/json' },
       });
 
-      if (response.data.status === 'success') {
-        setSelectedOrder(response.data.data);
-        setShowDetail(true);
+      if (orderResponse.data.status !== 'success') {
+        throw new Error('Gagal ambil detail order');
       }
-    } catch (error) {
+
+      let orderDetail = orderResponse.data.data;
+
+      try {
+        const filesResponse = await axios.get(
+          `${API_BASE_URL}/design_files.php`,
+          {
+            params: { op: 'by_order', id_order: order.id_order },
+            headers: { Accept: 'application/json' },
+          },
+        );
+
+        if (filesResponse.data.status === 'success') {
+          orderDetail.design_files = filesResponse.data.data?.files || [];
+        }
+      } catch (fileError) {
+        console.warn('Tidak ada file design:', fileError);
+        orderDetail.design_files = [];
+      }
+
+      setSelectedOrder(orderDetail);
+      setShowDetail(true);
+    } catch (error: any) {
       console.error('Error fetching detail:', error);
       alert('Gagal memuat detail pesanan');
     }
@@ -141,8 +180,8 @@ const OperatorDashboard: React.FC = () => {
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     const statusLabel: { [key: string]: string } = {
-      proses: 'PROSES (Mulai Cetak)',
-      selesai: 'SELESAI',
+      proses: 'MULAI CETAK',
+      siap_diambil: 'SELESAI DIKERJAKAN',
     };
 
     if (!confirm(`Ubah status pesanan menjadi "${statusLabel[newStatus]}"?`))
@@ -160,7 +199,13 @@ const OperatorDashboard: React.FC = () => {
       );
 
       if (response.data.status === 'success') {
-        alert('✅ Status berhasil diupdate!');
+        if (newStatus === 'siap_diambil') {
+          alert(
+            '✅ Pesanan selesai dikerjakan!\n📦 Pesanan sudah dikirim ke kasir untuk diserahkan ke customer.',
+          );
+        } else {
+          alert('✅ Status berhasil diupdate!');
+        }
         fetchQueue();
         if (showDetail) setShowDetail(false);
       } else {
@@ -205,11 +250,11 @@ const OperatorDashboard: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const map: { [key: string]: { label: string; color: string } } = {
-      pending: { label: '⏳ Waiting', color: '#ffc107' },
-      dikonfirmasi: { label: '✅ Ready', color: '#17a2b8' },
-      proses: { label: '🖨️ Printing', color: '#007bff' },
-      diproses: { label: '🖨️ Printing', color: '#007bff' },
-      dikerjakan: { label: '🖨️ Printing', color: '#007bff' },
+      pending: { label: '⏳ Menunggu', color: '#ffc107' },
+      dikonfirmasi: { label: '✅ Siap Dikerjakan', color: '#17a2b8' },
+      proses: { label: '🖨️ Sedang Diproses', color: '#007bff' },
+      diproses: { label: '🖨️ Sedang Diproses', color: '#007bff' },
+      dikerjakan: { label: '🖨️ Sedang Diproses', color: '#007bff' },
     };
     const info = map[status] || { label: status, color: '#6c757d' };
     return (
@@ -217,6 +262,35 @@ const OperatorDashboard: React.FC = () => {
         {info.label}
       </span>
     );
+  };
+
+  // ✅ FIXED: Download via PHP script
+  const handleDownloadFile = (fileUrl: string, fileName: string) => {
+    try {
+      // Use PHP download script
+      const downloadUrl = `${API_BASE_URL}/download_file.php?file=${encodeURIComponent(
+        fileUrl,
+      )}`;
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('Download triggered:', fileName);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Gagal download file');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
@@ -380,12 +454,12 @@ const OperatorDashboard: React.FC = () => {
                         {order.status_order === 'proses' && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id_order, 'selesai')
+                              handleUpdateStatus(order.id_order, 'siap_diambil')
                             }
                             disabled={updating}
                             className="btn-complete"
                           >
-                            ✅ Selesai
+                            ✅ Selesai Dikerjakan
                           </button>
                         )}
                       </div>
@@ -420,6 +494,122 @@ const OperatorDashboard: React.FC = () => {
             </div>
 
             <div className="modal-body">
+              {selectedOrder.design_files &&
+                selectedOrder.design_files.length > 0 && (
+                  <div
+                    className="detail-section"
+                    style={{
+                      background: '#f0f9ff',
+                      border: '2px solid #3b82f6',
+                      padding: '1.5rem',
+                      borderRadius: '8px',
+                      marginBottom: '1.5rem',
+                    }}
+                  >
+                    <h3 style={{ color: '#1e40af', marginBottom: '1rem' }}>
+                      📁 File Design Customer (
+                      {selectedOrder.design_files.length})
+                    </h3>
+
+                    {selectedOrder.design_files.map((file, idx) => (
+                      <div
+                        key={file.id_file}
+                        style={{
+                          background: 'white',
+                          padding: '1rem',
+                          borderRadius: '6px',
+                          marginBottom: '1rem',
+                          border: '1px solid #e2e8f0',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                          }}
+                        >
+                          <div style={{ fontSize: '2.5rem' }}>
+                            {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p
+                              style={{
+                                fontWeight: '600',
+                                marginBottom: '0.25rem',
+                                color: '#1e293b',
+                              }}
+                            >
+                              {idx + 1}. {file.nama_file}
+                            </p>
+                            <p
+                              style={{
+                                fontSize: '0.875rem',
+                                color: '#64748b',
+                                marginBottom: '0.25rem',
+                              }}
+                            >
+                              📦 {formatFileSize(file.ukuran_file)} • 📅{' '}
+                              {formatDate(file.tanggal_upload)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleDownloadFile(file.file_url, file.nama_file)
+                            }
+                            style={{
+                              padding: '0.75rem 1.5rem',
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                            }}
+                          >
+                            📥 Download
+                          </button>
+                        </div>
+
+                        {file.tipe_file.match(/image/i) && (
+                          <div style={{ marginTop: '1rem' }}>
+                            <img
+                              src={file.file_url}
+                              alt={file.nama_file}
+                              style={{
+                                maxWidth: '100%',
+                                maxHeight: '300px',
+                                objectFit: 'contain',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                background: 'white',
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {(!selectedOrder.design_files ||
+                selectedOrder.design_files.length === 0) && (
+                <div
+                  style={{
+                    background: '#fff3cd',
+                    border: '1px solid #ffc107',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center',
+                  }}
+                >
+                  <p style={{ margin: 0, color: '#856404' }}>
+                    ℹ️ Pesanan ini tidak memerlukan file design
+                  </p>
+                </div>
+              )}
+
               <div className="detail-section">
                 <h3>👤 Customer</h3>
                 <div className="detail-grid">
@@ -438,12 +628,59 @@ const OperatorDashboard: React.FC = () => {
                     </div>
                   )}
                   <div>
+                    <label>Jenis Order:</label>
+                    <span style={{ fontWeight: 'bold' }}>
+                      {selectedOrder.jenis_order === 'offline'
+                        ? '🏪 Offline'
+                        : '🌐 Online'}
+                    </span>
+                  </div>
+                  <div>
+                    <label>Kecepatan:</label>
+                    <span
+                      style={{
+                        fontWeight: 'bold',
+                        color:
+                          selectedOrder.kecepatan_pengerjaan === 'express'
+                            ? '#dc2626'
+                            : '#16a34a',
+                      }}
+                    >
+                      {selectedOrder.kecepatan_pengerjaan === 'express'
+                        ? '⚡ EXPRESS'
+                        : '🕐 NORMAL'}
+                    </span>
+                  </div>
+                  <div>
                     <label>Total Harga:</label>
-                    <span style={{ fontWeight: 'bold', color: '#667eea' }}>
+                    <span
+                      style={{
+                        fontWeight: 'bold',
+                        color: '#667eea',
+                        fontSize: '1.125rem',
+                      }}
+                    >
                       {formatRupiah(selectedOrder.total_harga)}
                     </span>
                   </div>
                 </div>
+
+                {selectedOrder.catatan && (
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      padding: '1rem',
+                      background: '#fff3cd',
+                      borderRadius: '6px',
+                      border: '1px solid #ffc107',
+                    }}
+                  >
+                    <strong style={{ color: '#856404' }}>💬 Catatan:</strong>
+                    <p style={{ margin: '0.5rem 0 0 0', color: '#856404' }}>
+                      {selectedOrder.catatan}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="detail-section">
@@ -454,15 +691,41 @@ const OperatorDashboard: React.FC = () => {
                       <div key={index} className="item-card">
                         <div className="item-header">
                           <strong>{item.nama_produk}</strong>
-                          <span>× {item.jumlah}</span>
+                          <span
+                            style={{
+                              background: '#667eea',
+                              color: 'white',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '12px',
+                              fontWeight: '600',
+                            }}
+                          >
+                            × {item.jumlah}
+                          </span>
                         </div>
                         {item.ukuran && (
                           <div className="item-detail">
-                            📐 Ukuran: {item.ukuran}
+                            📐 Ukuran: <strong>{item.ukuran}</strong>
+                          </div>
+                        )}
+                        {item.harga_satuan && (
+                          <div className="item-detail">
+                            💰 Harga:{' '}
+                            <strong>
+                              {formatRupiah(item.harga_satuan)} / pcs
+                            </strong>
                           </div>
                         )}
                         {item.catatan_item && (
-                          <div className="item-detail">
+                          <div
+                            className="item-detail"
+                            style={{
+                              background: '#f1f5f9',
+                              padding: '0.5rem',
+                              borderRadius: '4px',
+                              marginTop: '0.5rem',
+                            }}
+                          >
                             💬 {item.catatan_item}
                           </div>
                         )}
@@ -491,12 +754,12 @@ const OperatorDashboard: React.FC = () => {
                 {selectedOrder.status_order === 'proses' && (
                   <button
                     onClick={() =>
-                      handleUpdateStatus(selectedOrder.id_order, 'selesai')
+                      handleUpdateStatus(selectedOrder.id_order, 'siap_diambil')
                     }
                     disabled={updating}
                     className="btn-complete btn-block"
                   >
-                    ✅ Tandai Selesai
+                    ✅ Selesai Dikerjakan
                   </button>
                 )}
               </div>
