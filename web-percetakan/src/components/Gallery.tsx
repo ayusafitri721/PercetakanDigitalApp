@@ -9,7 +9,7 @@ const Gallery = () => {
       title: 'Business Cards',
       description:
         'Professional business card printing with premium quality materials and fast delivery',
-      image: '/src/img/bisnis-cards.jpg',
+      image: '/images/bisnisCrads.jpg',
       category: 'Cards',
     },
     {
@@ -17,7 +17,7 @@ const Gallery = () => {
       title: 'Banners',
       description:
         'Large format banner printing for all your marketing needs with vibrant colors',
-      image: '/src/img/banners.jpg',
+      image: '/images/banners.jpg',
       category: 'Marketing',
     },
     {
@@ -25,7 +25,7 @@ const Gallery = () => {
       title: 'Brochures',
       description:
         'High-quality brochure printing for your business presentations and promotions',
-      image: '/src/img/brosurs.jpg',
+      image: '/images/brosurss.jpg',
       category: 'Marketing',
     },
     {
@@ -33,7 +33,7 @@ const Gallery = () => {
       title: 'Stickers',
       description:
         'Custom sticker printing in any shape and size you need for your brand',
-      image: '/src/img/stickers.jpg',
+      image: '/images/stickers.jpg',
       category: 'Custom',
     },
     {
@@ -41,7 +41,7 @@ const Gallery = () => {
       title: 'Posters',
       description:
         'Eye-catching poster printing with brilliant colors and sharp details',
-      image: '/src/img/posters.jpg',
+      image: '/images/posters.jpg',
       category: 'Marketing',
     },
     {
@@ -49,7 +49,7 @@ const Gallery = () => {
       title: 'T-Shirts',
       description:
         'Custom t-shirt printing with your unique designs and premium fabric',
-      image: '/src/img/tshirts.jpg',
+      image: '/images/tShirts.jpg',
       category: 'Apparel',
     },
   ];
