@@ -19,6 +19,7 @@ const Gallery = () => {
         'Large format banner printing for all your marketing needs with vibrant colors',
       image: '/images/banners.jpg',
       category: 'Marketing',
+      scaleDown: true,
     },
     {
       id: 3,
@@ -27,6 +28,7 @@ const Gallery = () => {
         'High-quality brochure printing for your business presentations and promotions',
       image: '/images/brosurss.jpg',
       category: 'Marketing',
+      scaleDown: true,
     },
     {
       id: 4,
@@ -43,6 +45,7 @@ const Gallery = () => {
         'Eye-catching poster printing with brilliant colors and sharp details',
       image: '/images/posters.jpg',
       category: 'Marketing',
+      scaleDown: true,
     },
     {
       id: 6,
@@ -147,6 +150,11 @@ const Gallery = () => {
           border-radius: 20px;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
           transition: transform 0.3s;
+        }
+
+        .gallery-image img.scale-down {
+          object-fit: contain;
+          padding: 20px;
         }
 
         .gallery-image img:hover {
@@ -298,7 +306,11 @@ const Gallery = () => {
                 {galleryItems.map(item => (
                   <div key={item.id} className="gallery-slide">
                     <div className="gallery-image">
-                      <img src={item.image} alt={item.title} />
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className={item.scaleDown ? 'scale-down' : ''}
+                      />
                     </div>
 
                     <div className="gallery-content">
