@@ -1,10 +1,18 @@
 // config/api.ts
-// Konfigurasi API untuk seluruh aplikasi
-// Ganti IP ini sesuai dengan IP komputer server kamu
+// ========================================
+// KONFIGURASI API DASAR
+// ========================================
 
+/**
+ * Konfigurasi API untuk seluruh aplikasi
+ * Ganti IP sesuai dengan IP komputer server kamu
+ */
 export const API_CONFIG = {
   // Base URL API
-  BASE_URL: 'http://172.26.150.126/api-percetakan/api',
+  BASE_URL: 'http://192.168.0.153/api-percetakan/api',
+  
+  // Timeout settings
+  TIMEOUT: 10000, // 10 detik
   
   // Endpoints
   ENDPOINTS: {
@@ -17,23 +25,25 @@ export const API_CONFIG = {
     PRODUCT_DETAIL: '/products.php?op=detail',
     PRODUCTS_BY_CATEGORY: '/products.php?op=by_category',
     
-    // Orders (nanti kalau udah ada)
+    // Orders
     ORDERS: '/orders.php',
     ORDER_CREATE: '/orders.php?op=create',
     ORDER_HISTORY: '/orders.php?op=history',
     
-    // Categories (nanti kalau perlu)
+    // Categories
     CATEGORIES: '/categories.php',
   },
-  
-  // Timeout settings
-  TIMEOUT: 10000, // 10 detik
   
   // Helper function untuk build URL
   getUrl: (endpoint: string) => {
     return `${API_CONFIG.BASE_URL}${endpoint}`;
   },
 };
+
+// Export individual untuk backward compatibility
+export const API_BASE_URL = API_CONFIG.BASE_URL;
+export const REQUEST_TIMEOUT = API_CONFIG.TIMEOUT;
+export const ENDPOINTS = API_CONFIG.ENDPOINTS;
 
 // Export default untuk kemudahan
 export default API_CONFIG;

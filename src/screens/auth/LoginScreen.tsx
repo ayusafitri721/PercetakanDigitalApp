@@ -1,4 +1,4 @@
-// LoginScreen.tsx
+// screens/auth/LoginScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -13,28 +13,12 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
-
-const API_URL = 'http://172.26.150.126/api-percetakan/api';
+import { login } from '../../config/authAPI';
+import { API_BASE_URL } from '../../config/api';
 
 interface LoginScreenProps {
   onGoToRegister: () => void;
   onLoginSuccess: (userData: any) => void;
-}
-
-interface LoginResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    user: {
-      id_user: string;
-      nama: string;
-      email: string;
-      role: string;
-      no_telepon?: string;
-      alamat?: string;
-    };
-    token: string;
-  };
 }
 
 export default function LoginScreen({
@@ -47,11 +31,13 @@ export default function LoginScreen({
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    // Validasi input kosong
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Email dan password harus diisi!');
       return;
     }
 
+    // Validasi format email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Format email tidak valid!');
@@ -61,13 +47,11 @@ export default function LoginScreen({
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth.php?op=login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
+      // Panggil API login
+      const data = await login({
+        email: email.trim(),
+        password: password,
       });
-
-      const data = (await response.json()) as LoginResponse;
 
       if (data.success && data.data) {
         Alert.alert(
@@ -78,6 +62,7 @@ export default function LoginScreen({
         // Panggil callback success dengan data user
         onLoginSuccess(data.data);
 
+        // Reset form
         setEmail('');
         setPassword('');
       } else {
@@ -86,8 +71,8 @@ export default function LoginScreen({
           data.message || 'Email atau password salah!',
         );
       }
-    } catch (error) {
-      Alert.alert('⚠️ Error', 'Tidak bisa connect ke server!');
+    } catch (error: any) {
+      Alert.alert('⚠️ Error', error.message || 'Tidak bisa connect ke server!');
     } finally {
       setLoading(false);
     }
@@ -189,7 +174,7 @@ export default function LoginScreen({
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>📡 API: {API_URL}</Text>
+            <Text style={styles.footerText}>📡 API: {API_BASE_URL}</Text>
             <Text style={styles.footerHint}>
               Pastikan API sudah jalan di komputer
             </Text>

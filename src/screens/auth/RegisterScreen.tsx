@@ -1,4 +1,4 @@
-// RegisterScreen.tsx
+// screens/auth/RegisterScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -13,28 +13,12 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
-
-const API_URL = 'http://172.26.150.126/api-percetakan/api';
+import { register } from '../../config/authAPI';
+import { API_BASE_URL } from '../../config/api';
 
 interface RegisterScreenProps {
   onGoToLogin: () => void;
-  onRegisterSuccess: (userData: any) => void;
-}
-
-interface RegisterResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    user: {
-      id_user: string;
-      nama: string;
-      email: string;
-      role: string;
-      no_telepon?: string;
-      alamat?: string;
-    };
-    token: string;
-  };
+  onRegisterSuccess?: (userData: any) => void;
 }
 
 export default function RegisterScreen({
@@ -77,19 +61,14 @@ export default function RegisterScreen({
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth.php?op=register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nama: nama.trim(),
-          email: email.trim(),
-          password,
-          no_telepon: noTelepon.trim(),
-          alamat: alamat.trim(),
-        }),
+      // Panggil API register
+      const data = await register({
+        nama: nama.trim(),
+        email: email.trim(),
+        password,
+        no_telepon: noTelepon.trim(),
+        alamat: alamat.trim(),
       });
-
-      const data = (await response.json()) as RegisterResponse;
 
       if (data.success) {
         Alert.alert(
@@ -118,8 +97,8 @@ export default function RegisterScreen({
           data.message || 'Terjadi kesalahan saat registrasi',
         );
       }
-    } catch (error) {
-      Alert.alert('⚠️ Error', 'Tidak bisa connect ke server!');
+    } catch (error: any) {
+      Alert.alert('⚠️ Error', error.message || 'Tidak bisa connect ke server!');
     } finally {
       setLoading(false);
     }
@@ -305,7 +284,7 @@ export default function RegisterScreen({
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>📡 API: {API_URL}</Text>
+            <Text style={styles.footerText}>📡 API: {API_BASE_URL}</Text>
             <Text style={styles.footerHint}>
               Pastikan API sudah jalan di komputer
             </Text>
