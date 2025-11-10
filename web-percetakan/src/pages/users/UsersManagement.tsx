@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  Search,
+  Plus,
+  Edit2,
+  Trash2,
+  UserCheck,
+  UserX,
+} from 'lucide-react';
 import UserForm from './UserForm';
 import UserDelete from './UserDelete';
 import './users.css';
@@ -102,14 +110,15 @@ const UsersManagement: React.FC = () => {
           <p className="subtitle">Total: {filteredUsers.length} users</p>
         </div>
         <button className="btn-add" onClick={handleAdd}>
-          <span>➕</span> Tambah User
+          <Plus size={18} />
+          <span>Tambah User</span>
         </button>
       </div>
 
       {/* Filters */}
       <div className="filters-container">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <Search className="search-icon" size={18} />
           <input
             type="text"
             placeholder="Cari nama atau email..."
@@ -180,7 +189,17 @@ const UsersManagement: React.FC = () => {
                         user.status_aktif ? 'badge-success' : 'badge-danger'
                       }`}
                     >
-                      {user.status_aktif ? 'Aktif' : 'Nonaktif'}
+                      {user.status_aktif ? (
+                        <>
+                          <UserCheck size={14} />
+                          Aktif
+                        </>
+                      ) : (
+                        <>
+                          <UserX size={14} />
+                          Nonaktif
+                        </>
+                      )}
                     </span>
                   </td>
                   <td>
@@ -193,14 +212,14 @@ const UsersManagement: React.FC = () => {
                         onClick={() => handleEdit(user)}
                         title="Edit"
                       >
-                        ✏️
+                        <Edit2 size={16} />
                       </button>
                       <button
                         className="btn-icon btn-delete"
                         onClick={() => handleDelete(user)}
                         title="Hapus"
                       >
-                        🗑️
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>

@@ -433,7 +433,7 @@ const Dashboard: React.FC = () => {
               alt="PrintyGo Logo"
               className="logo-image"
             />
-            {sidebarOpen && <h2>PrintyGo</h2>}
+            {sidebarOpen && <h2>PrintifyGo</h2>}
           </div>
           <button className="sidebar-toggle" onClick={toggleSidebar}>
             {sidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
