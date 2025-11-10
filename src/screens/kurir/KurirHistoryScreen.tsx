@@ -27,7 +27,7 @@ interface DeliveryHistory {
   status: 'delivered' | 'cancelled';
 }
 
-const API_BASE_URL = 'http://192.168.0.153:3000/api';
+import { API_BASE_URL } from '../../config/api'; // ✅ Import dari config
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);

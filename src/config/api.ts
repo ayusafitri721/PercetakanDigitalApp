@@ -1,11 +1,6 @@
-// config/api.ts
-// ========================================
-// KONFIGURASI API DASAR
-// ========================================
-
 /**
  * Konfigurasi API untuk seluruh aplikasi
- * Ganti IP sesuai dengan IP komputer server kamu
+ * Ganti IP sesuai sama ipconfig kalian masing2
  */
 export const API_CONFIG = {
   // Base URL API

@@ -30,7 +30,7 @@ interface DeliveryOrder {
   notes?: string;
 }
 
-const API_BASE_URL = 'http://192.168.0.153:3000/api';
+import { API_BASE_URL } from '../../config/api';
 
 function getStatusConfig(status: DeliveryOrder['deliveryStatus']) {
   const configs = {
