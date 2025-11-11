@@ -1,4 +1,4 @@
-// screens/kurir/KurirDashboardScreen.tsx
+// screens/kurir/KurirDashboardScreen.tsx - FIXED: Hanya tampilkan pesanan ONLINE
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -110,13 +110,23 @@ export default function KurirDashboardScreen({
         allOrders = ordersResponse.data.data.orders;
       }
 
-      // Filter orders yang sudah siap dikirim (status: siap, dikirim, selesai)
+      console.log('📦 Total orders from API:', allOrders.length);
+
+      // ✅ FIXED: Filter orders yang ONLINE dan status: siap, dikirim, selesai
       const deliveryOrders = allOrders
-        .filter((order: any) =>
-          ['siap', 'dikirim', 'selesai'].includes(
-            order.status_order?.toLowerCase(),
-          ),
-        )
+        .filter((order: any) => {
+          const status = order.status_order?.toLowerCase();
+          const jenis = order.jenis_order?.toLowerCase();
+
+          console.log(
+            `Order ${order.kode_order}: jenis=${jenis}, status=${status}`,
+          );
+
+          // Hanya tampilkan pesanan ONLINE dengan status siap/dikirim/selesai
+          return (
+            jenis === 'online' && ['siap', 'dikirim', 'selesai'].includes(status)
+          );
+        })
         .map((order: any) => ({
           id: order.id_order?.toString() || '',
           orderNumber: order.kode_order || `ORD-${order.id_order}`,
@@ -128,6 +138,8 @@ export default function KurirDashboardScreen({
           orderDate: order.tanggal_order || new Date().toISOString(),
           notes: order.catatan || '',
         }));
+
+      console.log('✅ Filtered delivery orders:', deliveryOrders.length);
 
       // Sort by date (terbaru dulu)
       deliveryOrders.sort(
@@ -181,13 +193,25 @@ export default function KurirDashboardScreen({
           text: 'Ya, Ambil',
           onPress: async () => {
             try {
-              await axios.put(`${API_BASE_URL}/orders.php`, {
-                id_order: orderId,
-                status_order: 'dikirim',
-              });
-              Alert.alert('Berhasil', 'Status pesanan diperbarui');
+              // ✅ Update status ke 'dikirim' (on delivery)
+              const formData = new FormData();
+              formData.append('id_order', orderId);
+              formData.append('status_order', 'dikirim');
+
+              await axios.put(
+                `${API_BASE_URL}/orders.php?id=${orderId}`,
+                formData,
+                {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                  },
+                },
+              );
+
+              Alert.alert('✅ Berhasil', 'Status pesanan diperbarui ke DALAM PENGIRIMAN');
               fetchDeliveries();
             } catch (error) {
+              console.error('Error updating status:', error);
               Alert.alert('Error', 'Gagal memperbarui status');
             }
           },
@@ -206,13 +230,25 @@ export default function KurirDashboardScreen({
           text: 'Ya, Sudah',
           onPress: async () => {
             try {
-              await axios.put(`${API_BASE_URL}/orders.php`, {
-                id_order: orderId,
-                status_order: 'selesai',
-              });
+              // ✅ Update status ke 'selesai'
+              const formData = new FormData();
+              formData.append('id_order', orderId);
+              formData.append('status_order', 'selesai');
+
+              await axios.put(
+                `${API_BASE_URL}/orders.php?id=${orderId}`,
+                formData,
+                {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                  },
+                },
+              );
+
               Alert.alert('✅ Berhasil', 'Pesanan berhasil dikirim!');
               fetchDeliveries();
             } catch (error) {
+              console.error('Error updating status:', error);
               Alert.alert('Error', 'Gagal memperbarui status');
             }
           },
@@ -349,7 +385,7 @@ export default function KurirDashboardScreen({
             <Text style={styles.emptyIcon}>📭</Text>
             <Text style={styles.emptyTitle}>Tidak Ada Pengiriman</Text>
             <Text style={styles.emptyText}>
-              Belum ada pesanan yang perlu dikirim
+              Belum ada pesanan ONLINE yang perlu dikirim
             </Text>
           </View>
         ) : (

@@ -1,5 +1,4 @@
-// components/kasir/OrderActionsButton.tsx - FIXED VERSION
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 interface Order {
@@ -24,46 +23,95 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
   onViewDetail,
   onPrintInvoice,
 }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const handleMarkAsReady = async () => {
-    if (
-      !window.confirm(
-        `Tandai pesanan ${order.kode_order} sebagai SIAP KIRIM?\n\nPesanan akan masuk ke dashboard kurir untuk dikirim.`,
-      )
-    ) {
-      return;
-    }
+    if (isUpdating) return;
+
+    const confirmed = window.confirm(
+      `Tandai pesanan ${order.kode_order} sebagai SIAP DIAMBIL KURIR?\n\n` +
+        `✅ Pesanan akan masuk ke dashboard kurir\n` +
+        `✅ Kurir dapat mengambil dan mengirim pesanan\n\n` +
+        `Lanjutkan?`,
+    );
+
+    if (!confirmed) return;
 
     try {
-      const response = await axios.put(`${API_BASE_URL}/orders.php`, {
-        id_order: order.id_order,
-        status_order: 'siap',
-      });
+      setIsUpdating(true);
+      console.log('🔄 Updating order:', order.id_order, 'to status: siap');
+
+      // ✅ PERBAIKAN: Gunakan endpoint update_status khusus
+      const formData = new FormData();
+      formData.append('id_order', order.id_order);
+      formData.append('status', 'siap');
+
+      const response = await axios.post(
+        `${API_BASE_URL}/orders.php?op=update_status`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      console.log('✅ Update Response:', response.data);
 
       if (response.data.status === 'success') {
         alert(
-          '✅ Pesanan berhasil ditandai SIAP KIRIM!\n\nPesanan sekarang akan muncul di dashboard kurir.',
+          '✅ BERHASIL!\n\n' +
+            `Pesanan ${order.kode_order} telah ditandai SIAP DIAMBIL.\n\n` +
+            'Pesanan sekarang muncul di Dashboard Kurir untuk diambil dan dikirim.',
         );
-        onSuccess();
+
+        // Refresh data setelah 500ms untuk memastikan backend sudah update
+        setTimeout(() => {
+          onSuccess();
+        }, 500);
       } else {
         throw new Error(response.data.message || 'Gagal update status');
       }
     } catch (error: any) {
-      console.error('Error updating status:', error);
-      alert('❌ Gagal update status: ' + error.message);
+      console.error('❌ Error updating status:', error);
+
+      const errorMsg =
+        error.response?.data?.message || error.message || 'Unknown error';
+      alert(
+        '❌ GAGAL UPDATE STATUS\n\n' +
+          `Error: ${errorMsg}\n\n` +
+          'Silakan coba lagi atau hubungi admin.',
+      );
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const canMarkAsReady = () => {
-    // Hanya order online dengan status tertentu yang bisa ditandai siap
-    const validStatuses = ['validasi', 'diproses', 'cetak', 'selesai'];
-    return (
-      order.jenis_order === 'online' &&
-      validStatuses.includes(order.status_order.toLowerCase())
+    // Hanya order ONLINE dengan status tertentu yang bisa ditandai siap
+    const validStatuses = [
+      'validasi',
+      'dibayar',
+      'diproses',
+      'cetak',
+      'selesai',
+    ];
+    const isValidStatus = validStatuses.includes(
+      order.status_order.toLowerCase(),
     );
+    const isOnline = order.jenis_order?.toLowerCase() === 'online';
+
+    console.log(
+      `Check ready: ${order.kode_order} - jenis=${order.jenis_order}, status=${
+        order.status_order
+      }, canMark=${isOnline && isValidStatus}`,
+    );
+
+    return isOnline && isValidStatus;
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
       {/* Tombol Print Invoice */}
       <button
         onClick={onPrintInvoice}
@@ -120,31 +168,54 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
       {canMarkAsReady() && (
         <button
           onClick={handleMarkAsReady}
-          title="Tandai Siap Kirim ke Kurir"
+          disabled={isUpdating}
+          title="Tandai Siap Diambil Kurir"
           style={{
-            background: '#28a745',
+            background: isUpdating ? '#9ca3af' : '#28a745',
             color: 'white',
             border: 'none',
-            padding: '0.5rem 0.75rem',
+            padding: '0.5rem 1rem',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: isUpdating ? 'not-allowed' : 'pointer',
             fontSize: '0.85rem',
             fontWeight: '600',
             whiteSpace: 'nowrap',
             transition: 'all 0.2s',
+            opacity: isUpdating ? 0.7 : 1,
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = '#218838';
-            e.currentTarget.style.transform = 'scale(1.05)';
+            if (!isUpdating) {
+              e.currentTarget.style.background = '#218838';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = '#28a745';
-            e.currentTarget.style.transform = 'scale(1)';
+            if (!isUpdating) {
+              e.currentTarget.style.background = '#28a745';
+              e.currentTarget.style.transform = 'scale(1)';
+            }
           }}
         >
-          🚚 Siap Kirim
+          {isUpdating ? '⏳ Memproses...' : '🚚 Siap Diambil'}
         </button>
       )}
+
+      {/* Debug Info (hapus di production) */}
+      {order.jenis_order?.toLowerCase() === 'online' &&
+        order.status_order.toLowerCase() === 'siap' && (
+          <span
+            style={{
+              fontSize: '0.75rem',
+              color: '#28a745',
+              fontWeight: '600',
+              padding: '0.25rem 0.5rem',
+              background: '#d4edda',
+              borderRadius: '4px',
+            }}
+          >
+            ✅ SIAP DIAMBIL
+          </span>
+        )}
     </div>
   );
 };

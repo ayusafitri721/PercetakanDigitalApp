@@ -69,7 +69,7 @@ export const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-// Get status label dengan emoji
+// Get status label dengan emoji (✅ FIXED: Tambah status 'siap')
 export const getStatusLabel = (status: string): string => {
   const labels: { [key: string]: string } = {
     pending: '⏳ Pending',
@@ -77,7 +77,7 @@ export const getStatusLabel = (status: string): string => {
     dibayar: '💳 Dibayar',
     diproses: '🔄 Diproses',
     cetak: '🖨️ Cetak',
-    siap: '📦 Siap Kirim',
+    siap: '📦 Siap Diambil', // ✅ TAMBAHAN
     dikirim: '🚚 Dikirim',
     selesai: '✔️ Selesai',
     dibatalkan: '❌ Dibatalkan',
@@ -85,7 +85,7 @@ export const getStatusLabel = (status: string): string => {
   return labels[status] || status;
 };
 
-// Get status color
+// Get status color (✅ FIXED: Tambah warna untuk status 'siap')
 export const getStatusColor = (status: string): string => {
   const colors: { [key: string]: string } = {
     pending: '#ffc107',
@@ -93,7 +93,7 @@ export const getStatusColor = (status: string): string => {
     dibayar: '#17a2b8',
     diproses: '#007bff',
     cetak: '#007bff',
-    siap: '#28a745',
+    siap: '#28a745', // ✅ TAMBAHAN - Hijau untuk siap diambil
     dikirim: '#6c757d',
     selesai: '#28a745',
     dibatalkan: '#dc3545',
@@ -115,7 +115,7 @@ export const isOrderPaid = (order: Order): boolean => {
     'cetak',
     'selesai',
     'dikirim',
-    'siap',
+    'siap', // ✅ TAMBAHAN
   ].includes(order.status_order);
 };
 
@@ -133,7 +133,7 @@ export const getStatusPembayaran = (order: Order): string => {
       'diproses',
       'validasi',
       'cetak',
-      'siap',
+      'siap', // ✅ TAMBAHAN
       'selesai',
       'dikirim',
     ].includes(order.status_order)

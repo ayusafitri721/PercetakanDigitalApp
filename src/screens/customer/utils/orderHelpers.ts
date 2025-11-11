@@ -133,27 +133,39 @@ export const submitOrder = async (
     throw new Error(itemResponse.data.message || 'Gagal membuat order item');
   }
 
-  // STEP 3: CREATE PAYMENT (jika bukan COD)
-  if (orderDetails.deliveryMethod !== 'cod' && paymentProof) {
-    const paymentFormData = new FormData();
-    paymentFormData.append('id_order', id_order.toString());
-    paymentFormData.append('metode_pembayaran', orderDetails.paymentMethod);
-    paymentFormData.append('jumlah_bayar', calculateTotal().toString());
-    paymentFormData.append('bukti_bayar', {
-      uri: paymentProof.uri,
-      name: paymentProof.name,
-      type: paymentProof.type,
-    } as any);
+  // STEP 3: CREATE PAYMENT
+  const paymentFormData = new FormData();
+  paymentFormData.append('id_order', id_order.toString());
+  paymentFormData.append('jumlah_bayar', calculateTotal().toString());
 
-    await axios.post(
-      `${API_BASE_URL}/payments.php?op=create`,
-      paymentFormData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000,
-      },
-    );
+  if (orderDetails.deliveryMethod === 'cod') {
+    // COD: status pending, bayar nanti ke kurir
+    paymentFormData.append('metode_pembayaran', 'cod');
+    paymentFormData.append('status_pembayaran', 'pending');
+    // Tidak ada bukti bayar karena belum bayar
+  } else {
+    // Transfer/Pickup: sudah bayar, langsung diterima
+    paymentFormData.append('metode_pembayaran', orderDetails.paymentMethod);
+    paymentFormData.append('status_pembayaran', 'diterima');
+    
+    // Upload bukti bayar (harus ada karena validasi di step 3)
+    if (paymentProof) {
+      paymentFormData.append('bukti_bayar', {
+        uri: paymentProof.uri,
+        name: paymentProof.name,
+        type: paymentProof.type,
+      } as any);
+    }
   }
+
+  await axios.post(
+    `${API_BASE_URL}/payments.php?op=create`,
+    paymentFormData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    },
+  );
 
   // STEP 4: CREATE DELIVERY
   const deliveryFormData = new FormData();
@@ -213,15 +225,18 @@ export const getSuccessMessage = (
 
   if (orderDetails.deliveryMethod === 'cod') {
     msg += `📦 Metode: COD (Bayar saat terima)\n`;
-    msg += `📋 Status: Menunggu validasi\n\n`;
-    msg += `Pesanan akan divalidasi oleh admin terlebih dahulu.`;
+    msg += `💳 Status Pembayaran: Pending\n`;
+    msg += `📋 Status Order: Menunggu validasi\n\n`;
+    msg += `Pesanan akan divalidasi oleh admin. Pembayaran dilakukan saat barang diterima.`;
   } else if (orderDetails.deliveryMethod === 'transfer_delivery') {
     msg += `💳 Metode: Transfer + Diantar\n`;
-    msg += `📋 Status: Menunggu validasi\n\n`;
+    msg += `💳 Status Pembayaran: Menunggu konfirmasi\n`;
+    msg += `📋 Status Order: Menunggu validasi\n\n`;
     msg += `Pesanan akan divalidasi dan diproses setelah konfirmasi pembayaran.`;
   } else {
     msg += `🏪 Metode: Ambil di Toko\n`;
-    msg += `📋 Status: Menunggu validasi\n\n`;
+    msg += `💳 Status Pembayaran: Menunggu konfirmasi\n`;
+    msg += `📋 Status Order: Menunggu validasi\n\n`;
     msg += `Pesanan akan divalidasi terlebih dahulu sebelum produksi.`;
   }
 
