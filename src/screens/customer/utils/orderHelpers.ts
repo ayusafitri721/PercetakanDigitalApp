@@ -84,14 +84,8 @@ export const submitOrder = async (
   orderFormData.append('total_harga', calculateTotal().toString());
   orderFormData.append('catatan_pelanggan', orderDetails.notes);
 
-  // Status order based on payment
-  let statusOrder = 'pending';
-  if (orderDetails.deliveryMethod === 'cod') {
-    statusOrder = 'pending';
-  } else {
-    statusOrder = 'dibayar';
-  }
-  orderFormData.append('status_order', statusOrder);
+  // Status order - semua order baru dimulai dengan "validasi"
+  orderFormData.append('status_order', 'validasi');
 
   const orderResponse = await axios.post(
     `${API_BASE_URL}/orders.php?op=create`,
@@ -219,16 +213,16 @@ export const getSuccessMessage = (
 
   if (orderDetails.deliveryMethod === 'cod') {
     msg += `📦 Metode: COD (Bayar saat terima)\n`;
-    msg += `📋 Status: Menunggu konfirmasi admin\n\n`;
-    msg += `Pesanan akan diproses setelah admin konfirmasi.`;
+    msg += `📋 Status: Menunggu validasi\n\n`;
+    msg += `Pesanan akan divalidasi oleh admin terlebih dahulu.`;
   } else if (orderDetails.deliveryMethod === 'transfer_delivery') {
     msg += `💳 Metode: Transfer + Diantar\n`;
-    msg += `✅ Status: Dibayar - Siap produksi\n\n`;
-    msg += `Pesanan langsung masuk ke antrian produksi!`;
+    msg += `📋 Status: Menunggu validasi\n\n`;
+    msg += `Pesanan akan divalidasi dan diproses setelah konfirmasi pembayaran.`;
   } else {
     msg += `🏪 Metode: Ambil di Toko\n`;
-    msg += `✅ Status: Dibayar - Siap produksi\n\n`;
-    msg += `Ambil pesanan di toko setelah selesai diproduksi.`;
+    msg += `📋 Status: Menunggu validasi\n\n`;
+    msg += `Pesanan akan divalidasi terlebih dahulu sebelum produksi.`;
   }
 
   return msg;

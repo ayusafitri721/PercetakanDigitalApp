@@ -12,9 +12,14 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Image,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { register } from '../../config/authAPI';
 import { API_BASE_URL } from '../../config/api';
+
+const { width, height } = Dimensions.get('window');
 
 interface RegisterScreenProps {
   onGoToLogin: () => void;
@@ -106,7 +111,7 @@ export default function RegisterScreen({
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#10B981" />
+      <StatusBar barStyle="light-content" backgroundColor="#5AB9EA" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -116,7 +121,14 @@ export default function RegisterScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          {/* Top Section with Background Pattern - SAMA SEPERTI LOGIN & WELCOME */}
+          <ImageBackground
+            source={require('../../assets/images/welcome-screen.png')}
+            style={styles.topSection}
+            resizeMode="cover"
+            defaultSource={require('../../assets/images/welcome-screen.png')}
+          >
+            {/* Back Button */}
             <TouchableOpacity
               style={styles.backButton}
               onPress={onGoToLogin}
@@ -124,170 +136,169 @@ export default function RegisterScreen({
             >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
+
+            {/* Logo - Diperkecil */}
             <View style={styles.logoContainer}>
-              <Text style={styles.logoEmoji}>📝</Text>
+              <Image
+                source={require('../../assets/images/Logo-Prin.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.title}>Daftar Akun</Text>
-            <Text style={styles.subtitle}>Buat akun baru Anda</Text>
-          </View>
+          </ImageBackground>
 
-          <View style={styles.formCard}>
-            {/* Nama */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Lengkap *</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>👤</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Masukkan nama lengkap"
-                  placeholderTextColor="#9CA3AF"
-                  value={nama}
-                  onChangeText={setNama}
-                  autoCapitalize="words"
-                  editable={!loading}
-                />
-              </View>
-            </View>
+          {/* Bottom Section - White Card dengan Register Form */}
+          <View style={styles.bottomSection}>
+            <View style={styles.registerCard}>
+              <Text style={styles.registerTitle}>Create Account</Text>
+              <Text style={styles.registerSubtitle}>Buat akun baru Anda</Text>
 
-            {/* Email */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email *</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>📧</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="contoh@email.com"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!loading}
-                />
-              </View>
-            </View>
-
-            {/* Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password *</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Minimal 6 karakter"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                >
-                  <Text style={styles.eyeIcon}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Confirm Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Konfirmasi Password *</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔐</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ulangi password"
-                  placeholderTextColor="#9CA3AF"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeButton}
-                >
-                  <Text style={styles.eyeIcon}>
-                    {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* No Telepon */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>No. Telepon (Opsional)</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>📱</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="08xxxxxxxxxx"
-                  placeholderTextColor="#9CA3AF"
-                  value={noTelepon}
-                  onChangeText={setNoTelepon}
-                  keyboardType="phone-pad"
-                  editable={!loading}
-                />
-              </View>
-            </View>
-
-            {/* Alamat */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Alamat (Opsional)</Text>
-              <View style={styles.inputWrapperMultiline}>
-                <Text style={styles.inputIcon}>📍</Text>
-                <TextInput
-                  style={styles.inputMultiline}
-                  placeholder="Masukkan alamat lengkap"
-                  placeholderTextColor="#9CA3AF"
-                  value={alamat}
-                  onChangeText={setAlamat}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  editable={!loading}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.registerButton,
-                loading && styles.registerButtonDisabled,
-              ]}
-              onPress={handleRegister}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                  <Text style={styles.registerButtonText}> Memproses...</Text>
+              {/* Nama */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>👤</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nama Lengkap"
+                    placeholderTextColor="#A8C5DD"
+                    value={nama}
+                    onChangeText={setNama}
+                    autoCapitalize="words"
+                    editable={!loading}
+                  />
                 </View>
-              ) : (
-                <Text style={styles.registerButtonText}>Daftar Sekarang</Text>
-              )}
-            </TouchableOpacity>
+              </View>
 
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Sudah punya akun? </Text>
-              <TouchableOpacity disabled={loading} onPress={onGoToLogin}>
-                <Text style={styles.loginLink}>Masuk</Text>
+              {/* Email */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>📧</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email Address"
+                    placeholderTextColor="#A8C5DD"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+
+              {/* Password */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>🔒</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password (min. 6 characters)"
+                    placeholderTextColor="#A8C5DD"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Text style={styles.eyeIcon}>
+                      {showPassword ? '👁️' : '🔍'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Confirm Password */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>🔐</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm Password"
+                    placeholderTextColor="#A8C5DD"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Text style={styles.eyeIcon}>
+                      {showConfirmPassword ? '👁️' : '🔍'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* No Telepon */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>📱</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number (Optional)"
+                    placeholderTextColor="#A8C5DD"
+                    value={noTelepon}
+                    onChangeText={setNoTelepon}
+                    keyboardType="phone-pad"
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+
+              {/* Alamat */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapperMultiline}>
+                  <Text style={styles.inputIcon}>📍</Text>
+                  <TextInput
+                    style={styles.inputMultiline}
+                    placeholder="Address (Optional)"
+                    placeholderTextColor="#A8C5DD"
+                    value={alamat}
+                    onChangeText={setAlamat}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+
+              {/* Register Button */}
+              <TouchableOpacity
+                style={[
+                  styles.registerButton,
+                  loading && styles.registerButtonDisabled,
+                ]}
+                onPress={handleRegister}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <Text style={styles.registerButtonText}> Loading...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.registerButtonText}>Create Account</Text>
+                )}
               </TouchableOpacity>
-            </View>
-          </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>📡 API: {API_BASE_URL}</Text>
-            <Text style={styles.footerHint}>
-              Pastikan API sudah jalan di komputer
-            </Text>
+              {/* Login Link */}
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Already have account? </Text>
+                <TouchableOpacity disabled={loading} onPress={onGoToLogin}>
+                  <Text style={styles.loginLink}>Login here!</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -296,119 +307,164 @@ export default function RegisterScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#10B981' },
+  container: {
+    flex: 1,
+    backgroundColor: '#5AB9EA',
+  },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 30,
   },
-  header: { alignItems: 'center', marginBottom: 30, position: 'relative' },
+  // SAMA SEPERTI LOGIN & WELCOME
+  topSection: {
+    backgroundColor: '#5AB9EA',
+    paddingTop: 50,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    minHeight: 240, // Lebih pendek untuk register karena form lebih panjang
+    position: 'relative',
+  },
   backButton: {
     position: 'absolute',
-    left: 0,
-    top: 0,
+    left: 20,
+    top: 50,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
-  backIcon: { fontSize: 24, color: '#FFFFFF' },
+  backIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    elevation: 8,
+    marginTop: 20,
+    marginBottom: 20,
   },
-  logoEmoji: { fontSize: 40 },
-  title: {
+  logoImage: {
+    width: 140, // Diperkecil dari 200
+    height: 140, // Diperkecil dari 200
+  },
+  // SAMA SEPERTI LOGIN & WELCOME
+  bottomSection: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 35,
+    paddingBottom: 40,
+    paddingHorizontal: 28,
+    minHeight: '60%',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  registerCard: {
+    alignItems: 'center',
+  },
+  registerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#5AB9EA',
     marginBottom: 6,
   },
-  subtitle: { fontSize: 15, color: '#D1FAE5' },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    elevation: 10,
-  },
-  inputGroup: { marginBottom: 18 },
-  label: {
+  registerSubtitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-    marginLeft: 4,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 14,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F5F9FC',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#E1EDF5',
   },
   inputWrapperMultiline: {
     flexDirection: 'row',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    backgroundColor: '#F5F9FC',
+    borderRadius: 25,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E1EDF5',
+    minHeight: 70,
   },
-  inputIcon: { fontSize: 20, marginRight: 10 },
-  input: { flex: 1, height: 50, fontSize: 15, color: '#1F2937' },
-  inputMultiline: { flex: 1, fontSize: 15, color: '#1F2937', minHeight: 70 },
-  eyeButton: { padding: 8 },
-  eyeIcon: { fontSize: 20 },
+  inputIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    color: '#2C3E50',
+  },
+  inputMultiline: {
+    flex: 1,
+    fontSize: 14,
+    color: '#2C3E50',
+    minHeight: 50,
+    textAlignVertical: 'top',
+  },
+  eyeButton: {
+    padding: 8,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
   registerButton: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    height: 52,
-    justifyContent: 'center',
+    width: '100%',
+    backgroundColor: '#5AB9EA',
+    borderRadius: 30,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-    elevation: 6,
+    marginTop: 20,
+    marginBottom: 18,
+    elevation: 4,
+    shadowColor: '#5AB9EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  registerButtonDisabled: { opacity: 0.7 },
-  loadingContainer: { flexDirection: 'row', alignItems: 'center' },
+  registerButtonDisabled: {
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   registerButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
-  loginText: { fontSize: 14, color: '#6B7280' },
-  loginLink: { fontSize: 14, color: '#10B981', fontWeight: '700' },
-  footer: {
-    marginTop: 24,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
+  loginText: {
+    fontSize: 13,
+    color: '#7F8C8D',
   },
-  footerText: {
-    fontSize: 11,
-    color: '#D1FAE5',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  loginLink: {
+    fontSize: 13,
+    color: '#5AB9EA',
+    fontWeight: '700',
   },
-  footerHint: { fontSize: 10, color: '#A7F3D0', textAlign: 'center' },
 });

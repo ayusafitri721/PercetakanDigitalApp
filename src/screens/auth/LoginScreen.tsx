@@ -12,9 +12,14 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Image,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { login } from '../../config/authAPI';
 import { API_BASE_URL } from '../../config/api';
+
+const { width, height } = Dimensions.get('window');
 
 interface LoginScreenProps {
   onGoToRegister: () => void;
@@ -31,13 +36,11 @@ export default function LoginScreen({
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    // Validasi input kosong
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Email dan password harus diisi!');
       return;
     }
 
-    // Validasi format email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Format email tidak valid!');
@@ -47,7 +50,6 @@ export default function LoginScreen({
     setLoading(true);
 
     try {
-      // Panggil API login
       const data = await login({
         email: email.trim(),
         password: password,
@@ -56,7 +58,6 @@ export default function LoginScreen({
       console.log('🔐 Login Response:', JSON.stringify(data, null, 2));
 
       if (data.success && data.data) {
-        // DEBUGGING: Log userId yang didapat
         console.log('✅ Login Success!');
         console.log('✅ User ID:', data.data.user.id_user);
         console.log('✅ User Name:', data.data.user.nama);
@@ -71,16 +72,12 @@ export default function LoginScreen({
           `Selamat datang ${data.data.user.nama}`,
         );
 
-        // Panggil callback success dengan data user
-        // PASTIKAN DATA INI SAMPAI KE PARENT DENGAN BENAR
         onLoginSuccess({
           ...data.data,
-          // Pastikan id_user ada di level atas juga
           userId: data.data.user.id_user,
           user: data.data.user,
         });
 
-        // Reset form
         setEmail('');
         setPassword('');
       } else {
@@ -100,7 +97,7 @@ export default function LoginScreen({
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
+      <StatusBar barStyle="light-content" backgroundColor="#5AB9EA" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -110,94 +107,99 @@ export default function LoginScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          {/* Top Section with Background Pattern - SAMA SEPERTI WELCOME SCREEN */}
+          <ImageBackground
+            source={require('../../assets/images/welcome-screen.png')}
+            style={styles.topSection}
+            resizeMode="cover"
+            defaultSource={require('../../assets/images/welcome-screen.png')}
+          >
             <View style={styles.logoContainer}>
-              <Text style={styles.logoEmoji}>🖨️</Text>
+              <Image
+                source={require('../../assets/images/Logo-Prin.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.title}>Percetakan App</Text>
-            <Text style={styles.subtitle}>Masuk ke akun Anda</Text>
-          </View>
+          </ImageBackground>
 
-          <View style={styles.formCard}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>📧</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="contoh@email.com"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!loading}
-                />
+          {/* Bottom Section - White Card dengan Login Form */}
+          <View style={styles.bottomSection}>
+            <View style={styles.loginCard}>
+              {/* Login Title */}
+              <Text style={styles.loginTitle}>Login</Text>
+
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>✉️</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email Address"
+                    placeholderTextColor="#A8C5DD"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Masukkan password"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                >
-                  <Text style={styles.eyeIcon}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputIcon}>🔒</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#A8C5DD"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Text style={styles.eyeIcon}>
+                      {showPassword ? '👁️' : '🔍'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  loading && styles.loginButtonDisabled,
+                ]}
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <Text style={styles.loginButtonText}> Loading...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.loginButtonText}>Login</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Register Link */}
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Don't have account? </Text>
+                <TouchableOpacity disabled={loading} onPress={onGoToRegister}>
+                  <Text style={styles.registerLink}>Create one!</Text>
                 </TouchableOpacity>
               </View>
             </View>
-
-            <TouchableOpacity style={styles.forgotButton} disabled={loading}>
-              <Text style={styles.forgotText}>Lupa password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.loginButton,
-                loading && styles.loginButtonDisabled,
-              ]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                  <Text style={styles.loginButtonText}> Memproses...</Text>
-                </View>
-              ) : (
-                <Text style={styles.loginButtonText}>Masuk</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Belum punya akun? </Text>
-              <TouchableOpacity disabled={loading} onPress={onGoToRegister}>
-                <Text style={styles.registerLink}>Daftar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>📡 API: {API_BASE_URL}</Text>
-            <Text style={styles.footerHint}>
-              Pastikan API sudah jalan di komputer
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -206,76 +208,112 @@ export default function LoginScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#4F46E5' },
+  container: {
+    flex: 1,
+    backgroundColor: '#5AB9EA',
+  },
   scrollContainer: {
     flexGrow: 1,
+  },
+  // SAMA SEPERTI WELCOME SCREEN
+  topSection: {
+    flex: 1,
+    backgroundColor: '#5AB9EA',
+    paddingTop: 50,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 30,
-  },
-  header: { alignItems: 'center', marginBottom: 40 },
-  logoContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    elevation: 8,
+    justifyContent: 'flex-start',
+    minHeight: height * 0.55,
   },
-  logoEmoji: { fontSize: 50 },
-  title: {
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 20,
+  },
+  logoImage: {
+    width: 200,
+    height: 200,
+    marginRight: 8,
+  },
+  // SAMA SEPERTI WELCOME SCREEN
+  bottomSection: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 40,
+    paddingBottom: 40,
+    paddingHorizontal: 28,
+    minHeight: '45%',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  loginCard: {
+    alignItems: 'center',
+  },
+  loginTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    color: '#5AB9EA',
+    marginBottom: 30,
   },
-  subtitle: { fontSize: 16, color: '#E0E7FF' },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 28,
-    elevation: 10,
-  },
-  inputGroup: { marginBottom: 20 },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 10,
-    marginLeft: 4,
+  inputContainer: {
+    width: '100%',
+    marginBottom: 16,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    backgroundColor: '#F9FAFB',
-  },
-  inputIcon: { fontSize: 22, marginRight: 12 },
-  input: { flex: 1, height: 54, fontSize: 16, color: '#1F2937' },
-  eyeButton: { padding: 8 },
-  eyeIcon: { fontSize: 22 },
-  forgotButton: { alignSelf: 'flex-end', marginBottom: 24, marginTop: 4 },
-  forgotText: { fontSize: 14, color: '#4F46E5', fontWeight: '600' },
-  loginButton: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 14,
+    backgroundColor: '#F5F9FC',
+    borderRadius: 25,
+    paddingHorizontal: 20,
     height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#E1EDF5',
   },
-  loginButtonDisabled: { opacity: 0.7 },
-  loadingContainer: { flexDirection: 'row', alignItems: 'center' },
+  inputIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: '#2C3E50',
+  },
+  eyeButton: {
+    padding: 8,
+  },
+  eyeIcon: {
+    fontSize: 20,
+  },
+  loginButton: {
+    width: '100%',
+    backgroundColor: '#5AB9EA',
+    borderRadius: 30,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#5AB9EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   loginButtonText: {
-    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   registerContainer: {
@@ -284,20 +322,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  registerText: { fontSize: 15, color: '#6B7280' },
-  registerLink: { fontSize: 15, color: '#4F46E5', fontWeight: '700' },
-  footer: {
-    marginTop: 32,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
+  registerText: {
+    fontSize: 14,
+    color: '#7F8C8D',
   },
-  footerText: {
-    fontSize: 12,
-    color: '#E0E7FF',
-    marginBottom: 6,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  registerLink: {
+    fontSize: 14,
+    color: '#5AB9EA',
+    fontWeight: '700',
   },
-  footerHint: { fontSize: 11, color: '#C7D2FE', textAlign: 'center' },
 });
