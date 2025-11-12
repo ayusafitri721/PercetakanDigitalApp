@@ -172,7 +172,7 @@ const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="divider">
+            {/* <div className="divider">
               <span>Or Sign In with</span>
             </div>
 
@@ -190,7 +190,7 @@ const LoginPage: React.FC = () => {
 
             <p className="signup-link">
               Don't have an account? <a href="/signup">Sign Up</a>
-            </p>
+            </p> */}
 
             {/* Demo Accounts (Hidden by default) */}
             <details className="demo-accounts">
