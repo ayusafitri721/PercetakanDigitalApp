@@ -1,4 +1,4 @@
-// screens/kurir/KurirDashboardScreen.tsx - FIXED: Hanya tampilkan pesanan ONLINE
+// screens/kurir/KurirDashboardScreen.tsx - FIXED: Remove 'dikirim' status
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import axios from 'axios';
+import KurirActiveDeliveryScreen from './KurirActiveDeliveryScreen';
 
 interface KurirDashboardProps {
   userId: string;
@@ -25,7 +26,7 @@ interface DeliveryOrder {
   customerPhone: string;
   deliveryAddress: string;
   totalPrice: number;
-  deliveryStatus: 'ready' | 'picked_up' | 'on_delivery' | 'delivered';
+  deliveryStatus: 'ready' | 'delivered'; // ✅ FIXED: Remove on_delivery
   orderDate: string;
   notes?: string;
 }
@@ -39,18 +40,6 @@ function getStatusConfig(status: DeliveryOrder['deliveryStatus']) {
       bgColor: '#FEF3C7',
       textColor: '#D97706',
       icon: '📦',
-    },
-    picked_up: {
-      label: 'Sudah Diambil',
-      bgColor: '#DBEAFE',
-      textColor: '#2563EB',
-      icon: '📋',
-    },
-    on_delivery: {
-      label: 'Dalam Pengiriman',
-      bgColor: '#E0E7FF',
-      textColor: '#4F46E5',
-      icon: '🚚',
     },
     delivered: {
       label: 'Terkirim',
@@ -87,6 +76,7 @@ export default function KurirDashboardScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDeliveries();
@@ -96,7 +86,6 @@ export default function KurirDashboardScreen({
     try {
       setLoading(true);
 
-      // Fetch orders yang siap untuk dikirim atau sedang dikirim
       const ordersResponse = await axios.get(`${API_BASE_URL}/orders.php`);
 
       if (ordersResponse.data.status !== 'success') {
@@ -112,7 +101,7 @@ export default function KurirDashboardScreen({
 
       console.log('📦 Total orders from API:', allOrders.length);
 
-      // ✅ FIXED: Filter orders yang ONLINE dan status: siap, dikirim, selesai
+      // ✅ FIXED: Filter hanya 'siap' dan 'selesai' (tidak ada 'dikirim')
       const deliveryOrders = allOrders
         .filter((order: any) => {
           const status = order.status_order?.toLowerCase();
@@ -122,10 +111,7 @@ export default function KurirDashboardScreen({
             `Order ${order.kode_order}: jenis=${jenis}, status=${status}`,
           );
 
-          // Hanya tampilkan pesanan ONLINE dengan status siap/dikirim/selesai
-          return (
-            jenis === 'online' && ['siap', 'dikirim', 'selesai'].includes(status)
-          );
+          return jenis === 'online' && ['siap', 'selesai'].includes(status);
         })
         .map((order: any) => ({
           id: order.id_order?.toString() || '',
@@ -141,13 +127,11 @@ export default function KurirDashboardScreen({
 
       console.log('✅ Filtered delivery orders:', deliveryOrders.length);
 
-      // Sort by date (terbaru dulu)
       deliveryOrders.sort(
         (a: any, b: any) =>
           new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime(),
       );
 
-      // Calculate stats
       const today = new Date().toDateString();
       const todayOrders = deliveryOrders.filter(
         (d: any) => new Date(d.orderDate).toDateString() === today,
@@ -159,7 +143,7 @@ export default function KurirDashboardScreen({
           (d: any) => d.deliveryStatus === 'delivered',
         ).length,
         ongoingDeliveries: deliveryOrders.filter(
-          (d: any) => d.deliveryStatus === 'on_delivery',
+          (d: any) => d.deliveryStatus === 'ready',
         ).length,
       });
 
@@ -173,88 +157,24 @@ export default function KurirDashboardScreen({
     }
   };
 
+  // ✅ FIXED: Remove 'dikirim' mapping
   const mapDeliveryStatus = (
     status: string,
   ): DeliveryOrder['deliveryStatus'] => {
     const lower = status?.toLowerCase() || '';
     if (lower === 'siap') return 'ready';
-    if (lower === 'dikirim') return 'on_delivery';
     if (lower === 'selesai') return 'delivered';
     return 'ready';
   };
 
-  const handlePickup = async (orderId: string) => {
-    Alert.alert(
-      'Ambil Pesanan',
-      'Konfirmasi bahwa Anda telah mengambil pesanan ini?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Ya, Ambil',
-          onPress: async () => {
-            try {
-              // ✅ Update status ke 'dikirim' (on delivery)
-              const formData = new FormData();
-              formData.append('id_order', orderId);
-              formData.append('status_order', 'dikirim');
-
-              await axios.put(
-                `${API_BASE_URL}/orders.php?id=${orderId}`,
-                formData,
-                {
-                  headers: {
-                    'Content-Type': 'multipart/form-data',
-                  },
-                },
-              );
-
-              Alert.alert('✅ Berhasil', 'Status pesanan diperbarui ke DALAM PENGIRIMAN');
-              fetchDeliveries();
-            } catch (error) {
-              console.error('Error updating status:', error);
-              Alert.alert('Error', 'Gagal memperbarui status');
-            }
-          },
-        },
-      ],
-    );
+  const handlePickup = (orderId: string) => {
+    console.log('🚚 Opening detail for order:', orderId);
+    setSelectedOrderId(orderId);
   };
 
-  const handleDeliver = async (orderId: string) => {
-    Alert.alert(
-      'Konfirmasi Pengiriman',
-      'Apakah pesanan sudah diterima oleh customer?',
-      [
-        { text: 'Belum', style: 'cancel' },
-        {
-          text: 'Ya, Sudah',
-          onPress: async () => {
-            try {
-              // ✅ Update status ke 'selesai'
-              const formData = new FormData();
-              formData.append('id_order', orderId);
-              formData.append('status_order', 'selesai');
-
-              await axios.put(
-                `${API_BASE_URL}/orders.php?id=${orderId}`,
-                formData,
-                {
-                  headers: {
-                    'Content-Type': 'multipart/form-data',
-                  },
-                },
-              );
-
-              Alert.alert('✅ Berhasil', 'Pesanan berhasil dikirim!');
-              fetchDeliveries();
-            } catch (error) {
-              console.error('Error updating status:', error);
-              Alert.alert('Error', 'Gagal memperbarui status');
-            }
-          },
-        },
-      ],
-    );
+  const handleDeliver = (orderId: string) => {
+    console.log('✅ Opening detail for order:', orderId);
+    setSelectedOrderId(orderId);
   };
 
   const onRefresh = () => {
@@ -265,9 +185,7 @@ export default function KurirDashboardScreen({
   const getFilteredDeliveries = () => {
     switch (filter) {
       case 'pending':
-        return deliveries.filter(d =>
-          ['ready', 'picked_up', 'on_delivery'].includes(d.deliveryStatus),
-        );
+        return deliveries.filter(d => d.deliveryStatus === 'ready');
       case 'completed':
         return deliveries.filter(d => d.deliveryStatus === 'delivered');
       default:
@@ -276,6 +194,23 @@ export default function KurirDashboardScreen({
   };
 
   const filteredDeliveries = getFilteredDeliveries();
+
+  if (selectedOrderId) {
+    return (
+      <KurirActiveDeliveryScreen
+        orderId={selectedOrderId}
+        onBack={() => {
+          console.log('⬅️ Back from detail');
+          setSelectedOrderId(null);
+        }}
+        onComplete={() => {
+          console.log('✅ Delivery completed, refreshing...');
+          fetchDeliveries();
+          setSelectedOrderId(null);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -319,7 +254,7 @@ export default function KurirDashboardScreen({
         <View style={styles.statCard}>
           <Text style={styles.statIcon}>🚚</Text>
           <Text style={styles.statValue}>{stats.ongoingDeliveries}</Text>
-          <Text style={styles.statLabel}>Sedang Dikirim</Text>
+          <Text style={styles.statLabel}>Siap Diantar</Text>
         </View>
       </View>
 
@@ -492,22 +427,13 @@ function DeliveryCard({
           </Text>
         </View>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Only show for ready status */}
         {delivery.deliveryStatus === 'ready' && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => onPickup(delivery.id)}
           >
-            <Text style={styles.actionButtonText}>📦 Ambil Pesanan</Text>
-          </TouchableOpacity>
-        )}
-
-        {delivery.deliveryStatus === 'on_delivery' && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deliverButton]}
-            onPress={() => onDeliver(delivery.id)}
-          >
-            <Text style={styles.actionButtonText}>✅ Sudah Terkirim</Text>
+            <Text style={styles.actionButtonText}>✅ Selesaikan</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -733,13 +659,10 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   actionButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#10B981',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 10,
-  },
-  deliverButton: {
-    backgroundColor: '#10B981',
   },
   actionButtonText: {
     fontSize: 14,

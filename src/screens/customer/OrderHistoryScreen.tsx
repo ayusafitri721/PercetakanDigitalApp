@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import axios from 'axios';
+import OrderDetailScreen from './OrderDetailScreen'; // TAMBAH IMPORT INI
 
 interface OrderHistoryScreenProps {
   userId: string;
@@ -37,7 +38,7 @@ interface Order {
   estimatedDate?: string;
 }
 
-import { API_BASE_URL } from '../../config/api'; 
+import { API_BASE_URL } from '../../config/api';
 
 // Helper functions
 function getIconByCategory(cat: string): string {
@@ -130,6 +131,9 @@ export default function OrderHistoryScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  // ✅ TAMBAH STATE UNTUK DETAIL SCREEN
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -376,6 +380,19 @@ export default function OrderHistoryScreen({
 
   const filteredOrders = getFilteredOrders();
 
+  // ✅ JIKA DETAIL SCREEN AKTIF, TAMPILKAN DETAIL SCREEN
+  if (selectedOrderId) {
+    return (
+      <OrderDetailScreen
+        orderId={selectedOrderId}
+        onBack={() => {
+          setSelectedOrderId(null);
+          fetchOrders(); // Refresh data setelah kembali
+        }}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -474,7 +491,11 @@ export default function OrderHistoryScreen({
         ) : (
           <>
             {filteredOrders.map(order => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                onPress={() => setSelectedOrderId(order.id)} // ✅ TAMBAH HANDLER
+              />
             ))}
             <View style={{ height: 20 }} />
           </>
@@ -484,11 +505,16 @@ export default function OrderHistoryScreen({
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
+// ✅ UPDATE OrderCard untuk handle press
+function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
   const statusConfig = getStatusConfig(order.status);
 
   return (
-    <TouchableOpacity style={styles.orderCard} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.orderCard}
+      activeOpacity={0.7}
+      onPress={onPress} // ✅ TAMBAH onPress handler
+    >
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
           <Text style={styles.orderIcon}>{order.serviceIcon}</Text>
@@ -528,7 +554,7 @@ function OrderCard({ order }: { order: Order }) {
             Rp {order.totalPrice.toLocaleString('id-ID')}
           </Text>
         </View>
-        <TouchableOpacity style={styles.detailButton}>
+        <TouchableOpacity style={styles.detailButton} onPress={onPress}>
           <Text style={styles.detailButtonText}>Lihat Detail →</Text>
         </TouchableOpacity>
       </View>
