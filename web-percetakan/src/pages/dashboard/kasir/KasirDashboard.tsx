@@ -14,7 +14,8 @@ import StatsCards from './components/StatsCards';
 import OrdersTable from './components/OrdersTable';
 import OrderDetailModal from './components/OrderDetailModal';
 import PeriodFilter from './components/PeriodFilter';
-import CreateOrderKasir from './CreateOrderKasir';
+// ✅ BENAR - import dari folder components
+import CreateOrderKasir from './components/CreateOrderKasir';
 import {
   formatRupiah,
   formatDate,
