@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Printer, Eye, Truck, Loader2, CheckCircle } from 'lucide-react';
 
 interface Order {
   id_order: string;
@@ -41,7 +42,6 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
       setIsUpdating(true);
       console.log('🔄 Updating order:', order.id_order, 'to status: siap');
 
-      // ✅ PERBAIKAN: Gunakan endpoint update_status khusus
       const formData = new FormData();
       formData.append('id_order', order.id_order);
       formData.append('status', 'siap');
@@ -65,7 +65,6 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
             'Pesanan sekarang muncul di Dashboard Kurir untuk diambil dan dikirim.',
         );
 
-        // Refresh data setelah 500ms untuk memastikan backend sudah update
         setTimeout(() => {
           onSuccess();
         }, 500);
@@ -88,7 +87,6 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
   };
 
   const canMarkAsReady = () => {
-    // Hanya order ONLINE dengan status tertentu yang bisa ditandai siap
     const validStatuses = [
       'validasi',
       'dibayar',
@@ -117,25 +115,27 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
         onClick={onPrintInvoice}
         title="Print Invoice"
         style={{
-          background: '#6c757d',
+          background: 'linear-gradient(135deg, #718096 0%, #4a5568 100%)',
           color: 'white',
           border: 'none',
           padding: '0.5rem 0.75rem',
-          borderRadius: '6px',
+          borderRadius: '8px',
           cursor: 'pointer',
-          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           transition: 'all 0.2s',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = '#5a6268';
-          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = '#6c757d';
           e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        🖨️
+        <Printer size={18} strokeWidth={2.5} />
       </button>
 
       {/* Tombol View Detail */}
@@ -143,25 +143,28 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
         onClick={onViewDetail}
         title="Lihat Detail"
         style={{
-          background: '#007bff',
+          background: 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)',
           color: 'white',
           border: 'none',
           padding: '0.5rem 0.75rem',
-          borderRadius: '6px',
+          borderRadius: '8px',
           cursor: 'pointer',
-          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           transition: 'all 0.2s',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = '#0056b3';
-          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow =
+            '0 4px 12px rgba(66, 153, 225, 0.4)';
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = '#007bff';
           e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        👁️
+        <Eye size={18} strokeWidth={2.5} />
       </button>
 
       {/* Tombol Tandai Siap Kirim - Khusus Online */}
@@ -171,49 +174,69 @@ const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
           disabled={isUpdating}
           title="Tandai Siap Diambil Kurir"
           style={{
-            background: isUpdating ? '#9ca3af' : '#28a745',
+            background: isUpdating
+              ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+              : 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
             color: 'white',
             border: 'none',
             padding: '0.5rem 1rem',
-            borderRadius: '6px',
+            borderRadius: '8px',
             cursor: isUpdating ? 'not-allowed' : 'pointer',
             fontSize: '0.85rem',
-            fontWeight: '600',
+            fontWeight: 600,
             whiteSpace: 'nowrap',
             transition: 'all 0.2s',
             opacity: isUpdating ? 0.7 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
           }}
           onMouseEnter={e => {
             if (!isUpdating) {
-              e.currentTarget.style.background = '#218838';
               e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow =
+                '0 4px 12px rgba(72, 187, 120, 0.4)';
             }
           }}
           onMouseLeave={e => {
             if (!isUpdating) {
-              e.currentTarget.style.background = '#28a745';
               e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
             }
           }}
         >
-          {isUpdating ? '⏳ Memproses...' : '🚚 Siap Diambil'}
+          {isUpdating ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Memproses...
+            </>
+          ) : (
+            <>
+              <Truck size={16} strokeWidth={2.5} />
+              Siap Diambil
+            </>
+          )}
         </button>
       )}
 
-      {/* Debug Info (hapus di production) */}
+      {/* Status Badge - SIAP DIAMBIL */}
       {order.jenis_order?.toLowerCase() === 'online' &&
         order.status_order.toLowerCase() === 'siap' && (
           <span
             style={{
               fontSize: '0.75rem',
-              color: '#28a745',
-              fontWeight: '600',
-              padding: '0.25rem 0.5rem',
-              background: '#d4edda',
-              borderRadius: '4px',
+              color: 'white',
+              fontWeight: 600,
+              padding: '0.4rem 0.75rem',
+              background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
+              borderRadius: '8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
             }}
           >
-            ✅ SIAP DIAMBIL
+            <CheckCircle size={14} strokeWidth={2.5} />
+            SIAP DIAMBIL
           </span>
         )}
     </div>

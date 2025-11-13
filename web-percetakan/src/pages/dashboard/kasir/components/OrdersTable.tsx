@@ -1,5 +1,6 @@
 // components/kasir/OrdersTable.tsx
 import React from 'react';
+import { Phone, Store, Globe } from 'lucide-react';
 import OrderActionsButton from './OrderActionsButton';
 
 interface Order {
@@ -44,99 +45,296 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   onRefresh,
 }) => {
   if (loading) {
-    return <div className="loading">⏳ Memuat data...</div>;
+    return (
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          fontSize: '16px',
+          color: '#718096',
+        }}
+      >
+        Memuat data...
+      </div>
+    );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="empty-state">
-        <p>Belum ada pesanan di periode ini</p>
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          color: '#718096',
+        }}
+      >
+        <p style={{ fontSize: '16px', margin: 0 }}>
+          Belum ada pesanan di periode ini
+        </p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="table-wrapper">
-        <table className="orders-table">
+      <div style={{ overflowX: 'auto' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '14px',
+          }}
+        >
           <thead>
-            <tr>
-              <th>Kode Order</th>
-              <th>Pelanggan</th>
-              <th>Jenis</th>
-              <th>Total</th>
-              <th>Status Pesanan</th>
-              <th>Status Bayar</th>
-              <th>Waktu</th>
-              <th>Aksi</th>
+            <tr style={{ background: '#f7fafc' }}>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Kode Order
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Pelanggan
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Jenis
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Total
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Status Pesanan
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Status Bayar
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Waktu
+              </th>
+              <th
+                style={{
+                  padding: '14px 16px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: '#4a5568',
+                  borderBottom: '2px solid #e2e8f0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Aksi
+              </th>
             </tr>
           </thead>
           <tbody>
             {orders.map(order => (
-              <tr key={order.id_order}>
-                <td>
+              <tr
+                key={order.id_order}
+                style={{ transition: 'background 0.2s' }}
+                onMouseEnter={e =>
+                  (e.currentTarget.style.background = '#f7fafc')
+                }
+                onMouseLeave={e =>
+                  (e.currentTarget.style.background = 'transparent')
+                }
+              >
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
                   <strong>{order.kode_order}</strong>
                 </td>
-                <td>
-                  {order.nama_customer}
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
+                  <div>{order.nama_customer}</div>
                   {order.telepon_customer && (
-                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                      📞 {order.telepon_customer}
+                    <div
+                      style={{
+                        fontSize: '0.8rem',
+                        color: '#718096',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginTop: '4px',
+                      }}
+                    >
+                      <Phone size={12} />
+                      {order.telepon_customer}
                     </div>
                   )}
                 </td>
-                <td>
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
                   <span
                     style={{
                       background:
-                        order.jenis_order === 'offline' ? '#6c757d' : '#17a2b8',
+                        order.jenis_order === 'offline'
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)',
                       color: 'white',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '12px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
                       fontSize: '0.75rem',
-                      fontWeight: '600',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
                     }}
                   >
-                    {order.jenis_order === 'offline'
-                      ? '🏪 Offline'
-                      : '🌐 Online'}
+                    {order.jenis_order === 'offline' ? (
+                      <>
+                        <Store size={14} />
+                        Offline
+                      </>
+                    ) : (
+                      <>
+                        <Globe size={14} />
+                        Online
+                      </>
+                    )}
                   </span>
                 </td>
-                <td className="text-right">
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                    textAlign: 'right',
+                  }}
+                >
                   <strong>{formatRupiah(order.total_harga)}</strong>
                 </td>
-                <td>
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
                   <span
                     style={{
                       background: getStatusColor(order.status_order),
                       color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '12px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
                       display: 'inline-block',
                     }}
                   >
                     {getStatusLabel(order.status_order)}
                   </span>
                 </td>
-                <td>
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
                   <span
                     style={{
                       background: getStatusPembayaranColor(order),
                       color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '12px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
                       display: 'inline-block',
                     }}
                   >
                     {getStatusPembayaran(order)}
                   </span>
                 </td>
-                <td>{formatDate(order.tanggal_order)}</td>
-                <td>
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                  }}
+                >
+                  {formatDate(order.tanggal_order)}
+                </td>
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#2d3748',
+                    textAlign: 'center',
+                  }}
+                >
                   <OrderActionsButton
                     order={order}
                     onSuccess={onRefresh}
@@ -153,12 +351,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         style={{
           marginTop: '1rem',
           padding: '1rem',
-          background: '#f8f9fa',
-          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)',
+          borderRadius: '12px',
           textAlign: 'center',
+          border: '1px solid #e2e8f0',
         }}
       >
-        <strong>Total {orders.length} pesanan</strong>
+        <strong style={{ color: '#2d3748' }}>
+          Total {orders.length} pesanan
+        </strong>
       </div>
     </>
   );
