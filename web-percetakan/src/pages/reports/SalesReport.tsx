@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 
 interface OrderDetail {
   id_order: string;

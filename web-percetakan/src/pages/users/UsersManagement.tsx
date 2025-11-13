@@ -12,7 +12,7 @@ import UserForm from './UserForm';
 import UserDelete from './UserDelete';
 import './users.css';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 
 interface User {
   id_user: string;

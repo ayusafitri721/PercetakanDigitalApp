@@ -3,7 +3,7 @@ import axios from 'axios';
 import OrderDetail from './OrderDetail';
 import './orders.css';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 
 interface Order {
   id_order: string;

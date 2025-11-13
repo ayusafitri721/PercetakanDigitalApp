@@ -7,7 +7,7 @@ import OrdersList from '../orders/OrdersList';
 import ReportList from '../reports/ReportList';
 import './Dashboard.css';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 
 interface User {
   id_user: string;

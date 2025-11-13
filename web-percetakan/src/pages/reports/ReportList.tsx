@@ -5,7 +5,7 @@ import StockReport from './StockReport';
 import FinanceReport from './FinanceReport';
 import './reports.css';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 
 type ReportType = 'overview' | 'sales' | 'stock' | 'finance';
 
