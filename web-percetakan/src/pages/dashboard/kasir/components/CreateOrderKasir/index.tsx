@@ -1,8 +1,9 @@
+// index.tsx - MODIFIKASI BAGIAN INI
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../../../config';
 
-// Import Types dengan keyword "type"
 import type {
   Product,
   OrderItem,
@@ -10,13 +11,13 @@ import type {
   CurrentItem,
   OrderSettings as OrderSettingsType,
   PaymentData as PaymentDataType,
+  PromoData,
+  AutoDiscount, // ✅ TAMBAHAN BARU
   CreateOrderKasirProps,
 } from './types';
 
-// Import Utils (ini tetap normal, bukan type)
 import { formatRupiah, isProductNeedDesign, generateQRCodeUrl } from './utils';
 
-// Import Components (ini juga normal)
 import CustomerForm from './CustomerForm';
 import ProductSelector from './ProductSelector';
 import CartItems from './CartItems';
@@ -52,6 +53,21 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     diskon: 0,
   });
 
+  const [kodePromo, setKodePromo] = useState('');
+  const [promoData, setPromoData] = useState<PromoData | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [loadingPromo, setLoadingPromo] = useState(false);
+
+  // ✅ STATE AUTO-DISCOUNT (TAMBAHAN BARU)
+  const [autoDiscount, setAutoDiscount] = useState<AutoDiscount>({
+    active: false,
+    type: 'quantity',
+    min_items: 3,
+    percentage: 10,
+    description: '',
+    discount_amount: 0,
+  });
+
   const [paymentData, setPaymentData] = useState<PaymentDataType>({
     metode_pembayaran: 'cash',
     jumlah_bayar: 0,
@@ -71,7 +87,12 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
   useEffect(() => {
     calculateTotal();
-  }, [items, orderSettings.kecepatan_pengerjaan, orderSettings.diskon]);
+  }, [
+    items,
+    orderSettings.kecepatan_pengerjaan,
+    orderSettings.diskon,
+    promoData,
+  ]);
 
   useEffect(() => {
     calculateKembalian();
@@ -180,11 +201,104 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const handleValidatePromo = async () => {
+    if (!kodePromo.trim()) {
+      alert('Masukkan kode promo!');
+      return;
+    }
+
+    const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    if (itemsSubtotal === 0) {
+      alert('Tambahkan produk terlebih dahulu!');
+      return;
+    }
+
+    setLoadingPromo(true);
+    setPromoError('');
+
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/promotions.php?op=validate&kode=${encodeURIComponent(
+          kodePromo,
+        )}&subtotal=${itemsSubtotal}`,
+      );
+
+      if (response.data.status === 'success') {
+        setPromoData(response.data.data);
+        setOrderSettings({ ...orderSettings, diskon: 0 });
+        alert(
+          `✅ Promo berhasil diterapkan!\n${
+            response.data.data.nama_promo
+          }\nDiskon: Rp ${response.data.data.nilai_diskon_rupiah.toLocaleString()}`,
+        );
+      } else {
+        setPromoError(response.data.message || 'Kode promo tidak valid');
+        setPromoData(null);
+      }
+    } catch (error: any) {
+      setPromoError('Gagal validasi promo');
+      setPromoData(null);
+    } finally {
+      setLoadingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoData(null);
+    setKodePromo('');
+    setPromoError('');
+  };
+
+  // ✅ CALCULATE AUTO-DISCOUNT (TAMBAHAN BARU)
+  const calculateAutoDiscount = (itemsSubtotal: number, totalItems: number) => {
+    // Rule: Beli >= 3 items → Diskon 10%
+    if (totalItems >= 3) {
+      const discountAmount = (itemsSubtotal * 10) / 100;
+      setAutoDiscount({
+        active: true,
+        type: 'quantity',
+        min_items: 3,
+        percentage: 10,
+        description: `🎉 Beli ${totalItems} items, diskon 10%!`,
+        discount_amount: discountAmount,
+      });
+      return discountAmount;
+    } else {
+      setAutoDiscount({
+        active: false,
+        type: 'quantity',
+        min_items: 3,
+        percentage: 10,
+        description: '',
+        discount_amount: 0,
+      });
+      return 0;
+    }
+  };
+
+  // ✅ UPDATE CALCULATE TOTAL (MODIFIKASI)
   const calculateTotal = () => {
     const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalItems = items.reduce((sum, item) => sum + item.jumlah, 0);
     setSubtotal(itemsSubtotal);
 
-    let total = itemsSubtotal - orderSettings.diskon;
+    // 1. Hitung auto-discount
+    const autoDiscountAmount = calculateAutoDiscount(itemsSubtotal, totalItems);
+
+    // 2. Bandingkan dengan promo code
+    let finalDiskon = 0;
+    if (promoData) {
+      // Pakai yang lebih besar: auto-discount vs promo
+      finalDiskon = Math.max(autoDiscountAmount, promoData.nilai_diskon_rupiah);
+    } else if (orderSettings.diskon > 0) {
+      // Manual discount
+      finalDiskon = orderSettings.diskon;
+    } else {
+      // Auto-discount
+      finalDiskon = autoDiscountAmount;
+    }
+
+    let total = itemsSubtotal - finalDiskon;
 
     if (orderSettings.kecepatan_pengerjaan === 'express') {
       total = total * 1.5;
@@ -302,6 +416,27 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
       if (!userId) throw new Error('Gagal mendapatkan ID user');
 
+      // ✅ TENTUKAN DISKON AKHIR (MODIFIKASI)
+      let diskonAktif = 0;
+      let catatanDiskon = '';
+
+      if (
+        promoData &&
+        promoData.nilai_diskon_rupiah >= autoDiscount.discount_amount
+      ) {
+        // Promo code lebih besar
+        diskonAktif = promoData.nilai_diskon_rupiah;
+        catatanDiskon = `Promo: ${promoData.kode_promo} - ${promoData.nama_promo}`;
+      } else if (autoDiscount.active) {
+        // Auto-discount lebih besar
+        diskonAktif = autoDiscount.discount_amount;
+        catatanDiskon = autoDiscount.description;
+      } else if (orderSettings.diskon > 0) {
+        // Manual discount
+        diskonAktif = orderSettings.diskon;
+        catatanDiskon = `Diskon manual: Rp ${orderSettings.diskon.toLocaleString()}`;
+      }
+
       const orderData = new FormData();
       orderData.append('id_user', userId.toString());
       if (currentUser.id_user)
@@ -312,13 +447,10 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         orderSettings.kecepatan_pengerjaan,
       );
       orderData.append('subtotal', subtotal.toString());
-      orderData.append('diskon', orderSettings.diskon.toString());
+      orderData.append('diskon', diskonAktif.toString());
       orderData.append('ongkir', '0');
       orderData.append('total_harga', totalHarga.toString());
-      orderData.append(
-        'catatan_pelanggan',
-        `Pembayaran: ${paymentData.metode_pembayaran.toUpperCase()}`,
-      );
+      orderData.append('catatan_pelanggan', catatanDiskon);
       orderData.append(
         'catatan_internal',
         paymentData.metode_pembayaran === 'cash'
@@ -375,6 +507,18 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         }
       }
 
+      if (promoData) {
+        try {
+          const promoUpdateData = new FormData();
+          await axios.post(
+            `${API_BASE_URL}/promotions.php?op=increment_usage&id=${promoData.id_promo}`,
+            promoUpdateData,
+          );
+        } catch (promoError) {
+          console.error('Gagal update promo usage:', promoError);
+        }
+      }
+
       const paymentFormData = new FormData();
       paymentFormData.append('id_order', orderId.toString());
       paymentFormData.append(
@@ -401,7 +545,18 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         } = ${formatRupiah(item.subtotal)} ${hasFile}\n`;
       });
 
-      alertMessage += `\n💰 Total: ${formatRupiah(totalHarga)}\n`;
+      alertMessage += `\n💰 Subtotal: ${formatRupiah(subtotal)}\n`;
+
+      // ✅ TAMPILKAN INFO DISKON (MODIFIKASI)
+      if (diskonAktif > 0) {
+        alertMessage += `💸 ${catatanDiskon} (-${formatRupiah(diskonAktif)})\n`;
+      }
+
+      if (orderSettings.kecepatan_pengerjaan === 'express') {
+        alertMessage += `⚡ Express (+50%): +${formatRupiah(subtotal * 0.5)}\n`;
+      }
+
+      alertMessage += `\n💵 TOTAL: ${formatRupiah(totalHarga)}\n`;
 
       if (paymentData.metode_pembayaran === 'cash') {
         alertMessage += `💵 Uang: ${formatRupiah(
@@ -483,7 +638,6 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         {step === 'order' ? (
           <form onSubmit={handleNextToPayment}>
             <div style={{ padding: '1.5rem' }}>
-              {/* Info Banner */}
               <div
                 style={{
                   background:
@@ -509,19 +663,39 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                     <strong>Nama pelanggan WAJIB diisi</strong> (minimal nama)
                   </li>
                   <li>
-                    <strong>Produk tertentu butuh file desain</strong> - minta
-                    file dari pelanggan (flashdisk/HP/email)
+                    <strong>Beli ≥ 3 items → GRATIS diskon 10%!</strong> 🎉
                   </li>
                   <li>
-                    Produk cetak cepat (fotokopi, print dokumen){' '}
-                    <strong>tidak perlu file</strong>
+                    Bisa pakai <strong>kode promo</strong> untuk diskon lebih
+                    besar
                   </li>
                   <li>
-                    Bisa tambah <strong>multiple items</strong> dalam 1
-                    transaksi
+                    Atau gunakan <strong>diskon manual</strong> untuk kasus
+                    khusus
                   </li>
                 </ul>
               </div>
+
+              {/* ✅ AUTO-DISCOUNT BANNER (TAMBAHAN BARU) */}
+              {autoDiscount.active && (
+                <div
+                  style={{
+                    background:
+                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    animation: 'pulse 2s infinite',
+                  }}
+                >
+                  🎉 {autoDiscount.description} - Hemat Rp{' '}
+                  {autoDiscount.discount_amount.toLocaleString()}!
+                </div>
+              )}
 
               <CustomerForm
                 customerData={customerData}
@@ -546,6 +720,14 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
               <OrderSettings
                 orderSettings={orderSettings}
                 setOrderSettings={setOrderSettings}
+                kodePromo={kodePromo}
+                setKodePromo={setKodePromo}
+                promoData={promoData}
+                promoError={promoError}
+                loadingPromo={loadingPromo}
+                onValidatePromo={handleValidatePromo}
+                onRemovePromo={handleRemovePromo}
+                autoDiscount={autoDiscount}
               />
 
               <TotalSummary
@@ -553,6 +735,8 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                 subtotal={subtotal}
                 totalHarga={totalHarga}
                 orderSettings={orderSettings}
+                promoData={promoData}
+                autoDiscount={autoDiscount}
               />
             </div>
 
@@ -617,6 +801,8 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
             kembalian={kembalian}
             qrCodeUrl={qrCodeUrl}
             orderSettings={orderSettings}
+            promoData={promoData}
+            autoDiscount={autoDiscount}
             loading={loading}
             onBack={() => setStep('order')}
             onSubmit={handleSubmitOrder}

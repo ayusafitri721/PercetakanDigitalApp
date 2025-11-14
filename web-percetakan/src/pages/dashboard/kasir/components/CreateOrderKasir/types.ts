@@ -45,6 +45,25 @@ export interface PaymentData {
   uang_diterima: number;
 }
 
+// ✅ TAMBAHAN BARU
+export interface PromoData {
+  id_promo: string;
+  kode_promo: string;
+  nama_promo: string;
+  jenis: 'persentase' | 'nominal';
+  nilai_diskon_setting: number;
+  nilai_diskon_rupiah: number;
+}
+
+export interface AutoDiscount {
+  active: boolean;
+  type: 'quantity' | 'total';
+  min_items?: number;
+  percentage?: number;
+  description: string;
+  discount_amount: number;
+}
+
 export interface CreateOrderKasirProps {
   onClose: (success: boolean) => void;
 }

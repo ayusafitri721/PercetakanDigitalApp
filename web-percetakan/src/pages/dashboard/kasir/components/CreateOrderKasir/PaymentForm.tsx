@@ -1,11 +1,11 @@
-// PaymentForm.tsx - Komponen Form Pembayaran
-
 import React from 'react';
 import type {
   PaymentData,
   CustomerData,
   OrderItem,
   OrderSettings,
+  PromoData,
+  AutoDiscount,
 } from './types';
 import { formatRupiah } from './utils';
 
@@ -19,6 +19,8 @@ interface PaymentFormProps {
   kembalian: number;
   qrCodeUrl: string;
   orderSettings: OrderSettings;
+  promoData?: PromoData | null;
+  autoDiscount?: AutoDiscount;
   loading: boolean;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -34,14 +36,29 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   kembalian,
   qrCodeUrl,
   orderSettings,
+  promoData,
+  autoDiscount,
   loading,
   onBack,
   onSubmit,
 }) => {
+  let activeDiscount = 0;
+  let discountLabel = '';
+
+  if (promoData && promoData.nilai_diskon_rupiah > 0) {
+    activeDiscount = promoData.nilai_diskon_rupiah;
+    discountLabel = `🎟️ Promo (${promoData.kode_promo})`;
+  } else if (autoDiscount && autoDiscount.active) {
+    activeDiscount = autoDiscount.discount_amount;
+    discountLabel = `✨ ${autoDiscount.description}`;
+  } else if (orderSettings.diskon > 0) {
+    activeDiscount = orderSettings.diskon;
+    discountLabel = '💸 Diskon Manual';
+  }
+
   return (
     <form onSubmit={onSubmit}>
       <div style={{ padding: '1.5rem' }}>
-        {/* Data Pelanggan */}
         <div
           style={{
             background: '#f8f9fa',
@@ -74,7 +91,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </div>
         </div>
 
-        {/* Ringkasan Pesanan */}
         <div
           style={{
             background: '#f8f9fa',
@@ -166,7 +182,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               <span>Subtotal:</span>
               <span>{formatRupiah(subtotal)}</span>
             </div>
-            {orderSettings.diskon > 0 && (
+
+            {activeDiscount > 0 && (
               <div
                 style={{
                   display: 'flex',
@@ -175,10 +192,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                   color: '#28a745',
                 }}
               >
-                <span>Diskon:</span>
-                <span>- {formatRupiah(orderSettings.diskon)}</span>
+                <span>{discountLabel}:</span>
+                <span>- {formatRupiah(activeDiscount)}</span>
               </div>
             )}
+
             {orderSettings.kecepatan_pengerjaan === 'express' && (
               <div
                 style={{
@@ -214,7 +232,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </div>
         </div>
 
-        {/* Metode Pembayaran */}
         <div>
           <h3 style={{ marginTop: 0, fontSize: '1.1rem' }}>
             💳 Metode Pembayaran
@@ -255,7 +272,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             </select>
           </div>
 
-          {/* Cash Payment */}
           {paymentData.metode_pembayaran === 'cash' && (
             <>
               <div style={{ marginBottom: '1rem' }}>
@@ -328,7 +344,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             </>
           )}
 
-          {/* Transfer Payment */}
           {paymentData.metode_pembayaran === 'transfer' && (
             <div
               style={{
@@ -365,7 +380,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             </div>
           )}
 
-          {/* QRIS Payment */}
           {paymentData.metode_pembayaran === 'qris' && qrCodeUrl && (
             <div
               style={{
@@ -415,7 +429,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         </div>
       </div>
 
-      {/* Footer Buttons */}
       <div
         style={{
           display: 'flex',

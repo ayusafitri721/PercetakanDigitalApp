@@ -1,7 +1,12 @@
-// TotalSummary.tsx - Komponen Ringkasan Total Pembayaran
+// TotalSummary.tsx
 
 import React from 'react';
-import type { OrderItem, OrderSettings } from './types'; 
+import type {
+  OrderItem,
+  OrderSettings,
+  PromoData,
+  AutoDiscount,
+} from './types';
 import { formatRupiah } from './utils';
 
 interface TotalSummaryProps {
@@ -9,6 +14,8 @@ interface TotalSummaryProps {
   subtotal: number;
   totalHarga: number;
   orderSettings: OrderSettings;
+  promoData?: PromoData | null;
+  autoDiscount?: AutoDiscount; // ✅ TAMBAHAN BARU
 }
 
 const TotalSummary: React.FC<TotalSummaryProps> = ({
@@ -16,7 +23,24 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
   subtotal,
   totalHarga,
   orderSettings,
+  promoData,
+  autoDiscount, // ✅ TAMBAHAN BARU
 }) => {
+  // Tentukan diskon mana yang aktif
+  let activeDiscount = 0;
+  let discountLabel = '';
+
+  if (promoData && promoData.nilai_diskon_rupiah > 0) {
+    activeDiscount = promoData.nilai_diskon_rupiah;
+    discountLabel = `🎟️ Promo (${promoData.kode_promo})`;
+  } else if (autoDiscount && autoDiscount.active) {
+    activeDiscount = autoDiscount.discount_amount;
+    discountLabel = '✨ Auto-Discount';
+  } else if (orderSettings.diskon > 0) {
+    activeDiscount = orderSettings.diskon;
+    discountLabel = '💸 Diskon Manual';
+  }
+
   return (
     <div
       style={{
@@ -57,7 +81,9 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
             <span>Subtotal ({items.length} items):</span>
             <strong>{formatRupiah(subtotal)}</strong>
           </div>
-          {orderSettings.diskon > 0 && (
+
+          {/* ✅ TAMPILKAN DISKON AKTIF (MODIFIKASI) */}
+          {activeDiscount > 0 && (
             <div
               style={{
                 display: 'flex',
@@ -65,10 +91,11 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
                 marginBottom: '0.25rem',
               }}
             >
-              <span>Diskon:</span>
-              <strong>- {formatRupiah(orderSettings.diskon)}</strong>
+              <span>{discountLabel}:</span>
+              <strong>- {formatRupiah(activeDiscount)}</strong>
             </div>
           )}
+
           {orderSettings.kecepatan_pengerjaan === 'express' && (
             <div
               style={{
