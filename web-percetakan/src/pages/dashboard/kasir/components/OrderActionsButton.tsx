@@ -16,7 +16,7 @@ interface OrderActionsButtonProps {
   onPrintInvoice: () => void;
 }
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../../../config';
 
 const OrderActionsButton: React.FC<OrderActionsButtonProps> = ({
   order,

@@ -35,6 +35,7 @@ export interface Order {
   catatan?: string;
   items: OrderItem[];
   design_files?: DesignFile[];
+   result_files?: DesignFile[];
 }
 
 export interface Stats {
@@ -44,7 +45,7 @@ export interface Stats {
   expressQueue: number;
 }
 
-// ✅ NEW: Interface untuk upload per item
+// NEW: Interface untuk upload per item
 export interface ItemUploadStatus {
   id_item: string;
   nama_produk: string;

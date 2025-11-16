@@ -1,4 +1,4 @@
-// Dashboard.tsx - OPERATOR DASHBOARD WITH PER-ITEM UPLOAD
+// Dashboard.tsx - OPERATOR DASHBOARD WITH NAVIGATION
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import {
@@ -45,7 +45,13 @@ import {
   UploadResultModal,
 } from './OperatorComponents';
 
+// ✅ Import CompletedHistory
+import CompletedHistory from './CompletedHistory';
+
 const OperatorDashboard: React.FC = () => {
+  // ✅ State untuk navigation
+  const [activePage, setActivePage] = useState('queue');
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +62,6 @@ const OperatorDashboard: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // ✅ NEW: State untuk upload per item
   const [itemsUploadStatus, setItemsUploadStatus] = useState<
     ItemUploadStatus[]
   >([]);
@@ -70,10 +75,12 @@ const OperatorDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (activePage === 'queue') {
+      fetchQueue();
+      const interval = setInterval(fetchQueue, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [activePage]);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -104,28 +111,23 @@ const OperatorDashboard: React.FC = () => {
     }
   };
 
-  // ✅ NEW: Handle start complete dengan prepare items
   const handleStartComplete = async (orderId: string) => {
     try {
-      // Ambil detail order kalau belum ada
       let order = selectedOrder;
       if (!order || order.id_order !== orderId) {
         order = await apiService.fetchOrderDetail(orderId);
       }
 
-      // ✅ NULL SAFETY: Cek order ada atau tidak
       if (!order) {
         alert('❌ Gagal memuat data pesanan');
         return;
       }
 
-      // Validasi ada items
       if (!order.items || order.items.length === 0) {
         alert('❌ Pesanan ini tidak memiliki item untuk diupload!');
         return;
       }
 
-      // Prepare item upload status
       const itemStatuses: ItemUploadStatus[] = order.items.map(item => ({
         id_item: item.id_item,
         nama_produk: item.nama_produk,
@@ -143,7 +145,6 @@ const OperatorDashboard: React.FC = () => {
     }
   };
 
-  // ✅ NEW: Handle file change per item
   const handleFileChangePerItem = (itemId: string, file: File | null) => {
     setItemsUploadStatus(prev =>
       prev.map(item =>
@@ -154,11 +155,9 @@ const OperatorDashboard: React.FC = () => {
     );
   };
 
-  // ✅ NEW: Upload semua file hasil per item
   const handleUploadAllResultsAndComplete = async () => {
     if (!orderToComplete) return;
 
-    // Validasi semua item sudah ada filenya
     const allHaveFiles = itemsUploadStatus.every(item => item.file !== null);
     if (!allHaveFiles) {
       alert('⚠️ Semua item harus memiliki file hasil!');
@@ -170,15 +169,12 @@ const OperatorDashboard: React.FC = () => {
       let successCount = 0;
       let failedItems: string[] = [];
 
-      // Upload setiap file
       for (const item of itemsUploadStatus) {
         if (!item.file) continue;
 
         try {
-          // Step 1: Upload file ke server
           const uploadedFile = await apiService.uploadFile(item.file);
 
-          // Step 2: Simpan ke result_files
           await apiService.createResultFile({
             id_order: orderToComplete,
             nama_file: uploadedFile.file_name,
@@ -195,7 +191,6 @@ const OperatorDashboard: React.FC = () => {
         }
       }
 
-      // Jika ada yang gagal
       if (failedItems.length > 0) {
         alert(
           `⚠️ UPLOAD SEBAGIAN BERHASIL!\n\n✅ Berhasil: ${successCount}/${
@@ -208,7 +203,6 @@ const OperatorDashboard: React.FC = () => {
         return;
       }
 
-      // Step 3: Update status order ke "selesai"
       const statusResponse = await apiService.updateOrderStatus(
         orderToComplete,
         'selesai',
@@ -230,7 +224,6 @@ const OperatorDashboard: React.FC = () => {
             )}\n\n🎯 Pesanan sudah dikirim ke KASIR untuk diserahkan ke customer.\n✨ Semua file hasil tersimpan dan bisa di-download!`,
         );
 
-        // Reset state
         setShowUploadModal(false);
         setItemsUploadStatus([]);
         setOrderToComplete(null);
@@ -338,18 +331,39 @@ const OperatorDashboard: React.FC = () => {
         </div>
 
         <nav className="sidebar-nav">
-          <a href="#" className="nav-item active">
+          {/* ✅ Queue Menu */}
+          <a
+            href="#"
+            className={`nav-item ${activePage === 'queue' ? 'active' : ''}`}
+            onClick={e => {
+              e.preventDefault();
+              setActivePage('queue');
+            }}
+          >
             <ClipboardList className="nav-icon" size={20} />
             {!sidebarCollapsed && <span className="nav-text">Queue</span>}
           </a>
+
+          {/* Statistics Menu */}
           <a href="#" className="nav-item">
             <BarChart3 className="nav-icon" size={20} />
             {!sidebarCollapsed && <span className="nav-text">Statistics</span>}
           </a>
-          <a href="#" className="nav-item">
+
+          {/* ✅ Completed Menu */}
+          <a
+            href="#"
+            className={`nav-item ${activePage === 'completed' ? 'active' : ''}`}
+            onClick={e => {
+              e.preventDefault();
+              setActivePage('completed');
+            }}
+          >
             <CheckCircle className="nav-icon" size={20} />
             {!sidebarCollapsed && <span className="nav-text">Completed</span>}
           </a>
+
+          {/* Settings Menu */}
           <a href="#" className="nav-item">
             <Settings className="nav-icon" size={20} />
             {!sidebarCollapsed && <span className="nav-text">Settings</span>}
@@ -382,237 +396,255 @@ const OperatorDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="main-content">
-        <div className="content-header">
-          <div>
-            <h1>Operator Dashboard</h1>
-            <p>Manage and process print orders</p>
-          </div>
-          <button
-            onClick={fetchQueue}
-            disabled={loading}
-            className="btn-refresh"
-          >
-            <RefreshCw
-              className={`btn-icon ${loading ? 'spinning' : ''}`}
-              size={18}
-            />
-            <span>{loading ? 'Loading...' : 'Refresh'}</span>
-          </button>
-        </div>
-
-        <StatsCards stats={stats} />
-
-        <div className="queue-section">
-          <div className="section-header">
-            <div>
-              <h2>Print Queue</h2>
-              <p>{orders.length} orders ready • Auto-refresh every 30s</p>
+        {/* ✅ Conditional Rendering based on activePage */}
+        {activePage === 'queue' ? (
+          // ========== QUEUE PAGE ==========
+          <>
+            <div className="content-header">
+              <div>
+                <h1>Operator Dashboard</h1>
+                <p>Manage and process print orders</p>
+              </div>
+              <button
+                onClick={fetchQueue}
+                disabled={loading}
+                className="btn-refresh"
+              >
+                <RefreshCw
+                  className={`btn-icon ${loading ? 'spinning' : ''}`}
+                  size={18}
+                />
+                <span>{loading ? 'Loading...' : 'Refresh'}</span>
+              </button>
             </div>
-          </div>
 
-          <QueueTable
-            orders={orders}
-            loading={loading}
-            updating={updating}
-            onViewDetail={handleViewDetail}
-            onUpdateStatus={handleUpdateStatus}
-            onStartComplete={handleStartComplete}
-          />
-        </div>
+            <StatsCards stats={stats} />
 
-        {/* Detail Modal */}
-        {showDetail && selectedOrder && (
-          <div className="modal-overlay" onClick={() => setShowDetail(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
+            <div className="queue-section">
+              <div className="section-header">
                 <div>
-                  <h2>Order Details</h2>
-                  <p>
-                    <strong>{selectedOrder.kode_order}</strong>
-                    {selectedOrder.kecepatan_pengerjaan === 'express' && (
-                      <span className="express-tag">
-                        <Zap size={14} /> EXPRESS
-                      </span>
-                    )}
-                  </p>
+                  <h2>Print Queue</h2>
+                  <p>{orders.length} orders ready • Auto-refresh every 30s</p>
                 </div>
-                <button
-                  onClick={() => setShowDetail(false)}
-                  className="modal-close"
-                >
-                  <X size={20} />
-                </button>
               </div>
 
-              <div className="modal-body">
-                <DesignFilesSection
-                  files={selectedOrder.design_files}
-                  onDownload={handleDownloadFile}
-                />
+              <QueueTable
+                orders={orders}
+                loading={loading}
+                updating={updating}
+                onViewDetail={handleViewDetail}
+                onUpdateStatus={handleUpdateStatus}
+                onStartComplete={handleStartComplete}
+              />
+            </div>
 
-                <div className="detail-section">
-                  <h3>
-                    <User size={18} /> Customer Information
-                  </h3>
-                  <div className="detail-grid">
+            {/* Detail Modal - Only for Queue */}
+            {showDetail && selectedOrder && (
+              <div
+                className="modal-overlay"
+                onClick={() => setShowDetail(false)}
+              >
+                <div
+                  className="modal-content"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="modal-header">
                     <div>
-                      <label>Name:</label>
-                      <span>{selectedOrder.nama_customer}</span>
-                    </div>
-                    <div>
-                      <label>
-                        <Mail size={14} /> Email:
-                      </label>
-                      <span>{selectedOrder.email_customer || '-'}</span>
-                    </div>
-                    {selectedOrder.telepon_customer && (
-                      <div>
-                        <label>
-                          <Phone size={14} /> Phone:
-                        </label>
-                        <span>{selectedOrder.telepon_customer}</span>
-                      </div>
-                    )}
-                    <div>
-                      <label>Order Type:</label>
-                      <span
-                        style={{
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        {selectedOrder.jenis_order === 'offline' ? (
-                          <>
-                            <Store size={14} /> Offline
-                          </>
-                        ) : (
-                          <>
-                            <Globe size={14} /> Online
-                          </>
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <label>Speed:</label>
-                      <span
-                        style={{
-                          fontWeight: 'bold',
-                          color:
-                            selectedOrder.kecepatan_pengerjaan === 'express'
-                              ? '#dc2626'
-                              : '#16a34a',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        {selectedOrder.kecepatan_pengerjaan === 'express' ? (
-                          <>
+                      <h2>Order Details</h2>
+                      <p>
+                        <strong>{selectedOrder.kode_order}</strong>
+                        {selectedOrder.kecepatan_pengerjaan === 'express' && (
+                          <span className="express-tag">
                             <Zap size={14} /> EXPRESS
-                          </>
-                        ) : (
-                          <>
-                            <Clock size={14} /> NORMAL
-                          </>
+                          </span>
                         )}
-                      </span>
-                    </div>
-                    <div>
-                      <label>Total Price:</label>
-                      <span
-                        style={{
-                          fontWeight: 'bold',
-                          color: '#364a7c',
-                          fontSize: '1.125rem',
-                        }}
-                      >
-                        {formatRupiah(selectedOrder.total_harga)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {selectedOrder.catatan && (
-                    <div
-                      style={{
-                        marginTop: '1rem',
-                        padding: '1rem',
-                        background: '#fff3cd',
-                        borderRadius: '6px',
-                        border: '1px solid #ffc107',
-                      }}
-                    >
-                      <strong
-                        style={{
-                          color: '#856404',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                        }}
-                      >
-                        <FileText size={16} /> Notes:
-                      </strong>
-                      <p style={{ margin: '0.5rem 0 0 0', color: '#856404' }}>
-                        {selectedOrder.catatan}
                       </p>
                     </div>
-                  )}
-                </div>
-
-                <OrderItemsSection items={selectedOrder.items} />
-
-                <div className="modal-actions">
-                  {['pending', 'dibayar', 'validasi'].includes(
-                    selectedOrder.status_order,
-                  ) && (
                     <button
-                      onClick={() =>
-                        handleUpdateStatus(selectedOrder.id_order, 'start')
-                      }
-                      disabled={updating}
-                      className="btn-start btn-block"
+                      onClick={() => setShowDetail(false)}
+                      className="modal-close"
                     >
-                      <Play size={18} /> Start Printing
+                      <X size={20} />
                     </button>
-                  )}
+                  </div>
 
-                  {['diproses', 'cetak'].includes(
-                    selectedOrder.status_order,
-                  ) && (
-                    <button
-                      onClick={() =>
-                        handleStartComplete(selectedOrder.id_order)
-                      }
-                      disabled={updating}
-                      className="btn-complete btn-block"
-                    >
-                      <CheckSquare size={18} /> Mark as Complete
-                    </button>
-                  )}
+                  <div className="modal-body">
+                    <DesignFilesSection
+                      files={selectedOrder.design_files}
+                      onDownload={handleDownloadFile}
+                    />
+
+                    <div className="detail-section">
+                      <h3>
+                        <User size={18} /> Customer Information
+                      </h3>
+                      <div className="detail-grid">
+                        <div>
+                          <label>Name:</label>
+                          <span>{selectedOrder.nama_customer}</span>
+                        </div>
+                        <div>
+                          <label>
+                            <Mail size={14} /> Email:
+                          </label>
+                          <span>{selectedOrder.email_customer || '-'}</span>
+                        </div>
+                        {selectedOrder.telepon_customer && (
+                          <div>
+                            <label>
+                              <Phone size={14} /> Phone:
+                            </label>
+                            <span>{selectedOrder.telepon_customer}</span>
+                          </div>
+                        )}
+                        <div>
+                          <label>Order Type:</label>
+                          <span
+                            style={{
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            {selectedOrder.jenis_order === 'offline' ? (
+                              <>
+                                <Store size={14} /> Offline
+                              </>
+                            ) : (
+                              <>
+                                <Globe size={14} /> Online
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <label>Speed:</label>
+                          <span
+                            style={{
+                              fontWeight: 'bold',
+                              color:
+                                selectedOrder.kecepatan_pengerjaan === 'express'
+                                  ? '#dc2626'
+                                  : '#16a34a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            {selectedOrder.kecepatan_pengerjaan ===
+                            'express' ? (
+                              <>
+                                <Zap size={14} /> EXPRESS
+                              </>
+                            ) : (
+                              <>
+                                <Clock size={14} /> NORMAL
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <label>Total Price:</label>
+                          <span
+                            style={{
+                              fontWeight: 'bold',
+                              color: '#364a7c',
+                              fontSize: '1.125rem',
+                            }}
+                          >
+                            {formatRupiah(selectedOrder.total_harga)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {selectedOrder.catatan && (
+                        <div
+                          style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            background: '#fff3cd',
+                            borderRadius: '6px',
+                            border: '1px solid #ffc107',
+                          }}
+                        >
+                          <strong
+                            style={{
+                              color: '#856404',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                            }}
+                          >
+                            <FileText size={16} /> Notes:
+                          </strong>
+                          <p
+                            style={{ margin: '0.5rem 0 0 0', color: '#856404' }}
+                          >
+                            {selectedOrder.catatan}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <OrderItemsSection items={selectedOrder.items} />
+
+                    <div className="modal-actions">
+                      {['pending', 'dibayar', 'validasi'].includes(
+                        selectedOrder.status_order,
+                      ) && (
+                        <button
+                          onClick={() =>
+                            handleUpdateStatus(selectedOrder.id_order, 'start')
+                          }
+                          disabled={updating}
+                          className="btn-start btn-block"
+                        >
+                          <Play size={18} /> Start Printing
+                        </button>
+                      )}
+
+                      {['diproses', 'cetak'].includes(
+                        selectedOrder.status_order,
+                      ) && (
+                        <button
+                          onClick={() =>
+                            handleStartComplete(selectedOrder.id_order)
+                          }
+                          disabled={updating}
+                          className="btn-complete btn-block"
+                        >
+                          <CheckSquare size={18} /> Mark as Complete
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* ✅ NEW: Upload Result Modal dengan Per-Item Upload */}
-        <UploadResultModal
-          show={showUploadModal}
-          uploading={uploadingResult}
-          items={itemsUploadStatus}
-          onClose={() => {
-            if (!uploadingResult) {
-              setShowUploadModal(false);
-              setItemsUploadStatus([]);
-              setOrderToComplete(null);
-            }
-          }}
-          onFileChange={handleFileChangePerItem}
-          onUpload={handleUploadAllResultsAndComplete}
-        />
+            {/* Upload Result Modal */}
+            <UploadResultModal
+              show={showUploadModal}
+              uploading={uploadingResult}
+              items={itemsUploadStatus}
+              onClose={() => {
+                if (!uploadingResult) {
+                  setShowUploadModal(false);
+                  setItemsUploadStatus([]);
+                  setOrderToComplete(null);
+                }
+              }}
+              onFileChange={handleFileChangePerItem}
+              onUpload={handleUploadAllResultsAndComplete}
+            />
+          </>
+        ) : activePage === 'completed' ? (
+          // ========== COMPLETED HISTORY PAGE ==========
+          <CompletedHistory onRefresh={fetchQueue} />
+        ) : null}
 
-        {/* Logout Confirmation Modal */}
+        {/* Logout Confirmation Modal - Always available */}
         {showLogoutModal && (
           <div
             className="modal-overlay"
