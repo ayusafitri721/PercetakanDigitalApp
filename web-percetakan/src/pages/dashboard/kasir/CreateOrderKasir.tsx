@@ -1625,4 +1625,5 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
   );
 };
 
+// ini sementara sudah tidak kepakai, sudah ada di file components/CreateOrderKasir/index.tsx
 export default CreateOrderKasir;
