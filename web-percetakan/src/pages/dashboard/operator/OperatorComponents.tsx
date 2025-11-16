@@ -1,6 +1,12 @@
 // OperatorComponents.tsx - All Small Components
 import React from 'react';
-import type { Order, Stats, DesignFile, OrderItem } from './operatorTypes';
+import type {
+  Order,
+  Stats,
+  DesignFile,
+  OrderItem,
+  ItemUploadStatus,
+} from './operatorTypes';
 import {
   formatRupiah,
   formatDate,
@@ -427,37 +433,43 @@ export const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
   );
 };
 
-// ============ UPLOAD RESULT MODAL ============
+// ============ UPLOAD RESULT MODAL (PER ITEM) ============
 interface UploadResultModalProps {
   show: boolean;
   uploading: boolean;
-  resultFile: File | null;
+  items: ItemUploadStatus[];
   onClose: () => void;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (itemId: string, file: File | null) => void;
   onUpload: () => void;
 }
 
 export const UploadResultModal: React.FC<UploadResultModalProps> = ({
   show,
   uploading,
-  resultFile,
+  items,
   onClose,
   onFileChange,
   onUpload,
 }) => {
   if (!show) return null;
 
+  const allUploaded = items.every(item => item.file !== null);
+  const uploadedCount = items.filter(item => item.file !== null).length;
+
   return (
     <div className="modal-overlay" onClick={() => !uploading && onClose()}>
       <div
         className="modal-content"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '500px' }}
+        style={{ maxWidth: '700px', maxHeight: '90vh', overflow: 'auto' }}
       >
         <div className="modal-header">
           <div>
-            <h2>📤 Upload File Hasil</h2>
-            <p>Upload file hasil pekerjaan operator</p>
+            <h2>📤 Upload File Hasil Per Item</h2>
+            <p>
+              Upload file hasil untuk setiap item pesanan ({uploadedCount}/
+              {items.length} selesai)
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -469,6 +481,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
         </div>
 
         <div className="modal-body">
+          {/* Warning Info */}
           <div
             style={{
               background: '#fff3cd',
@@ -496,93 +509,225 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                 lineHeight: '1.6',
               }}
             >
-              <li>Upload file hasil cetakan yang sudah jadi</li>
+              <li>
+                <strong>Upload file hasil untuk SETIAP item</strong> yang
+                dipesan customer
+              </li>
               <li>File bisa berupa gambar (JPG/PNG) atau PDF</li>
-              <li>Maksimal ukuran file: 20MB</li>
-              <li>File akan dikirim ke kasir untuk customer</li>
+              <li>Maksimal ukuran file per item: 20MB</li>
+              <li>
+                Button "Selesai" aktif setelah{' '}
+                <strong>SEMUA item terisi</strong>
+              </li>
             </ul>
           </div>
 
+          {/* List Items untuk Upload */}
           <div
-            style={{
-              background: '#f8f9fa',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              border: resultFile ? '2px solid #28a745' : '2px dashed #667eea',
-            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
           >
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '0.75rem',
-                fontWeight: 'bold',
-                fontSize: '1rem',
-                color: '#333',
-              }}
-            >
-              📁 Pilih File Hasil *
-            </label>
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={onFileChange}
-              disabled={uploading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                background: 'white',
-                cursor: uploading ? 'not-allowed' : 'pointer',
-              }}
-            />
-
-            {resultFile && (
+            {items.map((item, index) => (
               <div
+                key={item.id_item}
                 style={{
-                  marginTop: '1rem',
-                  padding: '1rem',
-                  background: '#d4edda',
-                  border: '1px solid #28a745',
-                  borderRadius: '6px',
+                  background: item.file ? '#d4edda' : '#f8f9fa',
+                  border: item.file
+                    ? '2px solid #28a745'
+                    : '2px dashed #667eea',
+                  padding: '1.5rem',
+                  borderRadius: '8px',
+                  transition: 'all 0.3s ease',
                 }}
               >
+                {/* Item Info */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
+                    gap: '1rem',
+                    marginBottom: '1rem',
                   }}
                 >
-                  <div style={{ fontSize: '2rem' }}>
-                    {resultFile.type.includes('pdf') ? '📄' : '🖼️'}
+                  <div
+                    style={{
+                      background: item.file ? '#28a745' : '#667eea',
+                      color: 'white',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1.2rem',
+                    }}
+                  >
+                    {item.file ? '✓' : index + 1}
                   </div>
                   <div style={{ flex: 1 }}>
+                    <h4
+                      style={{
+                        margin: '0 0 0.25rem 0',
+                        fontSize: '1.1rem',
+                        color: '#333',
+                      }}
+                    >
+                      {item.nama_produk}
+                    </h4>
                     <p
                       style={{
                         margin: 0,
-                        fontWeight: 'bold',
-                        color: '#155724',
+                        fontSize: '0.9rem',
+                        color: '#666',
                       }}
                     >
-                      {resultFile.name}
-                    </p>
-                    <p
-                      style={{
-                        margin: '0.25rem 0 0 0',
-                        fontSize: '0.85rem',
-                        color: '#155724',
-                      }}
-                    >
-                      {(resultFile.size / 1024 / 1024).toFixed(2)} MB
+                      Jumlah: <strong>× {item.jumlah}</strong>
                     </p>
                   </div>
-                  <div style={{ fontSize: '1.5rem', color: '#28a745' }}>✅</div>
+                  {item.file && (
+                    <div
+                      style={{
+                        fontSize: '2rem',
+                        color: '#28a745',
+                      }}
+                    >
+                      ✅
+                    </div>
+                  )}
+                </div>
+
+                {/* File Input */}
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem',
+                      color: '#333',
+                    }}
+                  >
+                    📁 Upload File Hasil *
+                  </label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      if (file) {
+                        if (file.size > 20 * 1024 * 1024) {
+                          alert('Ukuran file maksimal 20MB!');
+                          e.target.value = '';
+                          return;
+                        }
+                      }
+                      onFileChange(item.id_item, file);
+                    }}
+                    disabled={uploading}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      border: '1px solid #ddd',
+                      background: 'white',
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                    }}
+                  />
+
+                  {/* File Preview */}
+                  {item.file && (
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        padding: '0.75rem',
+                        background: 'white',
+                        border: '1px solid #28a745',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        <div style={{ fontSize: '1.5rem' }}>
+                          {item.file.type.includes('pdf') ? '📄' : '🖼️'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontWeight: 'bold',
+                              color: '#155724',
+                              fontSize: '0.9rem',
+                            }}
+                          >
+                            {item.file.name}
+                          </p>
+                          <p
+                            style={{
+                              margin: '0.25rem 0 0 0',
+                              fontSize: '0.8rem',
+                              color: '#155724',
+                            }}
+                          >
+                            {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            ))}
           </div>
 
+          {/* Progress Bar */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <span style={{ fontWeight: 'bold' }}>Progress Upload:</span>
+              <span style={{ fontWeight: 'bold', color: '#667eea' }}>
+                {uploadedCount} / {items.length} items
+              </span>
+            </div>
+            <div
+              style={{
+                width: '100%',
+                height: '12px',
+                background: '#e0e0e0',
+                borderRadius: '6px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${(uploadedCount / items.length) * 100}%`,
+                  height: '100%',
+                  background: allUploaded
+                    ? 'linear-gradient(90deg, #28a745 0%, #20c997 100%)'
+                    : 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
             <button
               onClick={onClose}
@@ -601,20 +746,27 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
             </button>
             <button
               onClick={onUpload}
-              disabled={!resultFile || uploading}
+              disabled={!allUploaded || uploading}
               style={{
-                flex: 1,
+                flex: 2,
                 padding: '0.75rem',
                 borderRadius: '6px',
                 border: 'none',
-                background: !resultFile || uploading ? '#ccc' : '#28a745',
+                background:
+                  !allUploaded || uploading
+                    ? '#ccc'
+                    : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
                 color: 'white',
-                cursor: !resultFile || uploading ? 'not-allowed' : 'pointer',
+                cursor: !allUploaded || uploading ? 'not-allowed' : 'pointer',
                 fontWeight: '600',
                 fontSize: '1rem',
               }}
             >
-              {uploading ? '⏳ Mengupload...' : '✅ Upload & Selesaikan'}
+              {uploading
+                ? '⏳ Mengupload...'
+                : allUploaded
+                ? `✅ Upload Semua & Selesaikan (${items.length} files)`
+                : `⚠️ Lengkapi ${items.length - uploadedCount} item lagi`}
             </button>
           </div>
         </div>

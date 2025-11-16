@@ -1,5 +1,5 @@
 // operatorTypes.ts - All Types & Interfaces
-// File ini sudah benar, tidak ada perubahan
+
 export interface DesignFile {
   id_file: string;
   nama_file: string;
@@ -42,4 +42,13 @@ export interface Stats {
   inProgress: number;
   todayCompleted: number;
   expressQueue: number;
+}
+
+// ✅ NEW: Interface untuk upload per item
+export interface ItemUploadStatus {
+  id_item: string;
+  nama_produk: string;
+  jumlah: number;
+  file: File | null;
+  uploaded: boolean;
 }

@@ -1,4 +1,4 @@
-// Dashboard.tsx - MODERN UI WITH SIDEBAR
+// Dashboard.tsx - OPERATOR DASHBOARD WITH PER-ITEM UPLOAD
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import {
@@ -25,8 +25,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-// Import types (dengan type-only import)
-import type { Order, Stats } from './operatorTypes';
+// Import types
+import type { Order, Stats, ItemUploadStatus } from './operatorTypes';
 
 // Import utilities
 import {
@@ -55,8 +55,13 @@ const OperatorDashboard: React.FC = () => {
   const [uploadingResult, setUploadingResult] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [resultFile, setResultFile] = useState<File | null>(null);
+
+  // ✅ NEW: State untuk upload per item
+  const [itemsUploadStatus, setItemsUploadStatus] = useState<
+    ItemUploadStatus[]
+  >([]);
   const [orderToComplete, setOrderToComplete] = useState<string | null>(null);
+
   const [stats, setStats] = useState<Stats>({
     todayQueue: 0,
     inProgress: 0,
@@ -99,58 +104,111 @@ const OperatorDashboard: React.FC = () => {
     }
   };
 
-  const handleStartComplete = (orderId: string) => {
-    setOrderToComplete(orderId);
-    setShowUploadModal(true);
-  };
+  // ✅ NEW: Handle start complete dengan prepare items
+  const handleStartComplete = async (orderId: string) => {
+    try {
+      // Ambil detail order kalau belum ada
+      let order = selectedOrder;
+      if (!order || order.id_order !== orderId) {
+        order = await apiService.fetchOrderDetail(orderId);
+      }
 
-  const handleFileResultChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        alert('Ukuran file maksimal 20MB!');
+      // ✅ NULL SAFETY: Cek order ada atau tidak
+      if (!order) {
+        alert('❌ Gagal memuat data pesanan');
         return;
       }
 
-      const allowedTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/jpg',
-        'application/pdf',
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Format file harus JPG, PNG, atau PDF!');
+      // Validasi ada items
+      if (!order.items || order.items.length === 0) {
+        alert('❌ Pesanan ini tidak memiliki item untuk diupload!');
         return;
       }
 
-      setResultFile(file);
+      // Prepare item upload status
+      const itemStatuses: ItemUploadStatus[] = order.items.map(item => ({
+        id_item: item.id_item,
+        nama_produk: item.nama_produk,
+        jumlah: item.jumlah,
+        file: null,
+        uploaded: false,
+      }));
+
+      setItemsUploadStatus(itemStatuses);
+      setOrderToComplete(orderId);
+      setShowUploadModal(true);
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert('Gagal memuat data pesanan: ' + (error.message || 'Unknown error'));
     }
   };
 
-  const handleUploadResultAndComplete = async () => {
-    if (!resultFile) {
-      alert('⚠️ Silakan upload file hasil terlebih dahulu!');
+  // ✅ NEW: Handle file change per item
+  const handleFileChangePerItem = (itemId: string, file: File | null) => {
+    setItemsUploadStatus(prev =>
+      prev.map(item =>
+        item.id_item === itemId
+          ? { ...item, file, uploaded: file !== null }
+          : item,
+      ),
+    );
+  };
+
+  // ✅ NEW: Upload semua file hasil per item
+  const handleUploadAllResultsAndComplete = async () => {
+    if (!orderToComplete) return;
+
+    // Validasi semua item sudah ada filenya
+    const allHaveFiles = itemsUploadStatus.every(item => item.file !== null);
+    if (!allHaveFiles) {
+      alert('⚠️ Semua item harus memiliki file hasil!');
       return;
     }
 
-    if (!orderToComplete) return;
-
     setUploadingResult(true);
     try {
-      // Step 1: Upload file
-      const uploadedFile = await apiService.uploadFile(resultFile);
+      let successCount = 0;
+      let failedItems: string[] = [];
 
-      // Step 2: Create result_files record
-      await apiService.createResultFile({
-        id_order: orderToComplete,
-        nama_file: uploadedFile.file_name,
-        file_url: uploadedFile.file_url,
-        ukuran_file: resultFile.size,
-        tipe_file: resultFile.type,
-        keterangan: 'File hasil cetakan dari operator',
-      });
+      // Upload setiap file
+      for (const item of itemsUploadStatus) {
+        if (!item.file) continue;
 
-      // Step 3: Update status ke "selesai"
+        try {
+          // Step 1: Upload file ke server
+          const uploadedFile = await apiService.uploadFile(item.file);
+
+          // Step 2: Simpan ke result_files
+          await apiService.createResultFile({
+            id_order: orderToComplete,
+            nama_file: uploadedFile.file_name,
+            file_url: uploadedFile.file_url,
+            ukuran_file: item.file.size,
+            tipe_file: item.file.type,
+            keterangan: `File hasil untuk: ${item.nama_produk} (${item.jumlah} pcs) - Item ID: ${item.id_item}`,
+          });
+
+          successCount++;
+        } catch (error: any) {
+          console.error(`Error uploading ${item.nama_produk}:`, error);
+          failedItems.push(item.nama_produk);
+        }
+      }
+
+      // Jika ada yang gagal
+      if (failedItems.length > 0) {
+        alert(
+          `⚠️ UPLOAD SEBAGIAN BERHASIL!\n\n✅ Berhasil: ${successCount}/${
+            itemsUploadStatus.length
+          } files\n❌ Gagal: ${failedItems.join(
+            ', ',
+          )}\n\nSilakan coba lagi untuk item yang gagal.`,
+        );
+        setUploadingResult(false);
+        return;
+      }
+
+      // Step 3: Update status order ke "selesai"
       const statusResponse = await apiService.updateOrderStatus(
         orderToComplete,
         'selesai',
@@ -158,11 +216,23 @@ const OperatorDashboard: React.FC = () => {
 
       if (statusResponse.status === 'success') {
         alert(
-          `✅ PESANAN SELESAI!\n\n📁 File hasil: ${resultFile.name}\n📦 Status: Selesai\n🎯 Pesanan sudah dikirim ke KASIR untuk diserahkan ke customer.\n\n✨ File hasil sudah tersimpan dan bisa di-download oleh kasir!`,
+          `✅ PESANAN SELESAI!\n\n📦 Total ${
+            itemsUploadStatus.length
+          } file hasil berhasil diupload:\n\n${itemsUploadStatus
+            .map(
+              (item, idx) =>
+                `${idx + 1}. ${item.nama_produk} × ${item.jumlah} - ${
+                  item.file?.name
+                }`,
+            )
+            .join(
+              '\n',
+            )}\n\n🎯 Pesanan sudah dikirim ke KASIR untuk diserahkan ke customer.\n✨ Semua file hasil tersimpan dan bisa di-download!`,
         );
 
+        // Reset state
         setShowUploadModal(false);
-        setResultFile(null);
+        setItemsUploadStatus([]);
         setOrderToComplete(null);
         fetchQueue();
         if (showDetail) setShowDetail(false);
@@ -172,7 +242,7 @@ const OperatorDashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Error:', error);
       alert(
-        '❌ Gagal menyimpan hasil: ' +
+        '❌ Gagal menyelesaikan pesanan: ' +
           (error.response?.data?.message || error.message),
       );
     } finally {
@@ -238,11 +308,8 @@ const OperatorDashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // Clear any stored auth data
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
-
-    // Redirect to login page
     window.location.href = '/login';
   };
 
@@ -529,14 +596,20 @@ const OperatorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Upload Result Modal */}
+        {/* ✅ NEW: Upload Result Modal dengan Per-Item Upload */}
         <UploadResultModal
           show={showUploadModal}
           uploading={uploadingResult}
-          resultFile={resultFile}
-          onClose={() => setShowUploadModal(false)}
-          onFileChange={handleFileResultChange}
-          onUpload={handleUploadResultAndComplete}
+          items={itemsUploadStatus}
+          onClose={() => {
+            if (!uploadingResult) {
+              setShowUploadModal(false);
+              setItemsUploadStatus([]);
+              setOrderToComplete(null);
+            }
+          }}
+          onFileChange={handleFileChangePerItem}
+          onUpload={handleUploadAllResultsAndComplete}
         />
 
         {/* Logout Confirmation Modal */}
