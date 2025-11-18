@@ -1,4 +1,4 @@
-// screens/auth/LoginScreen.tsx
+// screens/auth/LoginScreen.tsx (FIXED VERSION)
 import React, { useState } from 'react';
 import {
   View,
@@ -16,6 +16,7 @@ import {
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login } from '../../config/authAPI';
 import { API_BASE_URL } from '../../config/api';
 
@@ -62,9 +63,42 @@ export default function LoginScreen({
         console.log('✅ User ID:', data.data.user.id_user);
         console.log('✅ User Name:', data.data.user.nama);
         console.log('✅ User Email:', data.data.user.email);
+
+        // ⭐⭐⭐ CRITICAL FIX: CLEAR OLD DATA FIRST ⭐⭐⭐
+        console.log('🧹 Clearing old user data from storage...');
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem('userToken');
+        await AsyncStorage.removeItem('currentUser');
+
+        // ⭐⭐⭐ SAVE NEW USER DATA PROPERLY ⭐⭐⭐
+        const userDataToSave = {
+          user: {
+            id_user: data.data.user.id_user,
+            nama: data.data.user.nama,
+            email: data.data.user.email,
+            role: data.data.user.role,
+            no_telepon: data.data.user.no_telepon || '',
+            alamat: data.data.user.alamat || '',
+          },
+          token: data.data.token,
+          loginTime: new Date().toISOString(),
+        };
+
+        console.log('💾 Saving user data to AsyncStorage:', userDataToSave);
+
+        // Save di beberapa key untuk redundancy
+        await AsyncStorage.setItem('userData', JSON.stringify(userDataToSave));
+        await AsyncStorage.setItem('userToken', data.data.token);
+        await AsyncStorage.setItem(
+          'currentUser',
+          JSON.stringify(data.data.user),
+        );
+
+        // Verify save berhasil
+        const savedData = await AsyncStorage.getItem('userData');
         console.log(
-          '✅ Full User Data:',
-          JSON.stringify(data.data.user, null, 2),
+          '✅ Verified saved data:',
+          savedData ? 'SUCCESS' : 'FAILED',
         );
 
         Alert.alert(
@@ -72,14 +106,16 @@ export default function LoginScreen({
           `Selamat datang ${data.data.user.nama}`,
         );
 
+        // Clear form
+        setEmail('');
+        setPassword('');
+
+        // ⭐ Pass complete user data
         onLoginSuccess({
           ...data.data,
           userId: data.data.user.id_user,
           user: data.data.user,
         });
-
-        setEmail('');
-        setPassword('');
       } else {
         console.log('❌ Login Failed:', data.message);
         Alert.alert(
@@ -107,7 +143,7 @@ export default function LoginScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Section with Background Pattern - SAMA SEPERTI WELCOME SCREEN */}
+          {/* Top Section with Background Pattern */}
           <ImageBackground
             source={require('../../assets/images/welcome-screen.png')}
             style={styles.topSection}
@@ -215,7 +251,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
   },
-  // SAMA SEPERTI WELCOME SCREEN
   topSection: {
     flex: 1,
     backgroundColor: '#5AB9EA',
@@ -236,7 +271,6 @@ const styles = StyleSheet.create({
     height: 200,
     marginRight: 8,
   },
-  // SAMA SEPERTI WELCOME SCREEN
   bottomSection: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 40,

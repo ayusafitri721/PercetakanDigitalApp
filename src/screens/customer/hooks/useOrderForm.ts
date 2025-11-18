@@ -1,9 +1,8 @@
 // src/screens/customer/hooks/useOrderForm.ts
 import { useState, useEffect } from 'react';
-import { Alert, Platform, PermissionsAndroid } from 'react-native';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { launchImageLibrary } from 'react-native-image-picker';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../config/api';
 
 export interface UploadedFile {
   uri: string;
@@ -19,160 +18,200 @@ export interface OrderDetails {
   speed: 'normal' | 'express';
   notes: string;
   deliveryMethod: 'cod' | 'transfer_delivery' | 'pickup';
-  paymentMethod: 'transfer' | 'qris' | '';
   recipientName: string;
   recipientPhone: string;
   shippingAddress: string;
   city: string;
   province: string;
   shippingCost: number;
+  paymentMethod: 'transfer' | 'qris' | '';
 }
+
+interface CurrentUser {
+  id_user: string;
+  nama: string;
+  email: string;
+  role: string;
+  no_telepon?: string;
+  alamat?: string;
+}
+
+const INITIAL_ORDER_DETAILS: OrderDetails = {
+  material: '',
+  size: '',
+  quantity: 1,
+  speed: 'normal',
+  notes: '',
+  deliveryMethod: 'cod',
+  recipientName: '',
+  recipientPhone: '',
+  shippingAddress: '',
+  city: '',
+  province: '',
+  shippingCost: 15000,
+  paymentMethod: '',
+};
 
 export function useOrderForm(service: any) {
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [paymentProof, setPaymentProof] = useState<UploadedFile | null>(null);
-  const [orderDetails, setOrderDetails] = useState<OrderDetails>({
-    material: '',
-    size: '',
-    quantity: 1,
-    speed: 'normal',
-    notes: '',
-    deliveryMethod: 'cod',
-    paymentMethod: '',
-    recipientName: '',
-    recipientPhone: '',
-    shippingAddress: '',
-    city: '',
-    province: '',
-    shippingCost: 0,
-  });
+  const [orderDetails, setOrderDetails] = useState<OrderDetails>(INITIAL_ORDER_DETAILS);
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // ⭐⭐⭐ CRITICAL FIX: Load current user SETIAP KALI component mount ⭐⭐⭐
   useEffect(() => {
-    fetchCurrentUser();
-  }, []);
+    console.log('🔄 OrderForm mounted - Loading current user...');
+    loadCurrentUser();
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 OrderForm unmounted - Cleaning up...');
+      // ⚠️ JANGAN reset currentUser di sini, biar tetap login
+    };
+  }, []); // Empty deps = run ONCE per mount
 
-  const fetchCurrentUser = async () => {
+  // ✅ FUNCTION: Load user yang SEDANG LOGIN
+  const loadCurrentUser = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users.php`);
-      if (response.data.status === 'success') {
-        const usersData = response.data.data?.users || response.data.data;
-        if (Array.isArray(usersData) && usersData.length > 0) {
-          const user =
-            usersData.find((u: any) => u.role === 'customer') || usersData[0];
-          setCurrentUser(user);
-          setOrderDetails(prev => ({
-            ...prev,
-            recipientName: user.nama || '',
-            recipientPhone: user.no_telepon || '',
-          }));
+      setLoadingUser(true);
+      console.log('📱 Reading user data from AsyncStorage...');
+      
+      // ⭐ Try multiple keys untuk compatibility
+      let userDataString = await AsyncStorage.getItem('userData');
+      let userData = null;
+
+      if (userDataString) {
+        console.log('✅ Found userData in AsyncStorage');
+        userData = JSON.parse(userDataString);
+      } else {
+        // Fallback ke currentUser key
+        console.log('⚠️ userData not found, trying currentUser key...');
+        userDataString = await AsyncStorage.getItem('currentUser');
+        if (userDataString) {
+          console.log('✅ Found currentUser in AsyncStorage');
+          const user = JSON.parse(userDataString);
+          userData = { user }; // Wrap in object
         }
       }
-    } catch (error: any) {
-      console.error('❌ Failed to fetch user:', error.message);
-      Alert.alert('Error', 'Gagal memuat data user.');
+
+      if (!userData || !userData.user) {
+        console.error('❌ No valid user data found in storage');
+        Alert.alert('Error', 'Session expired. Silakan login kembali.');
+        setCurrentUser(null);
+        setLoadingUser(false);
+        return;
+      }
+
+      // ⭐ CRITICAL: Set user yang BENAR
+      const user = userData.user;
+      console.log('✅✅✅ CURRENT USER LOADED:', {
+        id: user.id_user,
+        nama: user.nama,
+        email: user.email,
+      });
+
+      setCurrentUser(user);
+      
+      // Auto-fill recipient data dari user profile
+      if (!orderDetails.recipientName) {
+        setOrderDetails(prev => ({
+          ...prev,
+          recipientName: user.nama || '',
+          recipientPhone: user.no_telepon || '',
+          shippingAddress: user.alamat || '',
+        }));
+        console.log('📝 Auto-filled recipient data from user profile');
+      }
+
+    } catch (error) {
+      console.error('❌ Error loading user:', error);
+      Alert.alert('Error', 'Gagal memuat data user. Silakan login kembali.');
+      setCurrentUser(null);
     } finally {
       setLoadingUser(false);
     }
   };
 
-  const requestStoragePermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        if (Platform.Version >= 33) return true;
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        return false;
-      }
-    }
-    return true;
+  // ✅ FUNCTION: Update order details
+  const updateDetails = (details: Partial<OrderDetails>) => {
+    setOrderDetails(prev => ({ ...prev, ...details }));
   };
 
+  // ✅ FUNCTION: Pick image (design atau payment proof)
   const handlePickImage = async (type: 'design' | 'payment') => {
     try {
-      const hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        Alert.alert('Izin Ditolak', 'Aplikasi membutuhkan izin akses galeri.');
-        return;
-      }
-
       const result = await launchImageLibrary({
         mediaType: 'photo',
         quality: 0.8,
-        selectionLimit: 1,
+        maxWidth: 1920,
+        maxHeight: 1920,
       });
 
-      if (result.didCancel || result.errorCode) return;
+      if (result.didCancel) {
+        console.log('User cancelled image picker');
+        return;
+      }
 
-      if (result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const maxSize = 10 * 1024 * 1024;
+      if (result.errorCode) {
+        Alert.alert('Error', result.errorMessage || 'Failed to pick image');
+        return;
+      }
 
-        if (asset.fileSize && asset.fileSize > maxSize) {
-          Alert.alert('Error', 'Ukuran file maksimal 10MB!');
-          return;
-        }
+      const asset = result.assets?.[0];
+      if (!asset || !asset.uri) {
+        Alert.alert('Error', 'No image selected');
+        return;
+      }
 
-        const fileData = {
-          uri: asset.uri || '',
-          name: asset.fileName || `image_${Date.now()}.jpg`,
-          type: asset.type || 'image/jpeg',
-          size: asset.fileSize || 0,
-        };
+      const file: UploadedFile = {
+        uri: asset.uri,
+        name: asset.fileName || `image_${Date.now()}.jpg`,
+        type: asset.type || 'image/jpeg',
+        size: asset.fileSize || 0,
+      };
 
-        if (type === 'design') {
-          setUploadedFile(fileData);
-        } else {
-          setPaymentProof(fileData);
-        }
-
-        Alert.alert('Berhasil', 'Gambar berhasil dipilih!');
+      if (type === 'design') {
+        setUploadedFile(file);
+        console.log('✅ Design file uploaded:', file.name);
+      } else {
+        setPaymentProof(file);
+        console.log('✅ Payment proof uploaded:', file.name);
       }
     } catch (error) {
+      console.error('❌ Image picker error:', error);
       Alert.alert('Error', 'Gagal memilih gambar');
     }
   };
 
+  // ✅ FUNCTION: Calculate price
   const calculatePrice = (): number => {
-    if (!service || !orderDetails.material || !orderDetails.size) return 0;
-    let total = parseInt(service.harga_dasar) * orderDetails.quantity;
-    if (orderDetails.speed === 'express') total *= 1.5;
-    return Math.round(total);
+    if (!service || !orderDetails.material || !orderDetails.size) {
+      return 0;
+    }
+
+    const basePrice = parseFloat(service.harga_dasar) || 0;
+    const quantity = orderDetails.quantity || 1;
+    const speedMultiplier = orderDetails.speed === 'express' ? 1.5 : 1;
+
+    return Math.round(basePrice * quantity * speedMultiplier);
   };
 
+  // ✅ FUNCTION: Calculate total (with shipping)
   const calculateTotal = (): number => {
     return calculatePrice() + orderDetails.shippingCost;
   };
 
-  const updateDetails = (updates: Partial<OrderDetails>) => {
-    setOrderDetails(prev => ({ ...prev, ...updates }));
-  };
-
+  // ✅ FUNCTION: Reset form after successful order
   const resetForm = () => {
+    console.log('🔄 Resetting order form...');
     setUploadedFile(null);
     setPaymentProof(null);
-    setOrderDetails({
-      material: '',
-      size: '',
-      quantity: 1,
-      speed: 'normal',
-      notes: '',
-      deliveryMethod: 'cod',
-      paymentMethod: '',
-      recipientName: currentUser?.nama || '',
-      recipientPhone: currentUser?.no_telepon || '',
-      shippingAddress: '',
-      city: '',
-      province: '',
-      shippingCost: 0,
-    });
+    setOrderDetails(INITIAL_ORDER_DETAILS);
     setCurrentStep(1);
+    // ⚠️ DON'T reset currentUser - user tetap login!
   };
 
   return {
@@ -192,5 +231,6 @@ export function useOrderForm(service: any) {
     calculatePrice,
     calculateTotal,
     resetForm,
+    loadCurrentUser, // Export untuk manual reload kalau perlu
   };
 }
