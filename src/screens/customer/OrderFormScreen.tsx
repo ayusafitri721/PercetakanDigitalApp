@@ -139,6 +139,13 @@ export default function OrderFormScreen({
       setLoading(false);
       console.error('❌ Submit order error:', error);
 
+      // ⭐ TAMBAH INI SEMUA
+      console.log('🔥 ERROR RESPONSE:', error.response);
+      console.log('🔥 ERROR DATA:', error.response?.data);
+      console.log('🔥 ERROR STATUS:', error.response?.status);
+      console.log('🔥 ERROR MESSAGE:', error.response?.data?.message);
+      // ⭐ SAMPAI SINI
+
       let errorMessage = 'Pesanan gagal dibuat.';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;

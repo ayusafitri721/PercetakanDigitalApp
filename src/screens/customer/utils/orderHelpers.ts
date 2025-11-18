@@ -83,8 +83,6 @@ export const submitOrder = async (
   orderFormData.append('ongkir', orderDetails.shippingCost.toString());
   orderFormData.append('total_harga', calculateTotal().toString());
   orderFormData.append('catatan_pelanggan', orderDetails.notes);
-
-  // Status order - semua order baru dimulai dengan "validasi"
   orderFormData.append('status_order', 'validasi');
 
   const orderResponse = await axios.post(
@@ -103,7 +101,7 @@ export const submitOrder = async (
   const id_order = orderResponse.data.data.id_order;
   const kode_order = orderResponse.data.data.kode_order;
 
-  // STEP 2: CREATE ORDER ITEM + UPLOAD DESAIN
+  // STEP 2: CREATE ORDER ITEM + UPLOAD DESAIN (DENGAN VALIDASI ✅)
   const itemFormData = new FormData();
   itemFormData.append('id_order', id_order.toString());
   itemFormData.append('id_product', service.id_product);
@@ -133,22 +131,26 @@ export const submitOrder = async (
     throw new Error(itemResponse.data.message || 'Gagal membuat order item');
   }
 
-  // STEP 3: CREATE PAYMENT
+  // ⭐ AMBIL VALIDATION DATA DARI RESPONSE
+  const fileValidation = itemResponse.data.data.validation;
+  console.log('📁 FILE VALIDATION:', fileValidation);
+
+  // STEP 3: CREATE PAYMENT (DENGAN VALIDASI ✅)
   const paymentFormData = new FormData();
   paymentFormData.append('id_order', id_order.toString());
   paymentFormData.append('jumlah_bayar', calculateTotal().toString());
 
+  let paymentValidation = null;
+
   if (orderDetails.deliveryMethod === 'cod') {
-    // COD: status pending, bayar nanti ke kurir
+    // COD: pending, bayar ke kurir
     paymentFormData.append('metode_pembayaran', 'cod');
     paymentFormData.append('status_pembayaran', 'pending');
-    // Tidak ada bukti bayar karena belum bayar
   } else {
-    // Transfer/Pickup: sudah bayar, langsung diterima
+    // Transfer/Pickup: upload bukti bayar + validasi
     paymentFormData.append('metode_pembayaran', orderDetails.paymentMethod);
-    paymentFormData.append('status_pembayaran', 'diterima');
+    paymentFormData.append('status_pembayaran', 'pending'); // Backend akan auto-decide
     
-    // Upload bukti bayar (harus ada karena validasi di step 3)
     if (paymentProof) {
       paymentFormData.append('bukti_bayar', {
         uri: paymentProof.uri,
@@ -158,7 +160,7 @@ export const submitOrder = async (
     }
   }
 
-  await axios.post(
+  const paymentResponse = await axios.post(
     `${API_BASE_URL}/payments.php?op=create`,
     paymentFormData,
     {
@@ -166,6 +168,16 @@ export const submitOrder = async (
       timeout: 30000,
     },
   );
+
+  if (paymentResponse.data.status !== 'success') {
+    throw new Error(paymentResponse.data.message || 'Gagal membuat payment');
+  }
+
+  // ⭐ AMBIL VALIDATION DATA DARI PAYMENT
+  paymentValidation = paymentResponse.data.data.validation;
+  const autoApproved = paymentResponse.data.data.auto_approved;
+  console.log('💳 PAYMENT VALIDATION:', paymentValidation);
+  console.log('✅ AUTO APPROVED:', autoApproved);
 
   // STEP 4: CREATE DELIVERY
   const deliveryFormData = new FormData();
@@ -207,7 +219,13 @@ export const submitOrder = async (
     },
   );
 
-  return { kode_order };
+  // ⭐ RETURN DATA + VALIDATION
+  return { 
+    kode_order, 
+    fileValidation, 
+    paymentValidation, 
+    autoApproved 
+  };
 };
 
 export const getSuccessMessage = (
@@ -216,6 +234,9 @@ export const getSuccessMessage = (
   service: any,
   orderDetails: OrderDetails,
   calculateTotal: () => number,
+  fileValidation?: any,
+  paymentValidation?: any,
+  autoApproved?: boolean,
 ): string => {
   let msg = `✅ Pesanan Berhasil Dibuat!\n\n`;
   msg += `Kode Order: ${kode_order}\n`;
@@ -223,21 +244,42 @@ export const getSuccessMessage = (
   msg += `Produk: ${service.nama_product}\n`;
   msg += `Total: Rp ${calculateTotal().toLocaleString('id-ID')}\n\n`;
 
+  // ⭐ TAMPILKAN VALIDATION SCORE
+  if (fileValidation) {
+    const fileScore = fileValidation.confidence_score;
+    let fileIcon = '✅';
+    if (fileScore < 75) fileIcon = '⚠️';
+    if (fileScore < 60) fileIcon = '❌';
+    
+    msg += `📁 File Desain: ${fileIcon} ${fileScore}/100\n`;
+  }
+
+  if (paymentValidation) {
+    const paymentScore = paymentValidation.confidence_score;
+    let paymentIcon = '✅';
+    if (paymentScore < 75) paymentIcon = '⚠️';
+    if (paymentScore < 60) paymentIcon = '❌';
+    
+    msg += `💳 Bukti Bayar: ${paymentIcon} ${paymentScore}/100\n`;
+  }
+
+  msg += `\n`;
+
+  // STATUS MESSAGE
   if (orderDetails.deliveryMethod === 'cod') {
     msg += `📦 Metode: COD (Bayar saat terima)\n`;
     msg += `💳 Status Pembayaran: Pending\n`;
     msg += `📋 Status Order: Menunggu validasi\n\n`;
     msg += `Pesanan akan divalidasi oleh admin. Pembayaran dilakukan saat barang diterima.`;
-  } else if (orderDetails.deliveryMethod === 'transfer_delivery') {
-    msg += `💳 Metode: Transfer + Diantar\n`;
-    msg += `💳 Status Pembayaran: Menunggu konfirmasi\n`;
+  } else if (autoApproved) {
+    msg += `🎉 PEMBAYARAN AUTO-APPROVED!\n`;
+    msg += `💳 Status Pembayaran: Diterima\n`;
+    msg += `📋 Status Order: Dalam Proses\n\n`;
+    msg += `Pembayaran berhasil diverifikasi secara otomatis! Pesanan sedang diproses.`;
+  } else {
+    msg += `💳 Status Pembayaran: Menunggu konfirmasi admin\n`;
     msg += `📋 Status Order: Menunggu validasi\n\n`;
     msg += `Pesanan akan divalidasi dan diproses setelah konfirmasi pembayaran.`;
-  } else {
-    msg += `🏪 Metode: Ambil di Toko\n`;
-    msg += `💳 Status Pembayaran: Menunggu konfirmasi\n`;
-    msg += `📋 Status Order: Menunggu validasi\n\n`;
-    msg += `Pesanan akan divalidasi terlebih dahulu sebelum produksi.`;
   }
 
   return msg;
