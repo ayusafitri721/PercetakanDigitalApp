@@ -241,7 +241,7 @@ const Contact = () => {
         <div className="contact-container">
           <div className="contact-header">
             <h2 className="contact-title">
-              Get in <span className="highlight">Touch</span>
+              Connect With <span className="highlight">Us</span>
             </h2>
             <p className="contact-subtitle">
               Contact us for free consultation or inquiries about our digital
