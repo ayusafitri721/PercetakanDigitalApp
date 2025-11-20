@@ -28,6 +28,7 @@ interface CartOrderFormScreenProps {
     ukuran_standar: string;
     satuan: string;
     harga_dasar: string;
+    gambar_preview?: string;
   } | null;
   onBack: () => void;
 }
@@ -102,10 +103,24 @@ export default function CartOrderFormScreen({
       const subtotal = calculatePrice();
 
       const cartItem = {
-        product: service,
+        product: {
+          id_product: service.id_product,
+          nama_product: service.nama_product,
+          nama_category: service.nama_category,
+          deskripsi: service.deskripsi,
+          media_cetak: service.media_cetak,
+          ukuran_standar: service.ukuran_standar,
+          satuan: service.satuan,
+          harga_dasar: service.harga_dasar,
+          gambar_preview: service.gambar_preview || '',
+        },
+        id_product: service.id_product,
+        nama_product: service.nama_product,
+        nama_category: service.nama_category,
         material: orderDetails.material,
         size: orderDetails.size,
         ukuran: orderDetails.size,
+        jumlah: orderDetails.quantity,
         quantity: orderDetails.quantity,
         speed: orderDetails.speed,
         keterangan: orderDetails.notes,
