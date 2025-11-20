@@ -1,7 +1,8 @@
-// App.tsx - FIXED VERSION dengan AsyncStorage
+// App.tsx - FIXED VERSION dengan CartProvider
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CartProvider } from './screens/customer/contexts/CartContext';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -197,63 +198,68 @@ export default function App() {
     );
   }
 
+  // ⭐⭐⭐ WRAP WITH CART PROVIDER ⭐⭐⭐
+  return <CartProvider>{renderScreen()}</CartProvider>;
+
   // ⭐ RENDER SCREENS
-  switch (currentScreen) {
-    case 'welcome':
-      return (
-        <WelcomeScreen
-          onGoToLogin={() => setCurrentScreen('login')}
-          onGoToRegister={() => setCurrentScreen('register')}
-        />
-      );
+  function renderScreen() {
+    switch (currentScreen) {
+      case 'welcome':
+        return (
+          <WelcomeScreen
+            onGoToLogin={() => setCurrentScreen('login')}
+            onGoToRegister={() => setCurrentScreen('register')}
+          />
+        );
 
-    case 'login':
-      return (
-        <LoginScreen
-          onGoToRegister={() => setCurrentScreen('register')}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      );
+      case 'login':
+        return (
+          <LoginScreen
+            onGoToRegister={() => setCurrentScreen('register')}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        );
 
-    case 'register':
-      return (
-        <RegisterScreen
-          onGoToLogin={() => setCurrentScreen('login')}
-          onRegisterSuccess={handleRegisterSuccess}
-        />
-      );
+      case 'register':
+        return (
+          <RegisterScreen
+            onGoToLogin={() => setCurrentScreen('login')}
+            onRegisterSuccess={handleRegisterSuccess}
+          />
+        );
 
-    case 'customer_dashboard':
-      return <DashboardScreen userData={userData} onLogout={handleLogout} />;
+      case 'customer_dashboard':
+        return <DashboardScreen userData={userData} onLogout={handleLogout} />;
 
-    case 'kurir_dashboard':
-      if (!userData) {
-        setCurrentScreen('welcome');
-        return null;
-      }
-      return (
-        <KurirDashboardScreen
-          userId={userData.user.id_user}
-          userName={userData.user.nama}
-          onLogout={handleLogout}
-        />
-      );
+      case 'kurir_dashboard':
+        if (!userData) {
+          setCurrentScreen('welcome');
+          return null;
+        }
+        return (
+          <KurirDashboardScreen
+            userId={userData.user.id_user}
+            userName={userData.user.nama}
+            onLogout={handleLogout}
+          />
+        );
 
-    case 'kasir_dashboard':
-      if (!userData) {
-        setCurrentScreen('welcome');
-        return null;
-      }
-      return <DashboardScreen userData={userData} onLogout={handleLogout} />;
+      case 'kasir_dashboard':
+        if (!userData) {
+          setCurrentScreen('welcome');
+          return null;
+        }
+        return <DashboardScreen userData={userData} onLogout={handleLogout} />;
 
-    default:
-      console.warn('⚠️ Unknown screen:', currentScreen);
-      return (
-        <WelcomeScreen
-          onGoToLogin={() => setCurrentScreen('login')}
-          onGoToRegister={() => setCurrentScreen('register')}
-        />
-      );
+      default:
+        console.warn('⚠️ Unknown screen:', currentScreen);
+        return (
+          <WelcomeScreen
+            onGoToLogin={() => setCurrentScreen('login')}
+            onGoToRegister={() => setCurrentScreen('register')}
+          />
+        );
+    }
   }
 }
 
