@@ -1,9 +1,12 @@
-// screens/customer/DashboardScreen.tsx
+// screens/customer/DashboardScreen.tsx (UPDATED)
 import React, { useState } from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert } from 'react-native';
 import HomeScreen from './HomeScreen';
 import CatalogScreen from './CatalogScreen';
 import OrderFormScreen from './OrderFormScreen';
+import CartOrderFormScreen from './CartOrderFormScreen'; // 👈 IMPORT FILE BARU
+import CartScreen from './CartScreen';
+import CheckoutScreen from './CheckoutScreen';
 import OrderHistoryScreen from './OrderHistoryScreen';
 import ProfileScreen from './ProfileScreen';
 
@@ -22,10 +25,14 @@ interface DashboardScreenProps {
   onLogout: () => void;
 }
 
+// 👉 UPDATE TYPE dengan screen baru
 export type CustomerScreen =
   | 'home'
   | 'catalog'
-  | 'order'
+  | 'order' // Pesan langsung (3 step)
+  | 'cart_order' // 👈 BARU! Tambah ke keranjang (1 step)
+  | 'cart' // Lihat keranjang
+  | 'checkout' // Checkout dari keranjang
   | 'history'
   | 'profile';
 
@@ -62,15 +69,78 @@ export default function DashboardScreen({
         return (
           <CatalogScreen
             onBack={() => navigate('home')}
-            onSelectService={service => navigate('order', service)}
+            onSelectService={(service, mode) => {
+              setSelectedService(service);
+              // 👉 BEDAKAN MODE
+              if (mode === 'cart') {
+                navigate('cart_order'); // Pakai CartOrderFormScreen
+              } else {
+                navigate('order'); // Pakai OrderFormScreen
+              }
+            }}
+            onViewCart={() => navigate('cart')} // 👈 Tombol cart di header
           />
         );
 
+      // 👉 PESAN LANGSUNG (3 Step)
       case 'order':
         return (
           <OrderFormScreen
             service={selectedService}
             onBack={() => navigate('catalog')}
+          />
+        );
+
+      // 👉 TAMBAH KE KERANJANG (1 Step - FILE BARU)
+      case 'cart_order':
+        return (
+          <CartOrderFormScreen
+            service={selectedService}
+            onBack={() => navigate('cart')} // Setelah tambah, langsung ke cart
+          />
+        );
+
+      // 👉 LIHAT KERANJANG
+      case 'cart':
+        return (
+          <CartScreen
+            onBack={() => navigate('catalog')}
+            onCheckoutSuccess={(orderId, kodeOrder) => {
+              Alert.alert(
+                '✅ Pesanan Berhasil!',
+                `Kode Order: ${kodeOrder}\n\nPesanan Anda sedang diproses.`,
+                [
+                  {
+                    text: 'Lihat Riwayat',
+                    onPress: () => navigate('history'),
+                  },
+                  {
+                    text: 'Kembali ke Home',
+                    onPress: () => navigate('home'),
+                  },
+                ],
+              );
+            }}
+          />
+        );
+
+      // 👉 CHECKOUT (dari cart)
+      case 'checkout':
+        return (
+          <CheckoutScreen
+            onBack={() => navigate('cart')}
+            onSuccess={() => {
+              Alert.alert(
+                '✅ Checkout Berhasil!',
+                'Pesanan Anda sedang diproses.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => navigate('home'),
+                  },
+                ],
+              );
+            }}
           />
         );
 

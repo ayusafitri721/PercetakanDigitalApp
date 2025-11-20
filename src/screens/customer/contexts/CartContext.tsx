@@ -1,238 +1,224 @@
-// contexts/CartContext.tsx - FINAL FIXED VERSION
+// screens/customer/contexts/CartContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
-// Setup axios instance dengan session support
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+interface Product {
+  id_product: string;
+  nama_product: string;
+  nama_category: string;
+  harga_dasar: string;
+  satuan: string;
+  media_cetak: string;
+  ukuran_standar: string;
+  gambar_preview: string;
+}
 
 interface CartItem {
   id_item?: number;
-  id_product: string;
+  id: string;
+  product: Product;
   nama_product: string;
   ukuran: string;
+  material?: string;
+  quantity: number;
   jumlah: number;
+  speed: 'normal' | 'express';
+  keterangan: string;
   harga_satuan: number;
   subtotal: number;
-  keterangan?: string;
-  file_url?: string;
+  designFile: {
+    uri: string;
+    name: string;
+    type: string;
+    size: number;
+  } | null;
+  addedAt: number;
 }
 
 interface CartOrder {
-  id_order?: number;
-  kode_order?: string;
   subtotal: number;
   total_harga: number;
 }
 
 interface CartContextType {
+  items: CartItem[];
   cartItems: CartItem[];
   cartOrder: CartOrder | null;
   cartCount: number;
+  itemCount: number;
+  totalPrice: number;
   loading: boolean;
-  addToCart: (item: Omit<CartItem, 'id_item' | 'subtotal'>) => Promise<boolean>;
-  updateCartItem: (id_item: number, jumlah: number) => Promise<boolean>;
-  removeFromCart: (id_item: number) => Promise<boolean>;
-  clearCart: () => Promise<boolean>;
+  addToCart: (item: Omit<CartItem, 'id' | 'addedAt'>) => Promise<void>;
+  removeFromCart: (itemId: number | string) => Promise<void>;
+  updateCartItem: (itemId: number, newQuantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   checkout: (data: {
-    catatan_pelanggan?: string;
-    kecepatan_pengerjaan?: string;
+    catatan_pelanggan: string;
+    kecepatan_pengerjaan: string;
   }) => Promise<{ success: boolean; orderId?: number; kodeOrder?: string }>;
   refreshCart: () => Promise<void>;
+  isInCart: (productId: string) => boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const CART_STORAGE_KEY = '@digital_print_cart';
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartOrder, setCartOrder] = useState<CartOrder | null>(null);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const cartCount = cartItems.reduce((sum, item) => sum + item.jumlah, 0);
-
   useEffect(() => {
-    refreshCart();
+    loadCart();
   }, []);
 
-  const refreshCart = async () => {
+  useEffect(() => {
+    saveCart();
+  }, [items]);
+
+  const loadCart = async () => {
     try {
-      setLoading(true);
-      console.log('🛒 Fetching cart...');
-
-      const response = await api.get('/cart.php?action=get');
-
-      if (response.data.success) {
-        console.log(
-          '✅ Cart loaded:',
-          response.data.data.items?.length || 0,
-          'items',
-        );
-        setCartItems(response.data.data.items || []);
-        setCartOrder(response.data.data.order);
-      } else {
-        setCartItems([]);
-        setCartOrder(null);
+      const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+      if (stored) {
+        setItems(JSON.parse(stored));
       }
-    } catch (error: any) {
-      console.error(
-        '❌ Refresh cart error:',
-        error.response?.data || error.message,
-      );
-      if (error.response?.status === 401) {
-        setCartItems([]);
-        setCartOrder(null);
-      }
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load cart:', error);
     }
   };
 
-  const addToCart = async (
-    item: Omit<CartItem, 'id_item' | 'subtotal'>,
-  ): Promise<boolean> => {
+  const saveCart = async () => {
     try {
-      setLoading(true);
-      const subtotal = item.harga_satuan * item.jumlah;
-
-      const response = await api.post('/cart.php?action=add', {
-        ...item,
-        subtotal,
-      });
-
-      if (response.data.success) {
-        await refreshCart();
-        return true;
-      } else {
-        throw new Error(
-          response.data.message || 'Gagal menambahkan ke keranjang',
-        );
-      }
-    } catch (error: any) {
-      console.error('❌ Add to cart error:', error);
-      throw new Error(error.response?.data?.message || error.message);
-    } finally {
-      setLoading(false);
+      await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.error('Failed to save cart:', error);
     }
   };
 
-  const updateCartItem = async (
-    id_item: number,
-    jumlah: number,
-  ): Promise<boolean> => {
-    try {
-      setLoading(true);
+  const addToCart = async (newItem: Omit<CartItem, 'id' | 'addedAt'>) => {
+    const id = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const cartItem: CartItem = {
+      ...newItem,
+      id,
+      id_item: Date.now(),
+      addedAt: Date.now(),
+      jumlah: newItem.quantity,
+      nama_product: newItem.product.nama_product,
+      ukuran: newItem.ukuran || newItem.product.ukuran_standar,
+      harga_satuan: parseInt(newItem.product.harga_dasar),
+    };
 
-      const response = await api.put('/cart.php?action=update', {
-        id_item,
-        jumlah,
-      });
+    cartItem.subtotal = calculateItemSubtotal(cartItem);
 
-      if (response.data.success) {
-        await refreshCart();
-        return true;
-      } else {
-        throw new Error(response.data.message || 'Gagal update item');
-      }
-    } catch (error: any) {
-      console.error('❌ Update cart error:', error);
-      throw new Error(error.response?.data?.message || error.message);
-    } finally {
-      setLoading(false);
-    }
+    setItems(prev => [...prev, cartItem]);
+    // Tidak perlu alert di sini, akan ditangani di OrderFormScreen
   };
 
-  const removeFromCart = async (id_item: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-
-      const response = await api.delete(
-        `/cart.php?action=delete&id=${id_item}`,
-      );
-
-      if (response.data.success) {
-        await refreshCart();
-        return true;
-      } else {
-        throw new Error(response.data.message || 'Gagal menghapus item');
-      }
-    } catch (error: any) {
-      console.error('❌ Remove from cart error:', error);
-      throw new Error(error.response?.data?.message || error.message);
-    } finally {
-      setLoading(false);
-    }
+  const removeFromCart = async (itemId: number | string) => {
+    setItems(prev =>
+      prev.filter(item =>
+        typeof itemId === 'number'
+          ? item.id_item !== itemId
+          : item.id !== itemId,
+      ),
+    );
   };
 
-  const clearCart = async (): Promise<boolean> => {
-    try {
-      setLoading(true);
+  const updateCartItem = async (itemId: number, newQuantity: number) => {
+    setItems(prev =>
+      prev.map(item => {
+        if (item.id_item === itemId) {
+          const updated = {
+            ...item,
+            quantity: newQuantity,
+            jumlah: newQuantity,
+          };
+          updated.subtotal = calculateItemSubtotal(updated);
+          return updated;
+        }
+        return item;
+      }),
+    );
+  };
 
-      const response = await api.delete('/cart.php?action=clear');
-
-      if (response.data.success) {
-        setCartItems([]);
-        setCartOrder(null);
-        return true;
-      } else {
-        throw new Error(
-          response.data.message || 'Gagal mengosongkan keranjang',
-        );
-      }
-    } catch (error: any) {
-      console.error('❌ Clear cart error:', error);
-      throw new Error(error.response?.data?.message || error.message);
-    } finally {
-      setLoading(false);
-    }
+  const clearCart = async () => {
+    setItems([]);
+    await AsyncStorage.removeItem(CART_STORAGE_KEY);
   };
 
   const checkout = async (data: {
-    catatan_pelanggan?: string;
-    kecepatan_pengerjaan?: string;
+    catatan_pelanggan: string;
+    kecepatan_pengerjaan: string;
   }): Promise<{ success: boolean; orderId?: number; kodeOrder?: string }> => {
     try {
       setLoading(true);
 
-      const response = await api.post('/cart.php?action=checkout', data);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (response.data.success) {
-        setCartItems([]);
-        setCartOrder(null);
-        return {
-          success: true,
-          orderId: response.data.data.orderId,
-          kodeOrder: response.data.data.kodeOrder,
-        };
-      } else {
-        throw new Error(response.data.message || 'Gagal checkout');
-      }
-    } catch (error: any) {
-      console.error('❌ Checkout error:', error);
-      throw new Error(error.response?.data?.message || error.message);
+      const orderId = Date.now();
+      const kodeOrder = `ORD-${orderId}`;
+
+      // Clear cart after successful checkout
+      await clearCart();
+
+      return {
+        success: true,
+        orderId,
+        kodeOrder,
+      };
+    } catch (error) {
+      throw new Error('Checkout failed');
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshCart = async () => {
+    await loadCart();
+  };
+
+  const isInCart = (productId: string): boolean => {
+    return items.some(item => item.product.id_product === productId);
+  };
+
+  const calculateItemSubtotal = (item: CartItem): number => {
+    const basePrice = item.harga_satuan;
+    let total = basePrice * item.quantity;
+
+    if (item.speed === 'express') {
+      total *= 1.5;
+    }
+
+    return Math.round(total);
+  };
+
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+  const cartOrder: CartOrder = {
+    subtotal: totalPrice,
+    total_harga: totalPrice,
   };
 
   return (
     <CartContext.Provider
       value={{
-        cartItems,
+        items,
+        cartItems: items,
         cartOrder,
-        cartCount,
+        cartCount: itemCount,
+        itemCount,
+        totalPrice,
         loading,
         addToCart,
-        updateCartItem,
         removeFromCart,
+        updateCartItem,
         clearCart,
         checkout,
         refreshCart,
+        isInCart,
       }}
     >
       {children}
@@ -240,10 +226,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useCart() {
+export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+  if (!context) {
+    throw new Error('useCart must be used within CartProvider');
   }
   return context;
-}
+};

@@ -1,4 +1,4 @@
-// screens/customer/CatalogScreen.tsx
+// screens/customer/CatalogScreen.tsx (UPDATED)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useCart } from './contexts/CartContext';
 import API_CONFIG from '../../config/api';
 
 interface CatalogScreenProps {
   onBack: () => void;
-  onSelectService: (service: Product) => void;
+  onSelectService: (service: Product, mode: 'direct' | 'cart') => void;
+  onViewCart: () => void; // NEW
 }
 
 interface Product {
@@ -32,9 +34,11 @@ interface Product {
 export default function CatalogScreen({
   onBack,
   onSelectService,
+  onViewCart,
 }: CatalogScreenProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { itemCount } = useCart(); // NEW: Get cart count
 
   useEffect(() => {
     fetchProducts();
@@ -58,81 +62,29 @@ export default function CatalogScreen({
 
       const data = (await response.json()) as any;
 
-      console.log('=== FULL API RESPONSE ===');
-      console.log(JSON.stringify(data, null, 2));
-      console.log('=========================');
-
-      // Debug info
-      console.log('📊 Response type:', typeof data);
-      console.log('📊 Is array?:', Array.isArray(data));
-      console.log('📊 Has success?:', data?.success);
-      console.log('📊 Keys:', data ? Object.keys(data) : []);
-
-      // Cek berbagai kemungkinan struktur response
       let productList: Product[] = [];
 
-      // Jika response langsung array
       if (Array.isArray(data)) {
         productList = data;
-        console.log('✅ Found products (direct array):', productList.length);
-      }
-      // Jika ada property success
-      else if (data.success) {
-        // Kemungkinan 1: data.data.products
+      } else if (data.success) {
         if (data.data && Array.isArray(data.data.products)) {
           productList = data.data.products;
-          console.log(
-            '✅ Found products in data.data.products:',
-            productList.length,
-          );
-        }
-        // Kemungkinan 2: data.products
-        else if (Array.isArray(data.products)) {
+        } else if (Array.isArray(data.products)) {
           productList = data.products;
-          console.log(
-            '✅ Found products in data.products:',
-            productList.length,
-          );
-        }
-        // Kemungkinan 3: data.data (langsung array)
-        else if (Array.isArray(data.data)) {
+        } else if (Array.isArray(data.data)) {
           productList = data.data;
-          console.log(
-            '✅ Found products in data.data (array):',
-            productList.length,
-          );
         }
-        // Kemungkinan 4: data itu sendiri adalah array produk
-        else if (data.length) {
-          productList = [data];
-          console.log('✅ Found single product:', productList.length);
-        }
-      }
-      // Jika tidak ada success property tapi ada data
-      else if (data.data) {
+      } else if (data.data) {
         if (Array.isArray(data.data)) {
           productList = data.data;
-          console.log('✅ Found products in data.data:', productList.length);
         } else if (Array.isArray(data.data.products)) {
           productList = data.data.products;
-          console.log(
-            '✅ Found products in data.data.products:',
-            productList.length,
-          );
         }
       }
 
-      console.log('📦 Total products found:', productList.length);
-
       if (productList.length > 0) {
-        console.log(
-          '📋 First product sample:',
-          JSON.stringify(productList[0], null, 2),
-        );
         setProducts(productList);
-        Alert.alert('Berhasil', `${productList.length} produk berhasil dimuat`);
       } else {
-        console.warn('⚠️ No products found in response');
         Alert.alert('Info', 'Belum ada produk tersedia di database');
       }
     } catch (error) {
@@ -146,7 +98,6 @@ export default function CatalogScreen({
     }
   };
 
-  // Mapping icon berdasarkan kategori
   const getIconByCategory = (categoryName: string): string => {
     const lower = categoryName.toLowerCase();
     if (lower.includes('dokumen') || lower.includes('document')) return '📄';
@@ -158,7 +109,6 @@ export default function CatalogScreen({
     return '🖨️';
   };
 
-  // Mapping warna berdasarkan kategori
   const getColorByCategory = (categoryName: string): string => {
     const lower = categoryName.toLowerCase();
     if (lower.includes('dokumen')) return '#4F46E5';
@@ -190,13 +140,21 @@ export default function CatalogScreen({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with Cart Badge */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Katalog Layanan</Text>
-        <View style={{ width: 40 }} />
+        {/* NEW: Cart Button */}
+        <TouchableOpacity onPress={onViewCart} style={styles.cartButton}>
+          <Text style={styles.cartIcon}>🛒</Text>
+          {itemCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>{itemCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -228,7 +186,8 @@ export default function CatalogScreen({
                   product={product}
                   icon={icon}
                   color={color}
-                  onPress={() => onSelectService(product)}
+                  onDirectOrder={() => onSelectService(product, 'direct')}
+                  onAddToCart={() => onSelectService(product, 'cart')}
                 />
               );
             })}
@@ -240,17 +199,19 @@ export default function CatalogScreen({
   );
 }
 
-// Service Card Component
+// Service Card Component with Two Buttons
 function ServiceCard({
   product,
   icon,
   color,
-  onPress,
+  onDirectOrder,
+  onAddToCart,
 }: {
   product: Product;
   icon: string;
   color: string;
-  onPress: () => void;
+  onDirectOrder: () => void;
+  onAddToCart: () => void;
 }) {
   const formatPrice = (price: string) => {
     const numPrice = parseInt(price);
@@ -258,29 +219,52 @@ function ServiceCard({
   };
 
   return (
-    <TouchableOpacity
-      style={styles.serviceCard}
-      activeOpacity={0.7}
-      onPress={onPress}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-        <Text style={styles.icon}>{icon}</Text>
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.name}>{product.nama_product}</Text>
-        <Text style={styles.category}>📁 {product.nama_category}</Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {product.deskripsi || 'Layanan cetak berkualitas'}
-        </Text>
-        <View style={styles.priceRow}>
-          <Text style={[styles.price, { color }]}>
-            {formatPrice(product.harga_dasar)}
-          </Text>
-          <Text style={styles.unit}>/{product.satuan}</Text>
+    <View style={styles.serviceCard}>
+      <TouchableOpacity
+        style={styles.serviceCardMain}
+        activeOpacity={0.7}
+        onPress={onDirectOrder}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+          <Text style={styles.icon}>{icon}</Text>
         </View>
+        <View style={styles.content}>
+          <Text style={styles.name}>{product.nama_product}</Text>
+          <Text style={styles.category}>📁 {product.nama_category}</Text>
+          <Text style={styles.description} numberOfLines={2}>
+            {product.deskripsi || 'Layanan cetak berkualitas'}
+          </Text>
+          <View style={styles.priceRow}>
+            <Text style={[styles.price, { color }]}>
+              {formatPrice(product.harga_dasar)}
+            </Text>
+            <Text style={styles.unit}>/{product.satuan}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* NEW: Action Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.cartButton2]}
+          onPress={onAddToCart}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.cartButtonText}>🛒 Keranjang</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.orderButton,
+            { backgroundColor: color },
+          ]}
+          onPress={onDirectOrder}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.orderButtonText}>Pesan Langsung →</Text>
+        </TouchableOpacity>
       </View>
-      <Text style={styles.arrow}>→</Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -315,6 +299,35 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
+  },
+  cartButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  cartIcon: {
+    fontSize: 20,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   loadingContainer: {
     flex: 1,
@@ -358,14 +371,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   serviceCard: {
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
     marginBottom: 12,
     borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
     elevation: 2,
+  },
+  serviceCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   iconContainer: {
     width: 56,
@@ -410,9 +426,32 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginLeft: 4,
   },
-  arrow: {
-    fontSize: 24,
-    color: '#9CA3AF',
-    marginLeft: 8,
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cartButton2: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  cartButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  orderButton: {
+    elevation: 2,
+  },
+  orderButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
