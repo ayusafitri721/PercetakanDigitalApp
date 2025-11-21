@@ -8,11 +8,21 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Modal,
-  TextInput,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from './contexts/CartContext';
+import CartCheckoutScreen from './CartCheckoutScreen';
+
+interface UserData {
+  id_customer?: number;
+  nama_lengkap?: string;
+  email?: string;
+  no_telepon?: string;
+  alamat?: string;
+  kota?: string;
+  provinsi?: string;
+}
 
 interface CartScreenProps {
   onBack: () => void;
@@ -23,6 +33,7 @@ export default function CartScreen({
   onBack,
   onCheckoutSuccess,
 }: CartScreenProps) {
+  // ✅ SEMUA HOOKS DI BAGIAN PALING ATAS!
   const {
     cartItems,
     cartOrder,
@@ -31,19 +42,58 @@ export default function CartScreen({
     updateCartItem,
     removeFromCart,
     clearCart,
-    checkout,
     refreshCart,
   } = useCart();
 
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [catatanPelanggan, setCatatanPelanggan] = useState('');
-  const [kecepatanPengerjaan, setKecepatanPengerjaan] = useState('normal');
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  // State hooks
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
+  // FETCH USER DATA dari AsyncStorage + NORMALISASI DATA!
   useEffect(() => {
-    refreshCart();
+    const initScreen = async () => {
+      try {
+        setLoadingUser(true);
+        const userJson = await AsyncStorage.getItem('userData');
+
+        if (userJson) {
+          const parsed = JSON.parse(userJson);
+          const rawUser = parsed.user || parsed; // bisa {user: {...}} atau langsung {...}
+
+          // NORMALISASI DATA supaya SELALU punya key yang sama!
+          const normalizedUser: UserData = {
+            id_customer: rawUser.id_user || rawUser.id_customer,
+            nama_lengkap: rawUser.nama || rawUser.nama_lengkap || 'Pengguna',
+            email: rawUser.email || '',
+            no_telepon: rawUser.no_telepon || rawUser.telp || '',
+            alamat: rawUser.alamat || '',
+            kota: rawUser.kota || '',
+            provinsi: rawUser.provinsi || '',
+          };
+
+          console.log(
+            'CartScreen - User data loaded & normalized:',
+            normalizedUser,
+          );
+
+          setUserData(normalizedUser);
+        } else {
+          console.log('CartScreen - No user data in AsyncStorage');
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoadingUser(false);
+      }
+
+      refreshCart();
+    };
+
+    initScreen();
   }, []);
 
+  // Handler functions
   const handleUpdateQuantity = async (
     idItem: number,
     currentQty: number,
@@ -101,39 +151,28 @@ export default function CartScreen({
     );
   };
 
-  const handleCheckout = async () => {
+  const handleCheckoutPress = () => {
     if (cartItems.length === 0) {
       Alert.alert('Perhatian', 'Keranjang Anda masih kosong');
       return;
     }
 
-    try {
-      setCheckoutLoading(true);
-
-      const result = await checkout({
-        catatan_pelanggan: catatanPelanggan,
-        kecepatan_pengerjaan: kecepatanPengerjaan,
-      });
-
-      if (result.success && result.orderId && result.kodeOrder) {
-        setShowCheckoutModal(false);
-        Alert.alert(
-          'Checkout Berhasil!',
-          `Order ID: ${result.kodeOrder}\n\nPesanan Anda sedang diproses.`,
-          [
-            {
-              text: 'OK',
-              onPress: () =>
-                onCheckoutSuccess(result.orderId!, result.kodeOrder!),
-            },
-          ],
-        );
-      }
-    } catch (error) {
-      Alert.alert('Error', (error as Error).message);
-    } finally {
-      setCheckoutLoading(false);
+    if (!userData) {
+      Alert.alert('Error', 'Data user tidak ditemukan. Silakan login ulang.');
+      return;
     }
+
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutBack = () => {
+    setShowCheckout(false);
+    refreshCart();
+  };
+
+  const handleCheckoutSuccessWrapper = (orderId: number, kodeOrder: string) => {
+    setShowCheckout(false);
+    onCheckoutSuccess(orderId, kodeOrder);
   };
 
   const formatPrice = (price: number) => {
@@ -186,6 +225,17 @@ export default function CartScreen({
     </View>
   );
 
+  // ✅ PASS userData KE CartCheckoutScreen
+  if (showCheckout) {
+    return (
+      <CartCheckoutScreen
+        onBack={handleCheckoutBack}
+        onCheckoutSuccess={handleCheckoutSuccessWrapper}
+        userData={userData}
+      />
+    );
+  }
+
   if (loading && cartItems.length === 0) {
     return (
       <View style={styles.container}>
@@ -223,7 +273,6 @@ export default function CartScreen({
       </View>
 
       {cartItems.length === 0 ? (
-        // Empty Cart
         <View style={styles.emptyContainer}>
           <Icon name="cart-outline" size={80} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>Keranjang Kosong</Text>
@@ -248,7 +297,6 @@ export default function CartScreen({
             <View style={{ height: 120 }} />
           </ScrollView>
 
-          {/* Bottom Bar */}
           <View style={styles.bottomBar}>
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total:</Text>
@@ -258,7 +306,7 @@ export default function CartScreen({
             </View>
             <TouchableOpacity
               style={styles.checkoutButton}
-              onPress={() => setShowCheckoutModal(true)}
+              onPress={handleCheckoutPress}
               disabled={loading}
             >
               <Icon name="card" size={20} color="#FFFFFF" />
@@ -267,132 +315,6 @@ export default function CartScreen({
           </View>
         </>
       )}
-
-      {/* Checkout Modal */}
-      <Modal
-        visible={showCheckoutModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCheckoutModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Checkout</Text>
-              <TouchableOpacity onPress={() => setShowCheckoutModal(false)}>
-                <Icon name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Order Summary */}
-              <View style={styles.summarySection}>
-                <Text style={styles.sectionTitle}>Ringkasan Pesanan</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Jumlah Item:</Text>
-                  <Text style={styles.summaryValue}>{cartCount} item</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal:</Text>
-                  <Text style={styles.summaryValue}>
-                    {formatPrice(cartOrder?.subtotal || 0)}
-                  </Text>
-                </View>
-                <View style={[styles.summaryRow, styles.totalRow]}>
-                  <Text style={styles.totalRowLabel}>Total:</Text>
-                  <Text style={styles.totalRowValue}>
-                    {formatPrice(cartOrder?.total_harga || 0)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Speed Selection */}
-              <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Kecepatan Pengerjaan</Text>
-                <View style={styles.speedOptions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.speedOption,
-                      kecepatanPengerjaan === 'normal' &&
-                        styles.speedOptionActive,
-                    ]}
-                    onPress={() => setKecepatanPengerjaan('normal')}
-                  >
-                    <Icon
-                      name={
-                        kecepatanPengerjaan === 'normal'
-                          ? 'radio-button-on'
-                          : 'radio-button-off'
-                      }
-                      size={20}
-                      color={
-                        kecepatanPengerjaan === 'normal' ? '#4F46E5' : '#9CA3AF'
-                      }
-                    />
-                    <Text style={styles.speedLabel}>Normal (2-3 hari)</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.speedOption,
-                      kecepatanPengerjaan === 'express' &&
-                        styles.speedOptionActive,
-                    ]}
-                    onPress={() => setKecepatanPengerjaan('express')}
-                  >
-                    <Icon
-                      name={
-                        kecepatanPengerjaan === 'express'
-                          ? 'radio-button-on'
-                          : 'radio-button-off'
-                      }
-                      size={20}
-                      color={
-                        kecepatanPengerjaan === 'express'
-                          ? '#4F46E5'
-                          : '#9CA3AF'
-                      }
-                    />
-                    <Text style={styles.speedLabel}>Express (1 hari)</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Customer Note */}
-              <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Catatan (Opsional)</Text>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder="Tambahkan catatan untuk pesanan Anda..."
-                  value={catatanPelanggan}
-                  onChangeText={setCatatanPelanggan}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
-            </ScrollView>
-
-            {/* Checkout Button */}
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleCheckout}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Icon name="checkmark-circle" size={20} color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>
-                    Konfirmasi Pesanan
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -594,121 +516,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkoutButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  summarySection: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  totalRow: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-  },
-  totalRowLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  totalRowValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-  },
-  formSection: {
-    marginBottom: 20,
-  },
-  speedOptions: {
-    gap: 12,
-  },
-  speedOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    gap: 12,
-  },
-  speedOptionActive: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
-  },
-  speedLabel: {
-    fontSize: 15,
-    color: '#1F2937',
-    fontWeight: '500',
-  },
-  noteInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: '#1F2937',
-    minHeight: 100,
-  },
-  confirmButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-  },
-  confirmButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',

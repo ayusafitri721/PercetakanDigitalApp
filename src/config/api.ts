@@ -4,7 +4,7 @@
  */
 export const API_CONFIG = {
   // Base URL API
-  BASE_URL: 'http://192.168.0.153/api-percetakan/api',
+  BASE_URL: 'http://172.29.112.126/api-percetakan/api',
   
   // Timeout settings
   TIMEOUT: 10000, // 10 detik
