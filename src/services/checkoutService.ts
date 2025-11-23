@@ -138,8 +138,17 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
           method: 'POST',
           body: itemForm,
         });
-        const itemResult = await itemResponse.json();
-        console.log('📦 Item response:', itemResult);
+
+        // ✅ CEK RESPONSE TEXT DULU
+        const itemText = await itemResponse.text();
+        console.log('📦 Item raw response:', itemText);
+
+        try {
+          const itemResult = JSON.parse(itemText);
+          console.log('📦 Item parsed:', itemResult);
+        } catch (parseError) {
+          console.error('⚠️ Item response bukan JSON valid:', itemText);
+        }
       } catch (itemError) {
         console.error('❌ Item error:', itemError);
       }
@@ -208,10 +217,21 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
         method: 'POST',
         body: deliveryForm,
       });
-      const deliveryResult = await deliveryResponse.json();
-      console.log('🚚 Delivery response:', deliveryResult);
+
+      // ✅ CEK RESPONSE TEXT DULU SEBELUM PARSE JSON
+      const deliveryText = await deliveryResponse.text();
+      console.log('🚚 Delivery raw response:', deliveryText);
+
+      try {
+        const deliveryResult = JSON.parse(deliveryText);
+        console.log('🚚 Delivery parsed:', deliveryResult);
+      } catch (parseError) {
+        console.error('⚠️ Delivery response bukan JSON valid:', deliveryText);
+        // Tetap lanjut, delivery optional
+      }
     } catch (deliveryError) {
       console.error('❌ Delivery error:', deliveryError);
+      // Delivery error tidak boleh gagalkan checkout
     }
 
     console.log('🎉 Checkout complete!');

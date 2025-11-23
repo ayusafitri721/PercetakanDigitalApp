@@ -123,7 +123,7 @@ const LoginPage: React.FC = () => {
           </div> */}
           <div className="illustration">
             <img
-              src="public/images/Login-Screen.png"
+              src="/images/Login-Screen.png"
               alt="Login Illustration"
             />
           </div>

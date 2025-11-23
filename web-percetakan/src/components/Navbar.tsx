@@ -149,7 +149,7 @@ const Navbar = () => {
         <div className="navbar-container">
           <a className="navbar-logo" onClick={() => scrollToSection('home')}>
             <img
-              src="/public/images/Logo-Im.png"
+              src="/images/Logo-Im.png"
               alt="PrintyGo Logo"
               className="logo-image"
             />
