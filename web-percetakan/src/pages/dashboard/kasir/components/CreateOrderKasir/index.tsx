@@ -1,7 +1,8 @@
-// index.tsx - MODIFIKASI BAGIAN INI
+// CreateOrderKasir Main Component - COMPLETE BLUE THEME
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { ShoppingCart, CreditCard, X, AlertCircle, Gift } from 'lucide-react';
 import { API_BASE_URL } from '../../../../../config';
 
 import type {
@@ -12,7 +13,7 @@ import type {
   OrderSettings as OrderSettingsType,
   PaymentData as PaymentDataType,
   PromoData,
-  AutoDiscount, // ✅ TAMBAHAN BARU
+  AutoDiscount,
   CreateOrderKasirProps,
 } from './types';
 
@@ -58,7 +59,6 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
   const [promoError, setPromoError] = useState('');
   const [loadingPromo, setLoadingPromo] = useState(false);
 
-  // ✅ STATE AUTO-DISCOUNT (TAMBAHAN BARU)
   const [autoDiscount, setAutoDiscount] = useState<AutoDiscount>({
     active: false,
     type: 'quantity',
@@ -155,15 +155,13 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
     if (needDesign && !currentItem.file_desain) {
       alert(
-        `⚠️ Produk "${product.nama_product}" memerlukan file desain!\n\nSilakan upload file desain terlebih dahulu.`,
+        `Produk "${product.nama_product}" memerlukan file desain!\n\nSilakan upload file desain terlebih dahulu.`,
       );
       return;
     }
 
     if (!customerData.nama_pelanggan.trim()) {
-      alert(
-        '⚠️ Nama pelanggan harus diisi!\n\nMasukkan minimal nama pelanggan.',
-      );
+      alert('Nama pelanggan harus diisi!\n\nMasukkan minimal nama pelanggan.');
       setShowCustomerDetails(true);
       return;
     }
@@ -227,7 +225,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         setPromoData(response.data.data);
         setOrderSettings({ ...orderSettings, diskon: 0 });
         alert(
-          `✅ Promo berhasil diterapkan!\n${
+          `Promo berhasil diterapkan!\n${
             response.data.data.nama_promo
           }\nDiskon: Rp ${response.data.data.nilai_diskon_rupiah.toLocaleString()}`,
         );
@@ -249,9 +247,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     setPromoError('');
   };
 
-  // ✅ CALCULATE AUTO-DISCOUNT (TAMBAHAN BARU)
   const calculateAutoDiscount = (itemsSubtotal: number, totalItems: number) => {
-    // Rule: Beli >= 3 items → Diskon 10%
     if (totalItems >= 3) {
       const discountAmount = (itemsSubtotal * 10) / 100;
       setAutoDiscount({
@@ -259,7 +255,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         type: 'quantity',
         min_items: 3,
         percentage: 10,
-        description: `🎉 Beli ${totalItems} items, diskon 10%!`,
+        description: `Beli ${totalItems} items, diskon 10%!`,
         discount_amount: discountAmount,
       });
       return discountAmount;
@@ -276,25 +272,19 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     }
   };
 
-  // ✅ UPDATE CALCULATE TOTAL (MODIFIKASI)
   const calculateTotal = () => {
     const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
     const totalItems = items.reduce((sum, item) => sum + item.jumlah, 0);
     setSubtotal(itemsSubtotal);
 
-    // 1. Hitung auto-discount
     const autoDiscountAmount = calculateAutoDiscount(itemsSubtotal, totalItems);
 
-    // 2. Bandingkan dengan promo code
     let finalDiskon = 0;
     if (promoData) {
-      // Pakai yang lebih besar: auto-discount vs promo
       finalDiskon = Math.max(autoDiscountAmount, promoData.nilai_diskon_rupiah);
     } else if (orderSettings.diskon > 0) {
-      // Manual discount
       finalDiskon = orderSettings.diskon;
     } else {
-      // Auto-discount
       finalDiskon = autoDiscountAmount;
     }
 
@@ -330,7 +320,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
     }
 
     if (!customerData.nama_pelanggan.trim()) {
-      alert('⚠️ Nama pelanggan wajib diisi!');
+      alert('Nama pelanggan wajib diisi!');
       setShowCustomerDetails(true);
       return;
     }
@@ -416,7 +406,6 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
 
       if (!userId) throw new Error('Gagal mendapatkan ID user');
 
-      // ✅ TENTUKAN DISKON AKHIR (MODIFIKASI)
       let diskonAktif = 0;
       let catatanDiskon = '';
 
@@ -424,15 +413,12 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         promoData &&
         promoData.nilai_diskon_rupiah >= autoDiscount.discount_amount
       ) {
-        // Promo code lebih besar
         diskonAktif = promoData.nilai_diskon_rupiah;
         catatanDiskon = `Promo: ${promoData.kode_promo} - ${promoData.nama_promo}`;
       } else if (autoDiscount.active) {
-        // Auto-discount lebih besar
         diskonAktif = autoDiscount.discount_amount;
         catatanDiskon = autoDiscount.description;
       } else if (orderSettings.diskon > 0) {
-        // Manual discount
         diskonAktif = orderSettings.diskon;
         catatanDiskon = `Diskon manual: Rp ${orderSettings.diskon.toLocaleString()}`;
       }
@@ -455,7 +441,9 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         'catatan_internal',
         paymentData.metode_pembayaran === 'cash'
           ? `TUNAI - Diterima: Rp ${paymentData.uang_diterima.toLocaleString()} - Kembalian: Rp ${kembalian.toLocaleString()}`
-          : `${paymentData.metode_pembayaran.toUpperCase()} - Rp ${totalHarga.toLocaleString()}`,
+          : paymentData.metode_pembayaran === 'transfer'
+          ? `TRANSFER BANK - BCA - Rp ${totalHarga.toLocaleString()}`
+          : `QRIS - Rp ${totalHarga.toLocaleString()}`,
       );
       orderData.append('status_order', 'diproses');
 
@@ -493,9 +481,7 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
             `${API_BASE_URL}/order_items.php?op=create`,
             itemData,
             {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
+              headers: { 'Content-Type': 'multipart/form-data' },
             },
           );
 
@@ -525,52 +511,59 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         'metode_pembayaran',
         paymentData.metode_pembayaran,
       );
-      paymentFormData.append('nama_bank', '');
+      paymentFormData.append(
+        'nama_bank',
+        paymentData.metode_pembayaran === 'transfer' ? 'BCA' : '',
+      );
       paymentFormData.append('nomor_rekening', '');
       paymentFormData.append('nama_pemilik', customerData.nama_pelanggan);
       paymentFormData.append('jumlah_bayar', totalHarga.toString());
       paymentFormData.append('bukti_bayar', '');
+      paymentFormData.append('status_pembayaran', 'lunas');
 
       await axios.post(
         `${API_BASE_URL}/payments.php?op=create`,
         paymentFormData,
       );
 
-      let alertMessage = `✅ TRANSAKSI BERHASIL!\n\n🎫 Kode Order: ${kodeOrder}\n👤 Customer: ${customerCode} - ${customerData.nama_pelanggan}\n\n📦 Items (${items.length}):\n`;
+      let alertMessage = `TRANSAKSI BERHASIL!\n\nKode Order: ${kodeOrder}\nCustomer: ${customerCode} - ${customerData.nama_pelanggan}\n\nItems (${items.length}):\n`;
 
       items.forEach((item, idx) => {
-        const hasFile = item.file_desain ? '📎 File ✅' : '📄 Tanpa File';
-        alertMessage += `${idx + 1}. ${item.nama_product} × ${
+        const hasFile = item.file_desain ? 'File: Ya' : 'File: Tidak';
+        alertMessage += `${idx + 1}. ${item.nama_product} x ${
           item.jumlah
-        } = ${formatRupiah(item.subtotal)} ${hasFile}\n`;
+        } = ${formatRupiah(item.subtotal)} (${hasFile})\n`;
       });
 
-      alertMessage += `\n💰 Subtotal: ${formatRupiah(subtotal)}\n`;
+      alertMessage += `\nSubtotal: ${formatRupiah(subtotal)}\n`;
 
-      // ✅ TAMPILKAN INFO DISKON (MODIFIKASI)
       if (diskonAktif > 0) {
-        alertMessage += `💸 ${catatanDiskon} (-${formatRupiah(diskonAktif)})\n`;
+        alertMessage += `${catatanDiskon} (-${formatRupiah(diskonAktif)})\n`;
       }
 
       if (orderSettings.kecepatan_pengerjaan === 'express') {
-        alertMessage += `⚡ Express (+50%): +${formatRupiah(subtotal * 0.5)}\n`;
+        alertMessage += `Express (+50%): +${formatRupiah(subtotal * 0.5)}\n`;
       }
 
-      alertMessage += `\n💵 TOTAL: ${formatRupiah(totalHarga)}\n`;
+      alertMessage += `\nTOTAL: ${formatRupiah(totalHarga)}\n`;
 
       if (paymentData.metode_pembayaran === 'cash') {
-        alertMessage += `💵 Uang: ${formatRupiah(
+        alertMessage += `Uang: ${formatRupiah(
           paymentData.uang_diterima,
-        )}\n💵 Kembalian: ${formatRupiah(kembalian)}\n`;
+        )}\nKembalian: ${formatRupiah(kembalian)}\n`;
+      } else if (paymentData.metode_pembayaran === 'transfer') {
+        alertMessage += `Transfer Bank: BCA - Rp ${totalHarga.toLocaleString()}\n`;
+      } else if (paymentData.metode_pembayaran === 'qris') {
+        alertMessage += `QRIS: Rp ${totalHarga.toLocaleString()}\n`;
       }
 
-      alertMessage += `\n✅ Status: LUNAS & DIPROSES\n📋 ${itemsSaved}/${items.length} items tersimpan\n🚀 Pesanan masuk queue OPERATOR untuk dikerjakan`;
+      alertMessage += `\nStatus: LUNAS & DIPROSES\n${itemsSaved}/${items.length} items tersimpan\nPesanan masuk queue OPERATOR untuk dikerjakan`;
 
       alert(alertMessage);
       onClose(true);
     } catch (error: any) {
       console.error('Error:', error);
-      alert('❌ Gagal: ' + (error.message || 'Terjadi kesalahan'));
+      alert('Gagal: ' + (error.message || 'Terjadi kesalahan'));
     } finally {
       setLoading(false);
     }
@@ -597,12 +590,12 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'white',
-          borderRadius: '12px',
+          borderRadius: '16px',
           width: '100%',
           maxWidth: '900px',
           maxHeight: '90vh',
           overflow: 'auto',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
         }}
       >
         <div
@@ -611,27 +604,49 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '1.5rem',
-            borderBottom: '1px solid #e0e0e0',
+            borderBottom: '2px solid #e2e8f0',
             position: 'sticky',
             top: 0,
-            background: 'white',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
             zIndex: 10,
+            color: 'white',
+            borderRadius: '16px 16px 0 0',
           }}
         >
-          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>
-            {step === 'order' ? '🛒 Buat Pesanan Offline' : '💳 Pembayaran'}
-          </h2>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+          >
+            {step === 'order' ? (
+              <ShoppingCart size={24} strokeWidth={2.5} />
+            ) : (
+              <CreditCard size={24} strokeWidth={2.5} />
+            )}
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '600' }}>
+              {step === 'order' ? 'Buat Pesanan Offline' : 'Pembayaran'}
+            </h2>
+          </div>
           <button
             onClick={() => onClose(false)}
             style={{
-              background: 'none',
+              background: 'rgba(255,255,255,0.2)',
               border: 'none',
-              fontSize: '1.5rem',
+              borderRadius: '8px',
+              padding: '0.5rem',
               cursor: 'pointer',
-              color: '#666',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
             }}
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -641,29 +656,42 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
               <div
                 style={{
                   background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                   color: 'white',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  marginBottom: '1rem',
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
                 }}
               >
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
-                  📋 PETUNJUK KASIR OFFLINE
-                </h3>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  <AlertCircle size={20} />
+                  <h3
+                    style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}
+                  >
+                    Petunjuk Kasir Offline
+                  </h3>
+                </div>
                 <ul
                   style={{
                     margin: 0,
-                    paddingLeft: '1.5rem',
-                    fontSize: '0.85rem',
-                    lineHeight: '1.6',
+                    paddingLeft: '1.75rem',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.8',
                   }}
                 >
                   <li>
                     <strong>Nama pelanggan WAJIB diisi</strong> (minimal nama)
                   </li>
                   <li>
-                    <strong>Beli ≥ 3 items → GRATIS diskon 10%!</strong> 🎉
+                    <strong>Beli ≥ 3 items → GRATIS diskon 10%!</strong>
                   </li>
                   <li>
                     Bisa pakai <strong>kode promo</strong> untuk diskon lebih
@@ -673,27 +701,39 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                     Atau gunakan <strong>diskon manual</strong> untuk kasus
                     khusus
                   </li>
+                  <li>
+                    <strong>Semua metode pembayaran otomatis LUNAS!</strong>
+                  </li>
                 </ul>
               </div>
 
-              {/* ✅ AUTO-DISCOUNT BANNER (TAMBAHAN BARU) */}
               {autoDiscount.active && (
                 <div
                   style={{
                     background:
-                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: 'white',
                     padding: '1rem',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
+                    borderRadius: '12px',
+                    marginBottom: '1.5rem',
                     textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    animation: 'pulse 2s infinite',
+                    boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
                   }}
                 >
-                  🎉 {autoDiscount.description} - Hemat Rp{' '}
-                  {autoDiscount.discount_amount.toLocaleString()}!
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <Gift size={24} strokeWidth={2.5} />
+                    <div style={{ fontSize: '1.1rem', fontWeight: '600' }}>
+                      {autoDiscount.description} - Hemat Rp{' '}
+                      {autoDiscount.discount_amount.toLocaleString()}!
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -746,21 +786,34 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                 justifyContent: 'flex-end',
                 gap: '1rem',
                 padding: '1.5rem',
-                borderTop: '1px solid #e0e0e0',
+                borderTop: '2px solid #e2e8f0',
                 position: 'sticky',
                 bottom: 0,
                 background: 'white',
+                borderRadius: '0 0 16px 16px',
               }}
             >
               <button
                 type="button"
                 onClick={() => onClose(false)}
                 style={{
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid #ddd',
+                  padding: '0.875rem 1.75rem',
+                  borderRadius: '10px',
+                  border: '2px solid #cbd5e1',
                   background: 'white',
                   cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.95rem',
+                  color: '#475569',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                  e.currentTarget.style.background = '#f8fafc';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                  e.currentTarget.style.background = 'white';
                 }}
               >
                 Batal
@@ -771,19 +824,37 @@ const CreateOrderKasir: React.FC<CreateOrderKasirProps> = ({ onClose }) => {
                   items.length === 0 || !customerData.nama_pelanggan.trim()
                 }
                 style={{
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '6px',
+                  padding: '0.875rem 1.75rem',
+                  borderRadius: '10px',
                   border: 'none',
                   background:
                     items.length === 0 || !customerData.nama_pelanggan.trim()
-                      ? '#ccc'
-                      : '#667eea',
+                      ? '#cbd5e1'
+                      : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                   color: 'white',
                   cursor:
                     items.length === 0 || !customerData.nama_pelanggan.trim()
                       ? 'not-allowed'
                       : 'pointer',
-                  fontWeight: '500',
+                  fontWeight: '600',
+                  fontSize: '0.95rem',
+                  boxShadow:
+                    items.length === 0 || !customerData.nama_pelanggan.trim()
+                      ? 'none'
+                      : '0 4px 12px rgba(59,130,246,0.4)',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  if (items.length > 0 && customerData.nama_pelanggan.trim()) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow =
+                      '0 6px 16px rgba(59,130,246,0.5)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 12px rgba(59,130,246,0.4)';
                 }}
               >
                 Lanjut Bayar →
