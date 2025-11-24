@@ -1,4 +1,4 @@
-// CompletedHistory.tsx - History Page Component
+// CompletedHistory.tsx - WITH CHARTS INTEGRATION
 import React, { useState, useEffect } from 'react';
 import {
   RefreshCw,
@@ -24,6 +24,9 @@ import {
 import type { Order } from './operatorTypes';
 import { formatRupiah, formatDate, apiService } from './operatorUtils';
 import { DesignFilesSection, OrderItemsSection } from './OperatorComponents';
+
+// ✅ Import Chart Component
+import OperatorCharts from './OperatorCharts';
 
 interface CompletedHistoryProps {
   onRefresh?: () => void;
@@ -146,7 +149,6 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
     try {
       const orderDetail = await apiService.fetchOrderDetail(order.id_order);
 
-      // Fetch result files
       try {
         const API_BASE_URL = 'http://localhost/printifygo/api';
         const resultResponse = await fetch(
@@ -213,13 +215,8 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
 
       {/* Stats Cards */}
       <div className="stats-grid">
-        <div
-          className="stat-card"
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          }}
-        >
-          <div className="stat-icon">
+        <div className="stat-card stat-blue">
+          <div className="stat-icon-wrapper">
             <CheckCircle size={28} />
           </div>
           <div className="stat-info">
@@ -228,13 +225,8 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
           </div>
         </div>
 
-        <div
-          className="stat-card"
-          style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          }}
-        >
-          <div className="stat-icon">
+        <div className="stat-card stat-pink">
+          <div className="stat-icon-wrapper">
             <TrendingUp size={28} />
           </div>
           <div className="stat-info">
@@ -243,13 +235,8 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
           </div>
         </div>
 
-        <div
-          className="stat-card"
-          style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          }}
-        >
-          <div className="stat-icon">
+        <div className="stat-card stat-cyan">
+          <div className="stat-icon-wrapper">
             <Calendar size={28} />
           </div>
           <div className="stat-info">
@@ -258,32 +245,30 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
           </div>
         </div>
 
-        <div
-          className="stat-card"
-          style={{
-            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-          }}
-        >
-          <div className="stat-icon">
+        <div className="stat-card stat-green">
+          <div className="stat-icon-wrapper">
             <DollarSign size={28} />
           </div>
           <div className="stat-info">
             <div className="stat-label">Total Revenue</div>
-            <div className="stat-value" style={{ fontSize: '1.25rem' }}>
+            <div className="stat-value" style={{ fontSize: '1.5rem' }}>
               {formatRupiah(stats.totalRevenue)}
             </div>
           </div>
         </div>
       </div>
 
+      {/* ✅ CHARTS SECTION */}
+      <OperatorCharts completedOrders={orders} formatRupiah={formatRupiah} />
+
       {/* Filters */}
       <div
         style={{
           background: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          marginBottom: '1.5rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          padding: '1.5rem 2.5rem',
+          borderRadius: '14px',
+          margin: '0 2.5rem 1.5rem',
+          border: '1px solid #e2e8f0',
         }}
       >
         <div
@@ -315,7 +300,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                 width: '100%',
                 padding: '0.75rem',
                 border: '1px solid #ddd',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 fontSize: '0.9rem',
               }}
             />
@@ -341,7 +326,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                 width: '100%',
                 padding: '0.75rem',
                 border: '1px solid #ddd',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 fontSize: '0.9rem',
               }}
             >
@@ -372,7 +357,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                 width: '100%',
                 padding: '0.75rem',
                 border: '1px solid #ddd',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 fontSize: '0.9rem',
               }}
             >
@@ -399,24 +384,15 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
       </div>
 
       {/* History Table */}
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="queue-section" style={{ margin: '0 2.5rem 2.5rem' }}>
         {loading && orders.length === 0 ? (
-          <div className="loading-state" style={{ padding: '3rem' }}>
+          <div className="loading-state">
             <div className="spinner"></div>
             <p>Memuat history...</p>
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="empty-state" style={{ padding: '3rem' }}>
-            <div className="empty-icon" style={{ fontSize: '4rem' }}>
-              📭
-            </div>
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
             <h3>No Orders Found</h3>
             <p>Try adjusting your filters</p>
           </div>
@@ -437,87 +413,38 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
               </thead>
               <tbody>
                 {filteredOrders.map(order => (
-                  <tr
-                    key={order.id_order}
-                    style={{
-                      background:
-                        order.status_order === 'dikirim'
-                          ? 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)'
-                          : 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)',
-                      borderLeft:
-                        order.status_order === 'dikirim'
-                          ? '4px solid #0ea5e9'
-                          : '4px solid #28a745',
-                    }}
-                  >
+                  <tr key={order.id_order}>
                     <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        <strong style={{ fontSize: '0.95rem' }}>
-                          {order.kode_order}
-                        </strong>
+                      <div className="order-code">
+                        <strong>{order.kode_order}</strong>
                         {order.kecepatan_pengerjaan === 'express' && (
-                          <span
-                            style={{
-                              fontSize: '0.7rem',
-                              color: '#dc2626',
-                              fontWeight: '700',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                            }}
-                          >
-                            <Zap size={10} /> EXPRESS
+                          <span className="express-tag">
+                            <Zap size={12} /> EXPRESS
                           </span>
                         )}
                       </div>
                     </td>
                     <td>
-                      <div>
-                        <div
-                          style={{ fontWeight: '600', marginBottom: '0.25rem' }}
-                        >
+                      <div className="customer-info">
+                        <div className="customer-name">
                           {order.nama_customer}
                         </div>
                         {order.telepon_customer && (
-                          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                          <div className="customer-phone">
                             📞 {order.telepon_customer}
                           </div>
                         )}
                       </div>
                     </td>
                     <td>
-                      <span
-                        style={{
-                          padding: '0.375rem 0.75rem',
-                          borderRadius: '6px',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          background:
-                            order.jenis_order === 'offline'
-                              ? '#f3f4f6'
-                              : '#e0f2fe',
-                          color:
-                            order.jenis_order === 'offline'
-                              ? '#374151'
-                              : '#0369a1',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                        }}
-                      >
+                      <span className={`jenis-badge ${order.jenis_order}`}>
                         {order.jenis_order === 'offline' ? (
                           <>
-                            <Store size={12} /> Offline
+                            <Store size={14} /> Offline
                           </>
                         ) : (
                           <>
-                            <Globe size={12} /> Online
+                            <Globe size={14} /> Online
                           </>
                         )}
                       </span>
@@ -525,9 +452,9 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                     <td>
                       <span
                         style={{
-                          padding: '0.375rem 0.75rem',
-                          borderRadius: '6px',
-                          fontSize: '0.8rem',
+                          padding: '0.5rem 0.875rem',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
                           fontWeight: '600',
                           background:
                             order.kecepatan_pengerjaan === 'express'
@@ -539,7 +466,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                               : '#065f46',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.25rem',
+                          gap: '0.375rem',
                         }}
                       >
                         {order.kecepatan_pengerjaan === 'express' ? (
@@ -560,17 +487,13 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                     </td>
                     <td>
                       <span
+                        className="status-badge"
                         style={{
-                          padding: '0.5rem 1rem',
-                          borderRadius: '6px',
-                          fontSize: '0.85rem',
-                          fontWeight: '700',
                           background:
                             order.status_order === 'dikirim'
-                              ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
-                              : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                              ? '#0ea5e9'
+                              : '#28a745',
                           color: 'white',
-                          display: 'inline-block',
                         }}
                       >
                         {order.status_order === 'dikirim'
@@ -578,29 +501,13 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                           : '✅ SELESAI'}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ fontSize: '0.875rem' }}>
-                        {formatDate(order.tanggal_order)}
-                      </div>
-                    </td>
+                    <td>{formatDate(order.tanggal_order)}</td>
                     <td>
                       <button
                         onClick={() => handleViewDetail(order)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: '#667eea',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.85rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                        }}
+                        className="btn-detail"
                       >
-                        <Eye size={14} /> Detail
+                        <Eye size={16} /> Detail
                       </button>
                     </td>
                   </tr>
@@ -611,13 +518,13 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail Modal - Same as before */}
       {showDetail && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowDetail(false)}>
           <div
             className="modal-content"
             onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}
+            style={{ maxWidth: '900px' }}
           >
             <div className="modal-header">
               <div>
@@ -625,18 +532,8 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                 <p>
                   <strong>{selectedOrder.kode_order}</strong>
                   {selectedOrder.kecepatan_pengerjaan === 'express' && (
-                    <span
-                      style={{
-                        marginLeft: '0.5rem',
-                        padding: '0.25rem 0.75rem',
-                        background: '#dc2626',
-                        color: 'white',
-                        borderRadius: '12px',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                      }}
-                    >
-                      <Zap size={12} /> EXPRESS
+                    <span className="express-tag">
+                      <Zap size={14} /> EXPRESS
                     </span>
                   )}
                 </p>
@@ -650,96 +547,33 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
             </div>
 
             <div className="modal-body">
-              {/* Customer Info */}
-              <div
-                style={{
-                  background: '#f8f9fa',
-                  padding: '1.5rem',
-                  borderRadius: '8px',
-                  marginBottom: '1.5rem',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                  }}
-                >
+              <div className="detail-section">
+                <h3>
                   <User size={18} /> Customer Information
                 </h3>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '1rem',
-                  }}
-                >
+                <div className="detail-grid">
                   <div>
-                    <label
-                      style={{
-                        fontSize: '0.875rem',
-                        color: '#666',
-                        display: 'block',
-                        marginBottom: '0.25rem',
-                      }}
-                    >
-                      Name:
-                    </label>
-                    <span style={{ fontWeight: '600' }}>
-                      {selectedOrder.nama_customer}
-                    </span>
+                    <label>Name:</label>
+                    <span>{selectedOrder.nama_customer}</span>
                   </div>
                   {selectedOrder.email_customer && (
                     <div>
-                      <label
-                        style={{
-                          fontSize: '0.875rem',
-                          color: '#666',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          marginBottom: '0.25rem',
-                        }}
-                      >
-                        <Mail size={12} /> Email:
+                      <label>
+                        <Mail size={14} /> Email:
                       </label>
-                      <span style={{ fontWeight: '600' }}>
-                        {selectedOrder.email_customer}
-                      </span>
+                      <span>{selectedOrder.email_customer}</span>
                     </div>
                   )}
                   {selectedOrder.telepon_customer && (
                     <div>
-                      <label
-                        style={{
-                          fontSize: '0.875rem',
-                          color: '#666',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          marginBottom: '0.25rem',
-                        }}
-                      >
-                        <Phone size={12} /> Phone:
+                      <label>
+                        <Phone size={14} /> Phone:
                       </label>
-                      <span style={{ fontWeight: '600' }}>
-                        {selectedOrder.telepon_customer}
-                      </span>
+                      <span>{selectedOrder.telepon_customer}</span>
                     </div>
                   )}
                   <div>
-                    <label
-                      style={{
-                        fontSize: '0.875rem',
-                        color: '#666',
-                        display: 'block',
-                        marginBottom: '0.25rem',
-                      }}
-                    >
-                      Total Price:
-                    </label>
+                    <label>Total Price:</label>
                     <span
                       style={{
                         fontWeight: '700',
@@ -753,25 +587,18 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                 </div>
               </div>
 
-              {/* Design Files */}
               <DesignFilesSection
                 files={selectedOrder.design_files}
                 onDownload={handleDownloadFile}
               />
 
-              {/* Result Files */}
               {selectedOrder.result_files &&
                 selectedOrder.result_files.length > 0 && (
                   <div
-                    style={{
-                      background: '#f0fdf4',
-                      border: '2px solid #22c55e',
-                      padding: '1.5rem',
-                      borderRadius: '8px',
-                      marginBottom: '1.5rem',
-                    }}
+                    className="detail-section"
+                    style={{ background: '#f0fdf4', borderColor: '#22c55e' }}
                   >
-                    <h3 style={{ color: '#166534', marginBottom: '1rem' }}>
+                    <h3 style={{ color: '#166534' }}>
                       ✅ Result Files ({selectedOrder.result_files.length})
                     </h3>
                     {selectedOrder.result_files.map(
@@ -781,82 +608,57 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                           style={{
                             background: 'white',
                             padding: '1rem',
-                            borderRadius: '6px',
+                            borderRadius: '8px',
                             marginBottom: '1rem',
-                            border: '1px solid #bbf7d0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '1rem',
-                            }}
-                          >
-                            <div style={{ fontSize: '2rem' }}>
-                              {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <p
-                                style={{
-                                  fontWeight: '600',
-                                  marginBottom: '0.25rem',
-                                }}
-                              >
-                                {idx + 1}. {file.nama_file}
-                              </p>
-                              {file.keterangan && (
-                                <p
-                                  style={{
-                                    fontSize: '0.875rem',
-                                    color: '#666',
-                                    marginTop: '0.25rem',
-                                  }}
-                                >
-                                  {file.keterangan}
-                                </p>
-                              )}
-                            </div>
-                            <button
-                              onClick={() =>
-                                handleDownloadFile(
-                                  file.file_url,
-                                  file.nama_file,
-                                )
-                              }
+                          <div style={{ fontSize: '2rem' }}>
+                            {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p
                               style={{
-                                padding: '0.5rem 1rem',
-                                background: '#22c55e',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
                                 fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
+                                marginBottom: '0.25rem',
                               }}
                             >
-                              <Download size={14} /> Download
-                            </button>
+                              {idx + 1}. {file.nama_file}
+                            </p>
+                            {file.keterangan && (
+                              <p
+                                style={{ fontSize: '0.875rem', color: '#666' }}
+                              >
+                                {file.keterangan}
+                              </p>
+                            )}
                           </div>
+                          <button
+                            onClick={() =>
+                              handleDownloadFile(file.file_url, file.nama_file)
+                            }
+                            className="btn-complete"
+                            style={{ padding: '0.625rem 1.25rem' }}
+                          >
+                            <Download size={14} /> Download
+                          </button>
                         </div>
                       ),
                     )}
                   </div>
                 )}
 
-              {/* Order Items */}
               <OrderItemsSection items={selectedOrder.items} />
 
-              {/* Notes */}
               {selectedOrder.catatan && (
                 <div
                   style={{
                     marginTop: '1.5rem',
                     padding: '1rem',
                     background: '#fff3cd',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     border: '1px solid #ffc107',
                   }}
                 >
