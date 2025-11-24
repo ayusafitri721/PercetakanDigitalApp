@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -9,6 +11,48 @@ const Navbar = () => {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const navbar = document.querySelector('.navbar');
+      if (!navbar) return;
+
+      const navbarRect = navbar.getBoundingClientRect();
+      const navbarCenter = navbarRect.top + navbarRect.height / 2;
+
+      // Ambil elemen di posisi tengah navbar
+      const elementAtCenter = document.elementFromPoint(
+        window.innerWidth / 2,
+        navbarCenter,
+      );
+
+      if (elementAtCenter) {
+        // Dapatkan background color dari elemen
+        const computedStyle = window.getComputedStyle(elementAtCenter);
+        const bgColor = computedStyle.backgroundColor;
+
+        // Fungsi untuk mengecek kecerahan warna
+        const isLightColor = (color: string) => {
+          const rgb = color.match(/\d+/g);
+          if (rgb && rgb.length >= 3) {
+            const r = parseInt(rgb[0]);
+            const g = parseInt(rgb[1]);
+            const b = parseInt(rgb[2]);
+            // Hitung luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5;
+          }
+          return false;
+        };
+
+        setIsDark(isLightColor(bgColor));
+      }
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
@@ -38,6 +82,12 @@ const Navbar = () => {
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
           max-width: 900px;
           width: 100%;
+          transition: all 0.3s ease;
+        }
+
+        .navbar-container.dark {
+          background: rgba(255, 255, 255, 0.25);
+          border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .navbar-logo {
@@ -49,7 +99,11 @@ const Navbar = () => {
           color: white;
           text-decoration: none;
           cursor: pointer;
-          transition: opacity 0.3s;
+          transition: all 0.3s ease;
+        }
+
+        .navbar-logo.dark {
+          color: #1E3A8A;
         }
 
         .navbar-logo:hover {
@@ -59,8 +113,9 @@ const Navbar = () => {
         .logo-image {
           width: 32px;
           height: 32px;
-          border-radius: 50%;
-          object-fit: cover;
+          object-fit: contain;
+          display: block;
+          background: transparent;
         }
 
         .navbar-menu {
@@ -78,9 +133,13 @@ const Navbar = () => {
           text-decoration: none;
           font-weight: 500;
           font-size: 1rem;
-          transition: all 0.3s;
+          transition: all 0.3s ease;
           cursor: pointer;
           position: relative;
+        }
+
+        .navbar-menu a.dark {
+          color: #1E3A8A;
         }
 
         .navbar-menu a::after {
@@ -92,6 +151,10 @@ const Navbar = () => {
           height: 2px;
           background: white;
           transition: width 0.3s ease;
+        }
+
+        .navbar-menu a.dark::after {
+          background: #1E3A8A;
         }
 
         .navbar-menu a:hover {
@@ -115,9 +178,19 @@ const Navbar = () => {
           box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
         }
 
+        .navbar-login.dark {
+          background: #1E3A8A;
+          color: white;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
         .navbar-login:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .navbar-login.dark:hover {
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -146,10 +219,13 @@ const Navbar = () => {
       `}</style>
 
       <nav className="navbar">
-        <div className="navbar-container">
-          <a className="navbar-logo" onClick={() => scrollToSection('home')}>
+        <div className={`navbar-container ${isDark ? 'dark' : ''}`}>
+          <a
+            className={`navbar-logo ${isDark ? 'dark' : ''}`}
+            onClick={() => scrollToSection('home')}
+          >
             <img
-              src="/images/Logo-Im.png"
+              src="/images/logoprin.png"
               alt="PrintyGo Logo"
               className="logo-image"
             />
@@ -158,23 +234,51 @@ const Navbar = () => {
 
           <ul className="navbar-menu">
             <li>
-              <a onClick={() => scrollToSection('about')}>About</a>
+              <a
+                className={isDark ? 'dark' : ''}
+                onClick={() => scrollToSection('about')}
+              >
+                About
+              </a>
             </li>
             <li>
-              <a onClick={() => scrollToSection('gallery')}>Gallery</a>
+              <a
+                className={isDark ? 'dark' : ''}
+                onClick={() => scrollToSection('gallery')}
+              >
+                Gallery
+              </a>
             </li>
             <li>
-              <a onClick={() => scrollToSection('features')}>Features</a>
+              <a
+                className={isDark ? 'dark' : ''}
+                onClick={() => scrollToSection('features')}
+              >
+                Features
+              </a>
             </li>
             <li>
-              <a onClick={() => scrollToSection('location')}>Location</a>
+              <a
+                className={isDark ? 'dark' : ''}
+                onClick={() => scrollToSection('location')}
+              >
+                Location
+              </a>
             </li>
             <li>
-              <a onClick={() => scrollToSection('contact')}>Contact</a>
+              <a
+                className={isDark ? 'dark' : ''}
+                onClick={() => scrollToSection('contact')}
+              >
+                Contact
+              </a>
             </li>
           </ul>
 
-          <button className="navbar-login" onClick={() => navigate('/login')}>
+          <button
+            className={`navbar-login ${isDark ? 'dark' : ''}`}
+            onClick={() => navigate('/login')}
+          >
             Login
           </button>
         </div>

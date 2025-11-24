@@ -579,7 +579,7 @@ const Dashboard: React.FC = () => {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img
-              src="/public/images/Logo-Im.png"
+              src="/public/images/logoprin.png"
               alt="PrintyGo Logo"
               className="logo-image"
             />

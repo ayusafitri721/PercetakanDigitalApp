@@ -49,8 +49,8 @@
   height: 48px;
   object-fit: contain;
   border-radius: 10px;
-  background: white;
-  padding: 4px;
+  /* background: white;
+  padding: 4px; */
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
