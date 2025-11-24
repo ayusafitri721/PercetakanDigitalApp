@@ -1,4 +1,4 @@
-// screens/customer/OrderFormScreen.tsx (REFACTORED VERSION)
+// screens/customer/OrderFormScreen.tsx
 import React from 'react';
 import {
   View,
@@ -58,6 +58,7 @@ export default function OrderFormScreen({
     calculatePrice,
     calculateTotal,
     resetForm,
+    updateCurrentUser,
   } = useOrderForm(service);
 
   const getMaterialOptions = (): string[] =>
@@ -139,12 +140,10 @@ export default function OrderFormScreen({
       setLoading(false);
       console.error('❌ Submit order error:', error);
 
-      // ⭐ TAMBAH INI SEMUA
       console.log('🔥 ERROR RESPONSE:', error.response);
       console.log('🔥 ERROR DATA:', error.response?.data);
       console.log('🔥 ERROR STATUS:', error.response?.status);
       console.log('🔥 ERROR MESSAGE:', error.response?.data?.message);
-      // ⭐ SAMPAI SINI
 
       let errorMessage = 'Pesanan gagal dibuat.';
       if (error.response?.data?.message) {
@@ -177,7 +176,11 @@ export default function OrderFormScreen({
   if (!currentUser) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>❌ User tidak ditemukan</Text>
+        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Text style={styles.errorTitle}>User Tidak Ditemukan</Text>
+        <Text style={styles.errorDesc}>
+          Session expired. Silakan logout dan login kembali.
+        </Text>
         <TouchableOpacity style={styles.retryButton} onPress={onBack}>
           <Text style={styles.retryButtonText}>Kembali</Text>
         </TouchableOpacity>
@@ -192,7 +195,6 @@ export default function OrderFormScreen({
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
@@ -201,21 +203,18 @@ export default function OrderFormScreen({
         <View style={{ width: 40 }} />
       </View>
 
-      {/* PROGRESS */}
       <OrderProgress currentStep={currentStep} />
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* USER INFO */}
         <View style={styles.userInfoCard}>
           <Text style={styles.userInfoLabel}>👤 Customer:</Text>
           <Text style={styles.userInfoName}>{currentUser.nama}</Text>
           <Text style={styles.userInfoEmail}>{currentUser.email}</Text>
         </View>
 
-        {/* SERVICE INFO */}
         <View style={[styles.serviceInfoCard, { borderLeftColor: color }]}>
           <Text style={styles.serviceIcon}>{icon}</Text>
           <View style={styles.serviceInfo}>
@@ -224,7 +223,6 @@ export default function OrderFormScreen({
           </View>
         </View>
 
-        {/* STEPS */}
         {currentStep === 1 && (
           <OrderStepDetail
             uploadedFile={uploadedFile}
@@ -242,6 +240,9 @@ export default function OrderFormScreen({
           <OrderStepDelivery
             orderDetails={orderDetails}
             onUpdateDetails={updateDetails}
+            currentUser={currentUser}
+            loadingUser={loadingUser}
+            onUpdateUserAddress={updateCurrentUser}
           />
         )}
 
@@ -255,7 +256,6 @@ export default function OrderFormScreen({
           />
         )}
 
-        {/* PRICE SUMMARY */}
         <PriceSummary
           subtotal={estimatedPrice}
           shippingCost={orderDetails.shippingCost}
@@ -266,7 +266,6 @@ export default function OrderFormScreen({
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* BOTTOM BAR */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomBarContent}>
           {currentStep > 1 && (
@@ -318,12 +317,41 @@ export default function OrderFormScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
-  centerContent: { justifyContent: 'center', alignItems: 'center' },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  errorEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#DC2626',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorDesc: {
+    fontSize: 14,
+    color: '#991B1B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginTop: 50,
+    fontWeight: '600',
   },
   retryButton: {
     marginTop: 20,
@@ -358,13 +386,6 @@ const styles = StyleSheet.create({
   backIcon: { fontSize: 20, color: '#1F2937', fontWeight: 'bold' },
   title: { fontSize: 18, fontWeight: '700', color: '#1F2937' },
   scrollView: { flex: 1 },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginTop: 50,
-    fontWeight: '600',
-  },
   userInfoCard: {
     backgroundColor: '#EEF2FF',
     marginHorizontal: 20,

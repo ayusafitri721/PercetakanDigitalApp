@@ -34,6 +34,8 @@ interface CurrentUser {
   role: string;
   no_telepon?: string;
   alamat?: string;
+  kota?: string;
+  provinsi?: string;
 }
 
 const INITIAL_ORDER_DETAILS: OrderDetails = {
@@ -61,70 +63,80 @@ export function useOrderForm(service: any) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ⭐⭐⭐ CRITICAL FIX: Load current user SETIAP KALI component mount ⭐⭐⭐
   useEffect(() => {
     console.log('🔄 OrderForm mounted - Loading current user...');
+    console.log('🔍 Current loadingUser state:', loadingUser);
+    console.log('🔍 Current currentUser state:', currentUser);
     loadCurrentUser();
     
-    // Cleanup function
     return () => {
-      console.log('🧹 OrderForm unmounted - Cleaning up...');
-      // ⚠️ JANGAN reset currentUser di sini, biar tetap login
+      console.log('🧹 OrderForm unmounted');
     };
-  }, []); // Empty deps = run ONCE per mount
+  }, []);
 
-  // ✅ FUNCTION: Load user yang SEDANG LOGIN
   const loadCurrentUser = async () => {
     try {
       setLoadingUser(true);
       console.log('📱 Reading user data from AsyncStorage...');
       
-      // ⭐ Try multiple keys untuk compatibility
+      const keys = await AsyncStorage.getAllKeys();
+      console.log('🔑 All AsyncStorage keys:', keys);
+      
       let userDataString = await AsyncStorage.getItem('userData');
       let userData = null;
 
       if (userDataString) {
-        console.log('✅ Found userData in AsyncStorage');
+        console.log('✅ Found userData in AsyncStorage:', userDataString.substring(0, 100));
         userData = JSON.parse(userDataString);
+        console.log('📦 Parsed userData:', JSON.stringify(userData, null, 2));
       } else {
-        // Fallback ke currentUser key
         console.log('⚠️ userData not found, trying currentUser key...');
         userDataString = await AsyncStorage.getItem('currentUser');
         if (userDataString) {
-          console.log('✅ Found currentUser in AsyncStorage');
+          console.log('✅ Found currentUser in AsyncStorage:', userDataString.substring(0, 100));
           const user = JSON.parse(userDataString);
-          userData = { user }; // Wrap in object
+          userData = { user };
+          console.log('📦 Wrapped user data:', JSON.stringify(userData, null, 2));
+        } else {
+          console.log('❌ currentUser also not found, trying @user key...');
+          userDataString = await AsyncStorage.getItem('@user');
+          if (userDataString) {
+            console.log('✅ Found @user in AsyncStorage');
+            const user = JSON.parse(userDataString);
+            userData = { user };
+          }
         }
       }
 
       if (!userData || !userData.user) {
         console.error('❌ No valid user data found in storage');
+        console.error('❌ userData object:', userData);
         Alert.alert('Error', 'Session expired. Silakan login kembali.');
         setCurrentUser(null);
         setLoadingUser(false);
         return;
       }
 
-      // ⭐ CRITICAL: Set user yang BENAR
       const user = userData.user;
-      console.log('✅✅✅ CURRENT USER LOADED:', {
-        id: user.id_user,
-        nama: user.nama,
-        email: user.email,
-      });
+      console.log('✅✅✅ CURRENT USER LOADED:', JSON.stringify(user, null, 2));
 
       setCurrentUser(user);
       
-      // Auto-fill recipient data dari user profile
-      if (!orderDetails.recipientName) {
-        setOrderDetails(prev => ({
-          ...prev,
-          recipientName: user.nama || '',
-          recipientPhone: user.no_telepon || '',
-          shippingAddress: user.alamat || '',
-        }));
-        console.log('📝 Auto-filled recipient data from user profile');
-      }
+      setOrderDetails(prev => ({
+        ...prev,
+        recipientName: user.nama || '',
+        recipientPhone: user.no_telepon || '',
+        shippingAddress: user.alamat || '',
+        city: user.kota || '',
+        province: user.provinsi || '',
+      }));
+      console.log('📝 Auto-filled address from user profile:', {
+        nama: user.nama,
+        phone: user.no_telepon,
+        alamat: user.alamat,
+        kota: user.kota,
+        provinsi: user.provinsi,
+      });
 
     } catch (error) {
       console.error('❌ Error loading user:', error);
@@ -132,15 +144,47 @@ export function useOrderForm(service: any) {
       setCurrentUser(null);
     } finally {
       setLoadingUser(false);
+      console.log('✅ loadCurrentUser finished, loadingUser set to false');
     }
   };
 
-  // ✅ FUNCTION: Update order details
+  const updateCurrentUser = (updatedUserData: CurrentUser) => {
+    try {
+      console.log('🔄 Updating current user in state and storage...');
+      
+      setCurrentUser(updatedUserData);
+      
+      AsyncStorage.getItem('userData').then(userDataString => {
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          userData.user = updatedUserData;
+          AsyncStorage.setItem('userData', JSON.stringify(userData));
+          console.log('✅ User data updated in AsyncStorage');
+        }
+      });
+
+      setOrderDetails(prev => ({
+        ...prev,
+        recipientName: updatedUserData.nama,
+        recipientPhone: updatedUserData.no_telepon || '',
+        shippingAddress: updatedUserData.alamat || '',
+        city: updatedUserData.kota || '',
+        province: updatedUserData.provinsi || '',
+      }));
+
+      console.log('✅ Order details updated with new address:', {
+        kota: updatedUserData.kota,
+        provinsi: updatedUserData.provinsi,
+      });
+    } catch (error) {
+      console.error('❌ Error updating user:', error);
+    }
+  };
+
   const updateDetails = (details: Partial<OrderDetails>) => {
     setOrderDetails(prev => ({ ...prev, ...details }));
   };
 
-  // ✅ FUNCTION: Pick image (design atau payment proof)
   const handlePickImage = async (type: 'design' | 'payment') => {
     try {
       const result = await launchImageLibrary({
@@ -186,7 +230,6 @@ export function useOrderForm(service: any) {
     }
   };
 
-  // ✅ FUNCTION: Calculate price
   const calculatePrice = (): number => {
     if (!service || !orderDetails.material || !orderDetails.size) {
       return 0;
@@ -199,19 +242,16 @@ export function useOrderForm(service: any) {
     return Math.round(basePrice * quantity * speedMultiplier);
   };
 
-  // ✅ FUNCTION: Calculate total (with shipping)
   const calculateTotal = (): number => {
     return calculatePrice() + orderDetails.shippingCost;
   };
 
-  // ✅ FUNCTION: Reset form after successful order
   const resetForm = () => {
     console.log('🔄 Resetting order form...');
     setUploadedFile(null);
     setPaymentProof(null);
     setOrderDetails(INITIAL_ORDER_DETAILS);
     setCurrentStep(1);
-    // ⚠️ DON'T reset currentUser - user tetap login!
   };
 
   return {
@@ -231,6 +271,7 @@ export function useOrderForm(service: any) {
     calculatePrice,
     calculateTotal,
     resetForm,
-    loadCurrentUser, // Export untuk manual reload kalau perlu
+    loadCurrentUser,
+    updateCurrentUser,
   };
 }

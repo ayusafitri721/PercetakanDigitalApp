@@ -13,16 +13,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from './contexts/CartContext';
 import CartCheckoutScreen from './CartCheckoutScreen';
-
-interface UserData {
-  id_customer?: number;
-  nama_lengkap?: string;
-  email?: string;
-  no_telepon?: string;
-  alamat?: string;
-  kota?: string;
-  provinsi?: string;
-}
+import { CurrentUser } from '../../types/user.types';
 
 interface CartScreenProps {
   onBack: () => void;
@@ -47,42 +38,57 @@ export default function CartScreen({
 
   // State hooks
   const [showCheckout, setShowCheckout] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<CurrentUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // FETCH USER DATA dari AsyncStorage + NORMALISASI DATA!
+  // ✅ FETCH USER DATA dari AsyncStorage
   useEffect(() => {
     const initScreen = async () => {
       try {
         setLoadingUser(true);
         const userJson = await AsyncStorage.getItem('userData');
 
+        console.log('🔍 CartScreen - Raw AsyncStorage data:', userJson);
+
         if (userJson) {
           const parsed = JSON.parse(userJson);
-          const rawUser = parsed.user || parsed; // bisa {user: {...}} atau langsung {...}
+          console.log('🔍 CartScreen - Parsed data:', parsed);
 
-          // NORMALISASI DATA supaya SELALU punya key yang sama!
-          const normalizedUser: UserData = {
-            id_customer: rawUser.id_user || rawUser.id_customer,
-            nama_lengkap: rawUser.nama || rawUser.nama_lengkap || 'Pengguna',
+          // ✅ Ambil user object (handle berbagai struktur response)
+          const rawUser = parsed.user || parsed.data || parsed;
+          console.log('🔍 CartScreen - Raw user object:', rawUser);
+
+          // ✅ SIMPLE: Langsung ambil field yang ada, pastikan id_user ada
+          if (!rawUser.id_user) {
+            console.error('❌ No id_user found in user data!');
+            Alert.alert(
+              'Error',
+              'Data user tidak lengkap. Silakan login ulang.',
+            );
+            setUserData(null);
+            return;
+          }
+
+          const normalizedUser: CurrentUser = {
+            id_user: String(rawUser.id_user), // ✅ Pastikan string
+            nama: rawUser.nama || 'Pengguna',
             email: rawUser.email || '',
-            no_telepon: rawUser.no_telepon || rawUser.telp || '',
+            role: rawUser.role || 'pelanggan',
+            no_telepon: rawUser.no_telepon || '',
             alamat: rawUser.alamat || '',
             kota: rawUser.kota || '',
             provinsi: rawUser.provinsi || '',
           };
 
-          console.log(
-            'CartScreen - User data loaded & normalized:',
-            normalizedUser,
-          );
-
+          console.log('✅ CartScreen - Normalized user data:', normalizedUser);
           setUserData(normalizedUser);
         } else {
-          console.log('CartScreen - No user data in AsyncStorage');
+          console.log('⚠️ CartScreen - No user data in AsyncStorage');
+          Alert.alert('Error', 'Silakan login terlebih dahulu');
         }
       } catch (error) {
-        console.error('Error loading user data:', error);
+        console.error('❌ Error loading user data:', error);
+        Alert.alert('Error', 'Gagal memuat data user');
       } finally {
         setLoadingUser(false);
       }
@@ -162,6 +168,7 @@ export default function CartScreen({
       return;
     }
 
+    console.log('✅ Proceeding to checkout with user:', userData);
     setShowCheckout(true);
   };
 

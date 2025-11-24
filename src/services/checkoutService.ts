@@ -1,6 +1,6 @@
 // src/services/checkoutService.ts
 
-const API_BASE_URL = 'http://172.29.112.126/api-percetakan/api';
+import { API_BASE_URL } from '../config/api';
 
 interface UploadedFile {
   uri: string;

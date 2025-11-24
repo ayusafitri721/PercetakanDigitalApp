@@ -21,7 +21,8 @@ import OrderStepDelivery from './components/OrderStepDelivery';
 import OrderStepPayment from './components/OrderStepPayment';
 import PriceSummary from './components/PriceSummary';
 import { useCart } from './contexts/CartContext';
-import { processCheckout } from '../../services/checkoutService'; // ✅ PATH BENAR
+import { processCheckout } from '../../services/checkoutService';
+import { CurrentUser } from '../../types/user.types';
 
 interface UploadedFile {
   uri: string;
@@ -41,20 +42,12 @@ interface OrderDetails {
   paymentMethod: 'transfer' | 'qris' | '';
 }
 
-interface UserData {
-  id_customer?: number;
-  nama_lengkap?: string;
-  email?: string;
-  no_telepon?: string;
-  alamat?: string;
-  kota?: string;
-  provinsi?: string;
-}
+
 
 interface CartCheckoutScreenProps {
   onBack: () => void;
   onCheckoutSuccess: (orderId: number, kodeOrder: string) => void;
-  userData?: UserData | null;
+  userData?: CurrentUser | null; // ✅ Ganti dari UserData ke CurrentUser
 }
 
 export default function CartCheckoutScreen({
@@ -62,11 +55,14 @@ export default function CartCheckoutScreen({
   onCheckoutSuccess,
   userData,
 }: CartCheckoutScreenProps) {
+  // ✅ SEMUA HOOKS DI ATAS, SEBELUM CONDITIONAL LOGIC
   const { cartOrder, cartItems, cartCount, clearCart } = useCart();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [paymentProof, setPaymentProof] = useState<UploadedFile | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [loadingUser, setLoadingUser] = useState(false);
 
   const [orderDetails, setOrderDetails] = useState<OrderDetails>({
     deliveryMethod: 'cod',
@@ -79,11 +75,14 @@ export default function CartCheckoutScreen({
     paymentMethod: '',
   });
 
+  // ✅ Load user data dari prop
   useEffect(() => {
+    console.log('📥 CartCheckoutScreen - userData received:', userData);
     if (userData) {
+      setCurrentUser(userData);
       setOrderDetails(prev => ({
         ...prev,
-        recipientName: userData.nama_lengkap || '',
+        recipientName: userData.nama || '',
         recipientPhone: userData.no_telepon || '',
         shippingAddress: userData.alamat || '',
         city: userData.kota || '',
@@ -94,6 +93,22 @@ export default function CartCheckoutScreen({
 
   const updateDetails = (updates: Partial<OrderDetails>) => {
     setOrderDetails(prev => ({ ...prev, ...updates }));
+  };
+
+  // ✅ Handler untuk update user address dari child component
+  const handleUpdateUserAddress = (updatedUser: CurrentUser) => {
+    console.log('🔄 Parent received updated user data:', updatedUser);
+    setCurrentUser(updatedUser);
+
+    // Update SEMUA field di orderDetails
+    setOrderDetails(prev => ({
+      ...prev,
+      recipientName: updatedUser.nama || prev.recipientName,
+      recipientPhone: updatedUser.no_telepon || prev.recipientPhone,
+      shippingAddress: updatedUser.alamat || prev.shippingAddress,
+      city: updatedUser.kota || prev.city,
+      province: updatedUser.provinsi || prev.province,
+    }));
   };
 
   // ============================================
@@ -197,7 +212,8 @@ export default function CartCheckoutScreen({
   const handleSubmitCheckout = async () => {
     if (!validateStep2()) return;
 
-    if (!userData?.id_customer) {
+    // ✅ FIX: Gunakan currentUser.id_user
+    if (!currentUser?.id_user) {
       Alert.alert('Error', 'Data user tidak ditemukan. Silakan login ulang.');
       return;
     }
@@ -214,7 +230,6 @@ export default function CartCheckoutScreen({
       const shippingCost = orderDetails.shippingCost;
       const total = subtotal + shippingCost;
 
-      // ✅ MAP CART ITEMS - Sesuaikan dengan struktur CartContext kamu
       const mappedItems = cartItems.map((item: any) => ({
         id_product: item.product?.id_product || item.id_product,
         nama_product: item.product?.nama_product || item.nama_product,
@@ -227,7 +242,7 @@ export default function CartCheckoutScreen({
       }));
 
       const checkoutData = {
-        id_user: userData.id_customer,
+        id_user: parseInt(currentUser.id_user), // ✅ Parse ke number
         catatan_pelanggan: '',
         kecepatan_pengerjaan: 'normal',
         delivery_method: orderDetails.deliveryMethod,
@@ -246,7 +261,6 @@ export default function CartCheckoutScreen({
 
       console.log('🚀 Checkout data:', checkoutData);
 
-      // ⭐ PANGGIL CHECKOUT SERVICE
       const result = await processCheckout(checkoutData);
 
       if (result.success && result.orderId && result.kodeOrder) {
@@ -275,7 +289,7 @@ export default function CartCheckoutScreen({
   };
 
   // ============================================
-  // RENDER
+  // RENDER - EARLY RETURN SETELAH SEMUA HOOKS
   // ============================================
   if (!cartOrder) {
     return (
@@ -329,11 +343,11 @@ export default function CartCheckoutScreen({
         <View style={styles.customerCard}>
           <Text style={styles.customerLabel}>👤 Customer:</Text>
           <Text style={styles.customerName}>
-            {userData?.nama_lengkap || 'Loading...'}
+            {currentUser?.nama || 'Loading...'}
           </Text>
-          <Text style={styles.customerEmail}>{userData?.email || '-'}</Text>
+          <Text style={styles.customerEmail}>{currentUser?.email || '-'}</Text>
           <Text style={styles.customerPhone}>
-            📞 {userData?.no_telepon || '-'}
+            📞 {currentUser?.no_telepon || '-'}
           </Text>
         </View>
 
@@ -355,6 +369,9 @@ export default function CartCheckoutScreen({
           <OrderStepDelivery
             orderDetails={orderDetails}
             onUpdateDetails={updateDetails}
+            currentUser={currentUser}
+            loadingUser={loadingUser}
+            onUpdateUserAddress={handleUpdateUserAddress}
           />
         ) : (
           <OrderStepPayment
