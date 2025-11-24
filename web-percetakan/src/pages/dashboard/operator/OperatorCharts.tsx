@@ -1,6 +1,15 @@
 // OperatorCharts.tsx - Statistics Charts Component (Blue Theme)
 import React, { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, DollarSign, Package } from 'lucide-react';
+import {
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  Package,
+  Globe,
+  Store,
+  Zap,
+  Clock,
+} from 'lucide-react';
 
 interface ChartData {
   totalRevenue: number;
@@ -176,10 +185,9 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.5rem',
               }}
             >
-              🌐
+              <Globe size={24} />
             </div>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>
@@ -219,10 +227,9 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.5rem',
               }}
             >
-              🏪
+              <Store size={24} />
             </div>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>
@@ -312,9 +319,14 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                     fontSize: '0.875rem',
                     color: '#64748b',
                     marginBottom: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
                   }}
                 >
-                  🌐 Online
+                  <Globe size={14} />
+                  Online
                 </div>
                 <div
                   style={{
@@ -380,9 +392,14 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                     fontSize: '0.875rem',
                     color: '#64748b',
                     marginBottom: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
                   }}
                 >
-                  🏪 Offline
+                  <Store size={14} />
+                  Offline
                 </div>
                 <div
                   style={{
@@ -532,9 +549,13 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                       fontSize: '0.875rem',
                       color: '#64748b',
                       fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    ⚡ Express
+                    <Zap size={14} />
+                    Express
                   </span>
                 </div>
                 <div
@@ -588,9 +609,13 @@ const OperatorCharts: React.FC<OperatorChartsProps> = ({
                       fontSize: '0.875rem',
                       color: '#64748b',
                       fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    🕐 Normal
+                    <Clock size={14} />
+                    Normal
                   </span>
                 </div>
                 <div

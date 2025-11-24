@@ -1,5 +1,25 @@
 // OperatorComponents.tsx - All Small Components
 import React from 'react';
+import {
+  ClipboardList,
+  Zap,
+  Printer,
+  CheckCircle,
+  Eye,
+  RefreshCw,
+  Phone,
+  Store,
+  Globe,
+  FolderOpen,
+  Image as ImageIcon,
+  FileText,
+  Download,
+  Package,
+  Upload,
+  X,
+  AlertTriangle,
+  Check,
+} from 'lucide-react';
 import type {
   Order,
   Stats,
@@ -22,35 +42,119 @@ interface StatsCardsProps {
 export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
   return (
     <div className="stats-grid">
-      <div className="stat-card stat-blue">
-        <div className="stat-icon">📋</div>
+      <div
+        className="stat-card"
+        style={{
+          background: 'white',
+          color: '#1e293b',
+          border: '2px solid #e2e8f0',
+        }}
+      >
+        <div
+          className="stat-icon"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            color: 'white',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ClipboardList size={32} />
+        </div>
         <div className="stat-info">
           <div className="stat-label">Queue Hari Ini</div>
           <div className="stat-value">{stats.todayQueue}</div>
         </div>
       </div>
 
-      <div className="stat-card stat-pink">
-        <div className="stat-icon">⚡</div>
+      <div
+        className="stat-card"
+        style={{
+          background: 'white',
+          color: '#1e293b',
+          border: '2px solid #e2e8f0',
+        }}
+      >
+        <div
+          className="stat-icon"
+          style={{
+            background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+            color: 'white',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Zap size={32} />
+        </div>
         <div className="stat-info">
           <div className="stat-label">Express Priority</div>
           <div className="stat-value">{stats.expressQueue}</div>
         </div>
       </div>
 
-      <div className="stat-card stat-cyan">
-        <div className="stat-icon">🖨️</div>
+      <div
+        className="stat-card"
+        style={{
+          background: 'white',
+          color: '#1e293b',
+          border: '2px solid #e2e8f0',
+        }}
+      >
+        <div
+          className="stat-icon"
+          style={{
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+            color: 'white',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Printer size={32} />
+        </div>
         <div className="stat-info">
           <div className="stat-label">Dalam Proses</div>
           <div className="stat-value">{stats.inProgress}</div>
         </div>
       </div>
 
-      <div className="stat-card stat-green">
-        <div className="stat-icon">✅</div>
+      <div
+        className="stat-card"
+        style={{
+          background: 'white',
+          color: '#1e293b',
+          border: '2px solid #e2e8f0',
+        }}
+      >
+        <div
+          className="stat-icon"
+          style={{
+            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            color: 'white',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CheckCircle size={32} />
+        </div>
         <div className="stat-info">
           <div className="stat-label">Selesai Hari Ini</div>
-          <div className="stat-value">{stats.todayCompleted}</div>
+          <div className="stat-value">{stats.todayQueue}</div>
         </div>
       </div>
     </div>
@@ -87,10 +191,13 @@ export const QueueTable: React.FC<QueueTableProps> = ({
   if (orders.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-icon" style={{ fontSize: '4rem' }}>
-          ✅
+        <div
+          className="empty-icon"
+          style={{ fontSize: '4rem', color: '#2563eb' }}
+        >
+          <CheckCircle size={80} />
         </div>
-        <h3 style={{ color: '#28a745' }}>Tidak Ada Pesanan di Queue</h3>
+        <h3 style={{ color: '#2563eb' }}>Tidak Ada Pesanan di Queue</h3>
         <p>Semua pesanan sudah selesai dicetak!</p>
       </div>
     );
@@ -122,11 +229,11 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                 style={{
                   background:
                     order.status_order === 'selesai'
-                      ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)'
+                      ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
                       : 'transparent',
                   borderLeft:
                     order.status_order === 'selesai'
-                      ? '4px solid #28a745'
+                      ? '4px solid #2563eb'
                       : order.kecepatan_pengerjaan === 'express'
                       ? '4px solid #dc2626'
                       : 'none',
@@ -147,7 +254,10 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                   <div className="order-code">
                     <strong>{order.kode_order}</strong>
                     {order.kecepatan_pengerjaan === 'express' && (
-                      <span className="express-tag">⚡ EXPRESS</span>
+                      <span className="express-tag">
+                        <Zap size={14} style={{ marginRight: '4px' }} />
+                        EXPRESS
+                      </span>
                     )}
                   </div>
                 </td>
@@ -156,7 +266,8 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                     <div className="customer-name">{order.nama_customer}</div>
                     {order.telepon_customer && (
                       <div className="customer-phone">
-                        📞 {order.telepon_customer}
+                        <Phone size={14} style={{ marginRight: '4px' }} />
+                        {order.telepon_customer}
                       </div>
                     )}
                   </div>
@@ -167,9 +278,17 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                       order.jenis_order === 'offline' ? 'offline' : 'online'
                     }`}
                   >
-                    {order.jenis_order === 'offline'
-                      ? '🏪 Offline'
-                      : '🌐 Online'}
+                    {order.jenis_order === 'offline' ? (
+                      <>
+                        <Store size={14} style={{ marginRight: '4px' }} />
+                        Offline
+                      </>
+                    ) : (
+                      <>
+                        <Globe size={14} style={{ marginRight: '4px' }} />
+                        Online
+                      </>
+                    )}
                   </span>
                 </td>
                 <td>
@@ -190,7 +309,8 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                       onClick={() => onViewDetail(order)}
                       className="btn-detail"
                     >
-                      👁️ Detail
+                      <Eye size={16} style={{ marginRight: '6px' }} />
+                      Detail
                     </button>
 
                     {['pending', 'dibayar', 'validasi'].includes(
@@ -201,7 +321,8 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                         disabled={updating}
                         className="btn-start"
                       >
-                        🔄 Mulai Cetak
+                        <RefreshCw size={16} style={{ marginRight: '6px' }} />
+                        Mulai Cetak
                       </button>
                     )}
 
@@ -211,7 +332,8 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                         disabled={updating}
                         className="btn-complete"
                       >
-                        ✅ Selesai Dikerjakan
+                        <CheckCircle size={16} style={{ marginRight: '6px' }} />
+                        Selesai Dikerjakan
                       </button>
                     )}
 
@@ -219,15 +341,18 @@ export const QueueTable: React.FC<QueueTableProps> = ({
                       <span
                         style={{
                           padding: '0.5rem 1rem',
-                          background: '#28a745',
+                          background: '#2563eb',
                           color: 'white',
                           borderRadius: '6px',
                           fontWeight: '700',
                           fontSize: '0.85rem',
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
                         }}
                       >
-                        ✅ SELESAI - Menunggu Kasir
+                        <CheckCircle size={16} />
+                        SELESAI - Menunggu Kasir
                       </span>
                     )}
                   </div>
@@ -255,16 +380,21 @@ export const DesignFilesSection: React.FC<DesignFilesSectionProps> = ({
     return (
       <div
         style={{
-          background: '#fff3cd',
-          border: '1px solid #ffc107',
+          background: '#dbeafe',
+          border: '1px solid #3b82f6',
           padding: '1rem',
           borderRadius: '8px',
           marginBottom: '1.5rem',
           textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
         }}
       >
-        <p style={{ margin: 0, color: '#856404' }}>
-          ℹ️ Pesanan ini tidak memerlukan file design
+        <AlertTriangle size={20} color="#1e40af" />
+        <p style={{ margin: 0, color: '#1e40af' }}>
+          Pesanan ini tidak memerlukan file design
         </p>
       </div>
     );
@@ -274,15 +404,24 @@ export const DesignFilesSection: React.FC<DesignFilesSectionProps> = ({
     <div
       className="detail-section"
       style={{
-        background: '#f0f9ff',
+        background: '#eff6ff',
         border: '2px solid #3b82f6',
         padding: '1.5rem',
         borderRadius: '8px',
         marginBottom: '1.5rem',
       }}
     >
-      <h3 style={{ color: '#1e40af', marginBottom: '1rem' }}>
-        📁 File Design Customer ({files.length})
+      <h3
+        style={{
+          color: '#1e40af',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <FolderOpen size={24} />
+        File Design Customer ({files.length})
       </h3>
 
       {files.map((file, idx) => (
@@ -303,8 +442,12 @@ export const DesignFilesSection: React.FC<DesignFilesSectionProps> = ({
               gap: '1rem',
             }}
           >
-            <div style={{ fontSize: '2.5rem' }}>
-              {file.tipe_file.match(/image/i) ? '🖼️' : '📄'}
+            <div style={{ fontSize: '2.5rem', color: '#3b82f6' }}>
+              {file.tipe_file.match(/image/i) ? (
+                <ImageIcon size={40} />
+              ) : (
+                <FileText size={40} />
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <p
@@ -323,7 +466,7 @@ export const DesignFilesSection: React.FC<DesignFilesSectionProps> = ({
                   marginBottom: '0.25rem',
                 }}
               >
-                📦 {formatFileSize(file.ukuran_file)} • 📅{' '}
+                {formatFileSize(file.ukuran_file)} •{' '}
                 {formatDate(file.tanggal_upload)}
               </p>
             </div>
@@ -337,9 +480,13 @@ export const DesignFilesSection: React.FC<DesignFilesSectionProps> = ({
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              📥 Download
+              <Download size={16} />
+              Download
             </button>
           </div>
 
@@ -376,7 +523,10 @@ export const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
   if (!items || items.length === 0) {
     return (
       <div className="detail-section">
-        <h3>📦 Item Pesanan</h3>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Package size={24} />
+          Item Pesanan
+        </h3>
         <p className="no-items">Tidak ada item</p>
       </div>
     );
@@ -384,7 +534,10 @@ export const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
 
   return (
     <div className="detail-section">
-      <h3>📦 Item Pesanan</h3>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Package size={24} />
+        Item Pesanan
+      </h3>
       <div className="items-list">
         {items.map((item, index) => (
           <div key={index} className="item-card">
@@ -392,7 +545,7 @@ export const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
               <strong>{item.nama_produk}</strong>
               <span
                 style={{
-                  background: '#667eea',
+                  background: '#3b82f6',
                   color: 'white',
                   padding: '0.25rem 0.75rem',
                   borderRadius: '12px',
@@ -404,26 +557,26 @@ export const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
             </div>
             {item.ukuran && (
               <div className="item-detail">
-                📐 Ukuran: <strong>{item.ukuran}</strong>
+                Ukuran: <strong>{item.ukuran}</strong>
               </div>
             )}
             {item.harga_satuan && (
               <div className="item-detail">
-                💰 Harga:{' '}
-                <strong>{formatRupiah(item.harga_satuan)} / pcs</strong>
+                Harga: <strong>{formatRupiah(item.harga_satuan)} / pcs</strong>
               </div>
             )}
             {item.catatan_item && (
               <div
                 className="item-detail"
                 style={{
-                  background: '#f1f5f9',
+                  background: '#eff6ff',
                   padding: '0.5rem',
                   borderRadius: '4px',
                   marginTop: '0.5rem',
+                  color: '#1e40af',
                 }}
               >
-                💬 {item.catatan_item}
+                {item.catatan_item}
               </div>
             )}
           </div>
@@ -465,7 +618,10 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
       >
         <div className="modal-header">
           <div>
-            <h2>📤 Upload File Hasil Per Item</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Upload size={24} />
+              Upload File Hasil Per Item
+            </h2>
             <p>
               Upload file hasil untuk setiap item pesanan ({uploadedCount}/
               {items.length} selesai)
@@ -476,7 +632,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
             className="modal-close"
             disabled={uploading}
           >
-            ✕
+            <X size={24} />
           </button>
         </div>
 
@@ -484,8 +640,8 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
           {/* Warning Info */}
           <div
             style={{
-              background: '#fff3cd',
-              border: '2px solid #ffc107',
+              background: '#dbeafe',
+              border: '2px solid #3b82f6',
               padding: '1rem',
               borderRadius: '8px',
               marginBottom: '1.5rem',
@@ -495,16 +651,20 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
               style={{
                 margin: '0 0 0.5rem 0',
                 fontSize: '1rem',
-                color: '#856404',
+                color: '#1e40af',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              ⚠️ PENTING
+              <AlertTriangle size={20} />
+              PENTING
             </h3>
             <ul
               style={{
                 margin: 0,
                 paddingLeft: '1.5rem',
-                color: '#856404',
+                color: '#1e40af',
                 fontSize: '0.9rem',
                 lineHeight: '1.6',
               }}
@@ -530,10 +690,10 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
               <div
                 key={item.id_item}
                 style={{
-                  background: item.file ? '#d4edda' : '#f8f9fa',
+                  background: item.file ? '#dbeafe' : '#f8f9fa',
                   border: item.file
-                    ? '2px solid #28a745'
-                    : '2px dashed #667eea',
+                    ? '2px solid #3b82f6'
+                    : '2px dashed #93c5fd',
                   padding: '1.5rem',
                   borderRadius: '8px',
                   transition: 'all 0.3s ease',
@@ -550,7 +710,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                 >
                   <div
                     style={{
-                      background: item.file ? '#28a745' : '#667eea',
+                      background: item.file ? '#3b82f6' : '#93c5fd',
                       color: 'white',
                       width: '40px',
                       height: '40px',
@@ -562,7 +722,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                       fontSize: '1.2rem',
                     }}
                   >
-                    {item.file ? '✓' : index + 1}
+                    {item.file ? <Check size={24} /> : index + 1}
                   </div>
                   <div style={{ flex: 1 }}>
                     <h4
@@ -588,10 +748,10 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                     <div
                       style={{
                         fontSize: '2rem',
-                        color: '#28a745',
+                        color: '#3b82f6',
                       }}
                     >
-                      ✅
+                      <CheckCircle size={32} />
                     </div>
                   )}
                 </div>
@@ -600,14 +760,17 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                 <div>
                   <label
                     style={{
-                      display: 'block',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
                       marginBottom: '0.5rem',
                       fontWeight: 'bold',
                       fontSize: '0.9rem',
                       color: '#333',
                     }}
                   >
-                    📁 Upload File Hasil *
+                    <FolderOpen size={16} />
+                    Upload File Hasil *
                   </label>
                   <input
                     type="file"
@@ -641,7 +804,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                         marginTop: '0.75rem',
                         padding: '0.75rem',
                         background: 'white',
-                        border: '1px solid #28a745',
+                        border: '1px solid #3b82f6',
                         borderRadius: '6px',
                       }}
                     >
@@ -652,15 +815,19 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                           gap: '0.75rem',
                         }}
                       >
-                        <div style={{ fontSize: '1.5rem' }}>
-                          {item.file.type.includes('pdf') ? '📄' : '🖼️'}
+                        <div style={{ fontSize: '1.5rem', color: '#3b82f6' }}>
+                          {item.file.type.includes('pdf') ? (
+                            <FileText size={24} />
+                          ) : (
+                            <ImageIcon size={24} />
+                          )}
                         </div>
                         <div style={{ flex: 1 }}>
                           <p
                             style={{
                               margin: 0,
                               fontWeight: 'bold',
-                              color: '#155724',
+                              color: '#1e40af',
                               fontSize: '0.9rem',
                             }}
                           >
@@ -670,7 +837,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                             style={{
                               margin: '0.25rem 0 0 0',
                               fontSize: '0.8rem',
-                              color: '#155724',
+                              color: '#1e40af',
                             }}
                           >
                             {(item.file.size / 1024 / 1024).toFixed(2)} MB
@@ -701,7 +868,7 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
               }}
             >
               <span style={{ fontWeight: 'bold' }}>Progress Upload:</span>
-              <span style={{ fontWeight: 'bold', color: '#667eea' }}>
+              <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>
                 {uploadedCount} / {items.length} items
               </span>
             </div>
@@ -719,8 +886,8 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                   width: `${(uploadedCount / items.length) * 100}%`,
                   height: '100%',
                   background: allUploaded
-                    ? 'linear-gradient(90deg, #28a745 0%, #20c997 100%)'
-                    : 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                    ? 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)'
+                    : 'linear-gradient(90deg, #93c5fd 0%, #60a5fa 100%)',
                   transition: 'width 0.3s ease',
                 }}
               />
@@ -755,18 +922,33 @@ export const UploadResultModal: React.FC<UploadResultModalProps> = ({
                 background:
                   !allUploaded || uploading
                     ? '#ccc'
-                    : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: 'white',
                 cursor: !allUploaded || uploading ? 'not-allowed' : 'pointer',
                 fontWeight: '600',
                 fontSize: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}
             >
-              {uploading
-                ? '⏳ Mengupload...'
-                : allUploaded
-                ? `✅ Upload Semua & Selesaikan (${items.length} files)`
-                : `⚠️ Lengkapi ${items.length - uploadedCount} item lagi`}
+              {uploading ? (
+                <>
+                  <RefreshCw size={16} className="spin" />
+                  Mengupload...
+                </>
+              ) : allUploaded ? (
+                <>
+                  <CheckCircle size={16} />
+                  Upload Semua & Selesaikan ({items.length} files)
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={16} />
+                  Lengkapi {items.length - uploadedCount} item lagi
+                </>
+              )}
             </button>
           </div>
         </div>

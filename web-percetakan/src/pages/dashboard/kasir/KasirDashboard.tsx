@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             }}
           >
             <img
-              src="https://via.placeholder.com/50/667eea/ffffff?text=PG"
+              src="/public/images/Logo-Im.png"
               alt="PrintifyGo Logo"
               style={{
                 width: '50px',

@@ -197,7 +197,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
       {/* Header */}
       <div className="content-header">
         <div>
-          <h1>📜 Order History</h1>
+          <h1>Order History</h1>
           <p>Complete record of all finished orders</p>
         </div>
         <button
@@ -498,7 +498,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                       >
                         {order.status_order === 'dikirim'
                           ? '🚚 DIKIRIM'
-                          : '✅ SELESAI'}
+                          : ' SELESAI'}
                       </span>
                     </td>
                     <td>{formatDate(order.tanggal_order)}</td>
@@ -599,7 +599,7 @@ const CompletedHistory: React.FC<CompletedHistoryProps> = ({ onRefresh }) => {
                     style={{ background: '#f0fdf4', borderColor: '#22c55e' }}
                   >
                     <h3 style={{ color: '#166534' }}>
-                      ✅ Result Files ({selectedOrder.result_files.length})
+                      Result Files ({selectedOrder.result_files.length})
                     </h3>
                     {selectedOrder.result_files.map(
                       (file: any, idx: number) => (
