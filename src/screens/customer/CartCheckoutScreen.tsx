@@ -23,6 +23,7 @@ import PriceSummary from './components/PriceSummary';
 import { useCart } from './contexts/CartContext';
 import { processCheckout } from '../../services/checkoutService';
 import { CurrentUser } from '../../types/user.types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UploadedFile {
   uri: string;
@@ -42,12 +43,10 @@ interface OrderDetails {
   paymentMethod: 'transfer' | 'qris' | '';
 }
 
-
-
 interface CartCheckoutScreenProps {
   onBack: () => void;
   onCheckoutSuccess: (orderId: number, kodeOrder: string) => void;
-  userData?: CurrentUser | null; // ✅ Ganti dari UserData ke CurrentUser
+  userData?: CurrentUser | null;
 }
 
 export default function CartCheckoutScreen({
@@ -95,12 +94,15 @@ export default function CartCheckoutScreen({
     setOrderDetails(prev => ({ ...prev, ...updates }));
   };
 
-  // ✅ Handler untuk update user address dari child component
-  const handleUpdateUserAddress = (updatedUser: CurrentUser) => {
-    console.log('🔄 Parent received updated user data:', updatedUser);
+  // ✅ Handler untuk update user address DAN UPDATE ASYNCSTORAGE
+  // Fungsi ini dipanggil dari OrderStepDelivery setelah berhasil save ke database
+  const handleUpdateUserAddress = async (updatedUser: CurrentUser) => {
+    console.log('🔄 CartCheckout received updated user data:', updatedUser);
+
+    // Update state lokal
     setCurrentUser(updatedUser);
 
-    // Update SEMUA field di orderDetails
+    // Update orderDetails
     setOrderDetails(prev => ({
       ...prev,
       recipientName: updatedUser.nama || prev.recipientName,
@@ -109,6 +111,19 @@ export default function CartCheckoutScreen({
       city: updatedUser.kota || prev.city,
       province: updatedUser.provinsi || prev.province,
     }));
+
+    // ✅ PENTING: Update AsyncStorage supaya alamat tetap ada saat reload
+    try {
+      const userDataString = await AsyncStorage.getItem('userData');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        userData.user = updatedUser;
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        console.log('✅ AsyncStorage updated with new address');
+      }
+    } catch (error) {
+      console.error('❌ Error updating AsyncStorage:', error);
+    }
   };
 
   // ============================================
@@ -242,7 +257,7 @@ export default function CartCheckoutScreen({
       }));
 
       const checkoutData = {
-        id_user: parseInt(currentUser.id_user), // ✅ Parse ke number
+        id_user: parseInt(currentUser.id_user),
         catatan_pelanggan: '',
         kecepatan_pengerjaan: 'normal',
         delivery_method: orderDetails.deliveryMethod,
