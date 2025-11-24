@@ -1,11 +1,11 @@
+import { Zap, DollarSign, Leaf, Shield } from 'lucide-react';
+
 interface AboutSectionProps {
   courierImage?: string;
-  backgroundImage?: string;
 }
 
 const AboutSection = ({
   courierImage = '/images/courier.png',
-  backgroundImage = '/images/background-pattern.png',
 }: AboutSectionProps) => {
   const features = [
     {
@@ -13,7 +13,7 @@ const AboutSection = ({
       title: 'Fast Turnaround',
       description:
         'Professional printing with industry-leading speed and efficiency',
-      image: '/images/fast.jpg',
+      icon: Zap,
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     },
     {
@@ -21,7 +21,7 @@ const AboutSection = ({
       title: 'Cost-Effective',
       description:
         'Competitive pricing with premium quality materials and service',
-      image: '/images/money.jpg',
+      icon: DollarSign,
       gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     },
     {
@@ -29,7 +29,7 @@ const AboutSection = ({
       title: 'Eco-Friendly',
       description:
         'Sustainable printing solutions with environmentally safe materials',
-      image: '/images/eco.jpg',
+      icon: Leaf,
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     },
     {
@@ -37,7 +37,7 @@ const AboutSection = ({
       title: 'Secure & Reliable',
       description:
         'Safe handling and contactless delivery for your peace of mind',
-      image: '/images/secure.jpg',
+      icon: Shield,
       gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     },
   ];
@@ -47,7 +47,7 @@ const AboutSection = ({
       <style>{`
         .about-section {
           position: relative;
-          padding: 100px 24px;
+          padding: 80px 24px;
           background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
           overflow: hidden;
         }
@@ -56,11 +56,11 @@ const AboutSection = ({
           position: absolute;
           top: 40px;
           left: 40px;
-          width: 256px;
-          height: 256px;
+          width: 200px;
+          height: 200px;
           background: #93c5fd;
           border-radius: 50%;
-          filter: blur(80px);
+          filter: blur(60px);
           opacity: 0.3;
         }
 
@@ -68,16 +68,16 @@ const AboutSection = ({
           position: absolute;
           bottom: 40px;
           right: 40px;
-          width: 384px;
-          height: 384px;
+          width: 300px;
+          height: 300px;
           background: #7dd3fc;
           border-radius: 50%;
-          filter: blur(80px);
+          filter: blur(60px);
           opacity: 0.3;
         }
 
         .about-container {
-          max-width: 1280px;
+          max-width: 1200px;
           margin: 0 auto;
           position: relative;
           z-index: 10;
@@ -85,36 +85,13 @@ const AboutSection = ({
 
         .about-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 64px;
+          grid-template-columns: 1fr 1fr;
+          gap: 60px;
           align-items: center;
         }
 
         .about-image-wrapper {
           position: relative;
-        }
-
-        .about-circle-container {
-          position: relative;
-          width: 100%;
-          max-width: 500px;
-          margin: 0 auto;
-        }
-
-        .about-background-pattern {
-          position: absolute;
-          inset: 0;
-          background-image: url(${backgroundImage});
-          background-size: cover;
-          background-position: center;
-          border-radius: 50%;
-          opacity: 0.3;
-        }
-
-        .about-image-container {
-          position: relative;
-          z-index: 10;
-          padding: 48px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -122,24 +99,10 @@ const AboutSection = ({
 
         .about-courier-image {
           width: 100%;
+          max-width: 450px;
           height: auto;
           object-fit: contain;
-          display: block;
-          filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.1));
-        }
-
-        .about-gallery-badge {
-          position: absolute;
-          bottom: 20px;
-          left: 20px;
-          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-          color: white;
-          padding: 16px 32px;
-          border-radius: 16px;
-          font-weight: 600;
-          font-size: 1rem;
-          box-shadow: 0 8px 24px rgba(30, 58, 138, 0.3);
-          letter-spacing: 0.5px;
+          filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.15));
         }
 
         .about-content {
@@ -147,9 +110,9 @@ const AboutSection = ({
         }
 
         .about-title {
-          font-size: 3rem;
+          font-size: 2.5rem;
           font-weight: 700;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
           line-height: 1.2;
           color: #0f172a;
         }
@@ -159,78 +122,80 @@ const AboutSection = ({
         }
 
         .about-description {
-          font-size: 1.125rem;
-          margin-bottom: 48px;
+          font-size: 1rem;
+          margin-bottom: 40px;
           color: #475569;
-          line-height: 1.8;
+          line-height: 1.7;
         }
 
         .about-features-title {
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 600;
-          margin-bottom: 32px;
+          margin-bottom: 24px;
           color: #1e293b;
         }
 
         .about-features-list {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
         }
 
         .about-feature-card {
-          display: flex;
-          align-items: flex-start;
-          gap: 20px;
           background: white;
-          border-radius: 20px;
-          padding: 24px;
+          border-radius: 16px;
+          padding: 20px;
           transition: all 0.3s ease;
           cursor: pointer;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
           border: 1px solid #e2e8f0;
         }
 
         .about-feature-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
           border-color: transparent;
         }
 
         .about-feature-icon {
-          padding: 16px;
-          border-radius: 20px;
-          flex-shrink: 0;
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-width: 64px;
-          min-height: 64px;
-          overflow: hidden;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          margin-bottom: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .about-feature-image {
-          width: 40px;
-          height: 40px;
-          object-fit: contain;
-        }
-
-        .about-feature-content {
-          flex: 1;
+        .about-feature-icon svg {
+          width: 24px;
+          height: 24px;
+          color: white;
         }
 
         .about-feature-title {
           font-weight: 600;
-          font-size: 1.25rem;
-          margin-bottom: 8px;
+          font-size: 1rem;
+          margin-bottom: 6px;
           color: #1e293b;
         }
 
         .about-feature-description {
           color: #64748b;
-          font-size: 0.9375rem;
-          line-height: 1.6;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+
+        @media (max-width: 968px) {
+          .about-grid {
+            grid-template-columns: 1fr;
+            gap: 40px;
+          }
+
+          .about-features-list {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 768px) {
@@ -242,27 +207,12 @@ const AboutSection = ({
             font-size: 2rem;
           }
 
-          .about-grid {
-            gap: 40px;
-          }
-
           .about-features-title {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
           }
 
-          .about-feature-card {
-            padding: 20px;
-          }
-
-          .about-feature-icon {
-            min-width: 56px;
-            min-height: 56px;
-            padding: 12px;
-          }
-
-          .about-feature-image {
-            width: 32px;
-            height: 32px;
+          .about-courier-image {
+            max-width: 300px;
           }
         }
       `}</style>
@@ -274,16 +224,11 @@ const AboutSection = ({
         <div className="about-container">
           <div className="about-grid">
             <div className="about-image-wrapper">
-              <div className="about-circle-container">
-                <div className="about-background-pattern"></div>
-                <div className="about-image-container">
-                  <img
-                    src={courierImage}
-                    alt="PrintyGo Professional Service"
-                    className="about-courier-image"
-                  />
-                </div>
-              </div>
+              <img
+                src={courierImage}
+                alt="PrintyGo Professional Service"
+                className="about-courier-image"
+              />
             </div>
 
             <div className="about-content">
@@ -303,26 +248,23 @@ const AboutSection = ({
                 <h3 className="about-features-title">Our Key Advantages</h3>
 
                 <div className="about-features-list">
-                  {features.map((feature) => (
-                    <div key={feature.id} className="about-feature-card">
-                      <div
-                        className="about-feature-icon"
-                        style={{ background: feature.gradient }}
-                      >
-                        <img
-                          src={feature.image}
-                          alt={feature.title}
-                          className="about-feature-image"
-                        />
-                      </div>
-                      <div className="about-feature-content">
+                  {features.map(feature => {
+                    const IconComponent = feature.icon;
+                    return (
+                      <div key={feature.id} className="about-feature-card">
+                        <div
+                          className="about-feature-icon"
+                          style={{ background: feature.gradient }}
+                        >
+                          <IconComponent />
+                        </div>
                         <h4 className="about-feature-title">{feature.title}</h4>
                         <p className="about-feature-description">
                           {feature.description}
                         </p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

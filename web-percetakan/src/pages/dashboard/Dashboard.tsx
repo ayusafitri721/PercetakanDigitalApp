@@ -18,17 +18,11 @@ import MaterialList from '../materials/MaterialList';
 import OrdersList from '../orders/OrdersList';
 import ReportList from '../reports/ReportList';
 import './Dashboard.css';
-
+import SettingsProfile from '../../settings/SettingsProfile';
+import type { User } from '../../types/User';
 import { API_BASE_URL } from '../../config';
 
-interface User {
-  id_user: string;
-  nama: string;
-  email: string;
-  role: string;
-  no_telepon: string;
-  alamat: string;
-}
+
 
 interface Stats {
   totalOrders: number;
@@ -55,7 +49,8 @@ type MenuItem =
   | 'products'
   | 'materials'
   | 'orders'
-  | 'reports';
+  | 'reports'
+  | 'settings';
 
 // SVG Icons sebagai komponen
 const HomeIcon = () => (
@@ -143,6 +138,20 @@ const BarChartIcon = () => (
     <line x1="12" y1="20" x2="12" y2="10" />
     <line x1="18" y1="20" x2="18" y2="4" />
     <line x1="6" y1="20" x2="6" y2="16" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 1v6m0 6v6m0-18a2 2 0 0 1 2 2v.09a2 2 0 0 0 1 1.73l.13.07a2 2 0 0 0 2.72-.73l.52-.9a2 2 0 0 1 2.73-1l1.73 1a2 2 0 0 1 .73 2.73l-.52.9a2 2 0 0 0 .72 2.72l.13.07a2 2 0 0 0 1.73 1h1.09a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-.09a2 2 0 0 0-1.73 1l-.07.13a2 2 0 0 0 .73 2.72l.9.52a2 2 0 0 1 1 2.73l-1 1.73a2 2 0 0 1-2.73.73l-.9-.52a2 2 0 0 0-2.72.72l-.07.13a2 2 0 0 0-1 1.73V23a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.09a2 2 0 0 0-1-1.73l-.13-.07a2 2 0 0 0-2.72.73l-.52.9a2 2 0 0 1-2.73 1l-1.73-1a2 2 0 0 1-.73-2.73l.52-.9a2 2 0 0 0-.72-2.72l-.13-.07a2 2 0 0 0-1.73-1H1a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.09a2 2 0 0 0 1.73-1l.07-.13a2 2 0 0 0-.73-2.72l-.9-.52a2 2 0 0 1-1-2.73l1-1.73a2 2 0 0 1 2.73-.73l.9.52a2 2 0 0 0 2.72-.72l.07-.13a2 2 0 0 0 1-1.73V1a2 2 0 0 1 2-2h2z" />
   </svg>
 );
 
@@ -508,6 +517,7 @@ const Dashboard: React.FC = () => {
     { id: 'materials' as MenuItem, label: 'Materials', icon: WrenchIcon },
     { id: 'orders' as MenuItem, label: 'Orders', icon: ShoppingCartIcon },
     { id: 'reports' as MenuItem, label: 'Reports', icon: BarChartIcon },
+    { id: 'settings' as MenuItem, label: 'Settings', icon: SettingsIcon },
   ];
 
   const renderContent = () => {
@@ -532,6 +542,8 @@ const Dashboard: React.FC = () => {
         return <OrdersList />;
       case 'reports':
         return <ReportList />;
+      case 'settings': 
+        return <SettingsProfile user={user} onUpdateUser={setUser} />;
       default:
         return (
           <DashboardContent

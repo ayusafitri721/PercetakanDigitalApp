@@ -1,4 +1,4 @@
-// KasirDashboardWithSidebar.tsx - FULL VERSION WITH TOP BAR + HEADER
+// KasirDashboardWithSidebar.tsx - COLLAPSIBLE SIDEBAR VERSION
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -10,6 +10,8 @@ import {
   LogOut,
   Menu,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import StatsCards from './components/StatsCards';
 import RevenueSection from './components/RevenueSection';
@@ -108,6 +110,8 @@ interface SidebarProps {
   onMenuChange: (menu: string) => void;
   isMobileOpen: boolean;
   onMobileClose: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -115,6 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMenuChange,
   isMobileOpen,
   onMobileClose,
+  isCollapsed,
+  onToggleCollapse,
 }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
@@ -145,52 +151,98 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         style={{
-          width: '250px',
-          background: 'linear-gradient(180deg, #3b5998 0%, #2d4373 100%)',
+          width: isCollapsed ? '80px' : '280px',
+          background: 'linear-gradient(180deg, #1e3a5f 0%, #152844 100%)',
           height: '100vh',
           position: 'fixed',
           left: 0,
           top: 0,
           padding: '2rem 0',
-          boxShadow: '4px 0 12px rgba(0,0,0,0.1)',
+          boxShadow: '4px 0 12px rgba(0,0,0,0.2)',
           zIndex: 1000,
           transform: isMobileOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s ease',
+          transition: 'all 0.3s ease',
           overflowY: 'auto',
+          overflowX: 'hidden',
         }}
         className="sidebar"
       >
-        <div style={{ padding: '0 1.5rem', marginBottom: '2rem' }}>
+        {/* Logo Section */}
+        <div
+          style={{
+            padding: isCollapsed ? '0 1rem' : '0 1.5rem',
+            marginBottom: '2rem',
+            paddingBottom: '1.5rem',
+            borderBottom: '1px solid rgba(255,255,255,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            position: 'relative',
+          }}
+        >
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flex: 1,
+            }}
           >
-            <div
+            <img
+              src="https://via.placeholder.com/50/667eea/ffffff?text=PG"
+              alt="PrintifyGo Logo"
               style={{
-                width: '45px',
-                height: '45px',
-                background: 'white',
+                width: '50px',
+                height: '50px',
                 borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
+                objectFit: 'cover',
+                flexShrink: 0,
               }}
-            >
-              🖨️
-            </div>
-            <h1
-              style={{
-                color: 'white',
-                fontSize: '1.25rem',
-                margin: 0,
-                fontWeight: 'bold',
-              }}
-            >
-              PrintifyGo
-            </h1>
+            />
+            {!isCollapsed && (
+              <h1
+                style={{
+                  color: 'white',
+                  fontSize: '1.4rem',
+                  margin: 0,
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}
+              >
+                PrintifyGo
+              </h1>
+            )}
           </div>
+
+          {/* Toggle Button in Header */}
+          <button
+            onClick={onToggleCollapse}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+            }}
+            className="toggle-sidebar-btn-header"
+          >
+            {isCollapsed ? (
+              <ChevronRight size={18} color="white" strokeWidth={2.5} />
+            ) : (
+              <ChevronLeft size={18} color="white" strokeWidth={2.5} />
+            )}
+          </button>
         </div>
 
+        {/* Menu Items */}
         <nav style={{ padding: '0 0.75rem' }}>
           {menuItems.map(item => {
             const IconComponent = item.Icon;
@@ -209,24 +261,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                   background: isActive ? 'white' : 'transparent',
                   border: 'none',
                   borderRadius: '10px',
-                  color: isActive ? '#3b5998' : 'rgba(255,255,255,0.85)',
+                  color: isActive ? '#1e3a5f' : 'rgba(255,255,255,0.85)',
                   textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
                   gap: '0.875rem',
                   fontSize: '0.95rem',
                   fontWeight: isActive ? '600' : '500',
                   transition: 'all 0.2s ease',
+                  position: 'relative',
                 }}
+                title={isCollapsed ? item.label : ''}
               >
                 <IconComponent size={20} strokeWidth={2.5} />
-                <span>{item.label}</span>
+                {!isCollapsed && <span>{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
+        {/* User Profile & Logout */}
         <div
           style={{
             position: 'absolute',
@@ -235,17 +291,56 @@ const Sidebar: React.FC<SidebarProps> = ({
             right: '0.75rem',
           }}
         >
-          <div
-            style={{
-              padding: '1rem',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              color: 'white',
-              marginBottom: '0.75rem',
-            }}
-          >
+          {!isCollapsed && (
             <div
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+              style={{
+                padding: '1rem',
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+                color: 'white',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: '#667eea',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    flexShrink: 0,
+                  }}
+                >
+                  K
+                </div>
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
+                    Kasir Utama
+                  </div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Kasir</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isCollapsed && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: '0.75rem',
+              }}
             >
               <div
                 style={{
@@ -262,14 +357,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               >
                 K
               </div>
-              <div>
-                <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
-                  Kasir Utama
-                </div>
-                <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Kasir</div>
-              </div>
             </div>
-          </div>
+          )}
 
           <button
             style={{
@@ -287,9 +376,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               fontSize: '0.9rem',
               fontWeight: '600',
             }}
+            title="Logout"
           >
             <LogOut size={18} />
-            <span>Logout</span>
+            {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
       </aside>
@@ -301,6 +391,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
         @media (max-width: 768px) {
           .mobile-overlay { display: block !important; }
+          .toggle-sidebar-btn-header { display: none !important; }
+        }
+        .toggle-sidebar-btn-header:hover {
+          background: rgba(255,255,255,0.2);
+          border-color: rgba(255,255,255,0.3);
         }
       `}</style>
     </>
@@ -311,6 +406,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 const KasirDashboardWithSidebar: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -447,7 +543,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
     if (menu === 'create') setShowCreateOrder(true);
   };
 
-  // Get page title based on active menu
   const getPageTitle = () => {
     switch (activeMenu) {
       case 'dashboard':
@@ -472,9 +567,18 @@ const KasirDashboardWithSidebar: React.FC = () => {
         onMenuChange={handleMenuChange}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <main style={{ marginLeft: '250px', flex: 1 }} className="main-content">
+      <main
+        style={{
+          marginLeft: isSidebarCollapsed ? '80px' : '280px',
+          flex: 1,
+          transition: 'margin-left 0.3s ease',
+        }}
+        className="main-content"
+      >
         {/* Top Bar */}
         <div
           style={{
@@ -526,7 +630,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
         </div>
 
         <div className="kasir-container">
-          {/* Header Dashboard Kasir (hanya tampil di dashboard) */}
           {activeMenu === 'dashboard' && (
             <div
               style={{
