@@ -1,4 +1,4 @@
-// KasirDashboardWithSidebar.tsx - COLLAPSIBLE SIDEBAR VERSION
+// KasirDashboardWithSidebar.tsx - COLLAPSIBLE SIDEBAR VERSION WITH LOGOUT
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -129,6 +129,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'reports', label: 'Laporan', Icon: FileText },
     { id: 'settings', label: 'Pengaturan', Icon: Settings },
   ];
+
+  const handleLogout = () => {
+    if (window.confirm('Apakah Anda yakin ingin logout?')) {
+      // Hapus semua data login dari localStorage
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userId');
+
+      // Redirect ke halaman login - SESUAIKAN dengan path login Anda
+      window.location.href = '/login';
+
+      // Atau jika menggunakan React Router, gunakan:
+      // navigate('/login');
+    }
+  };
 
   return (
     <>
@@ -361,6 +377,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           <button
+            onClick={handleLogout}
             style={{
               width: '100%',
               padding: '0.875rem 1rem',
@@ -375,8 +392,17 @@ const Sidebar: React.FC<SidebarProps> = ({
               gap: '0.5rem',
               fontSize: '0.9rem',
               fontWeight: '600',
+              transition: 'all 0.2s ease',
             }}
             title="Logout"
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,107,107,0.1)';
+              e.currentTarget.style.borderColor = 'rgba(255,107,107,0.8)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(255,107,107,0.5)';
+            }}
           >
             <LogOut size={18} />
             {!isCollapsed && <span>Logout</span>}
@@ -730,6 +756,27 @@ const KasirDashboardWithSidebar: React.FC = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '12px',
+                    background:
+                      'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: 'none',
+                    padding: '14px 28px',
+                    borderRadius: '12px',
+                    color: 'white',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow =
+                      '0 6px 20px rgba(59, 130, 246, 0.4)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow =
+                      '0 4px 12px rgba(59, 130, 246, 0.3)';
                   }}
                 >
                   <PlusCircle size={20} strokeWidth={2.5} />

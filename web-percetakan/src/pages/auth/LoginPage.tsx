@@ -112,30 +112,22 @@ const LoginPage: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-box">
-        {/* LEFT SIDE - Illustration */}
+        {/* LEFT SIDE - Form */}
         <div className="login-left">
-          {/* <div className="brand">
-            <img
-              src="public/images/Logo-Prin.png"
-              alt="PrintyGo Logo"
-              className="brand-logo"
-            />
-          </div> */}
-          <div className="illustration">
-            <img
-              src="/images/Login-Screen.png"
-              alt="Login Illustration"
-            />
-          </div>
-        </div>
-
-        {/* RIGHT SIDE - Form */}
-        <div className="login-right">
           <div className="login-form-wrapper">
+            {/* Logo PrintyGo di atas title Login */}
+            <div className="login-brand">
+              <img
+                src="/images/logoprin.png"
+                alt="PrintyGo Logo"
+                className="login-brand-icon"
+              />
+              <span className="login-brand-name">PrintyGo</span>
+            </div>
+
             <h2 className="login-title">Login</h2>
             <p className="login-subtitle">
-              Lorem Ipsum dolor sit amet is simply text of printing typeseting
-              industry
+              Silakan masuk untuk melanjutkan ke dashboard Anda.
             </p>
 
             {error && (
@@ -172,26 +164,6 @@ const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            {/* <div className="divider">
-              <span>Or Sign In with</span>
-            </div>
-
-            <div className="social-buttons">
-              <button className="social-btn">
-                <img src="/assets/google-icon.png" alt="Google" />
-              </button>
-              <button className="social-btn">
-                <img src="/assets/facebook-icon.png" alt="Facebook" />
-              </button>
-              <button className="social-btn">
-                <img src="/assets/twitter-icon.png" alt="Twitter" />
-              </button>
-            </div>
-
-            <p className="signup-link">
-              Don't have an account? <a href="/signup">Sign Up</a>
-            </p> */}
-
             {/* Demo Accounts (Hidden by default) */}
             <details className="demo-accounts">
               <summary>Demo Accounts</summary>
@@ -207,6 +179,13 @@ const LoginPage: React.FC = () => {
                 </p>
               </div>
             </details>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE - Illustration */}
+        <div className="login-right">
+          <div className="illustration">
+            <img src="/images/Login-Screen.png" alt="Login Illustration" />
           </div>
         </div>
       </div>
