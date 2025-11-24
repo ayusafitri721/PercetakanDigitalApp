@@ -1,20 +1,21 @@
-// KasirDashboardWithSidebar.tsx - FULL VERSION
+// KasirDashboardWithSidebar.tsx - FULL VERSION WITH TOP BAR + HEADER
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  PlusCircle, 
-  FileText, 
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  PlusCircle,
+  FileText,
   Settings,
   LogOut,
-  Menu
+  Menu,
+  RefreshCw,
 } from 'lucide-react';
 import StatsCards from './components/StatsCards';
+import RevenueSection from './components/RevenueSection';
 import OrdersTable from './components/OrdersTable';
 import OrderDetailModal from './components/OrderDetailModal';
 import PeriodFilter from './components/PeriodFilter';
-// ✅ BENAR - import dari folder components
 import CreateOrderKasir from './components/CreateOrderKasir';
 import {
   formatRupiah,
@@ -25,6 +26,7 @@ import {
   getStatusPembayaran,
   getStatusPembayaranColor,
   calculateStats,
+  calculateRevenueData,
   filterOrdersByPeriod,
 } from './utils/kasirUtils';
 import './kasir.css';
@@ -69,12 +71,35 @@ interface Order {
   total_harga: number;
   status_order: string;
   status_pembayaran?: string;
+  metode_pembayaran?: string;
+  jumlah_bayar?: number;
   jenis_order?: string;
   tanggal_order: string;
   tanggal_selesai?: string;
   items?: OrderItem[];
   design_files?: DesignFile[];
   result_files?: ResultFile[];
+}
+
+interface Stats {
+  todayOrders: number;
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
+  pendingPayment: number;
+  pendingPaymentAmount: number;
+  completedToday: number;
+  completedTodayRevenue: number;
+}
+
+interface RevenueData {
+  total_pemasukan: number;
+  total_pending: number;
+  total_cash: number;
+  total_transfer: number;
+  total_qris: number;
+  paid_transactions: number;
+  pending_transactions: number;
 }
 
 // ============= SIDEBAR COMPONENT =============
@@ -101,7 +126,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isMobileOpen && (
         <div
           onClick={onMobileClose}
@@ -119,7 +143,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar */}
       <aside
         style={{
           width: '250px',
@@ -137,15 +160,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         }}
         className="sidebar"
       >
-        {/* Logo */}
         <div style={{ padding: '0 1.5rem', marginBottom: '2rem' }}>
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              marginBottom: '0.5rem',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
           >
             <div
               style={{
@@ -159,29 +176,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 fontSize: '1.5rem',
               }}
             >
-              
+              🖨️
             </div>
-            <div>
-              <h1
-                style={{
-                  color: 'white',
-                  fontSize: '1.25rem',
-                  margin: 0,
-                  fontWeight: 'bold',
-                }}
-              >
-                PrintifyGo
-              </h1>
-            </div>
+            <h1
+              style={{
+                color: 'white',
+                fontSize: '1.25rem',
+                margin: 0,
+                fontWeight: 'bold',
+              }}
+            >
+              PrintifyGo
+            </h1>
           </div>
         </div>
 
-        {/* Menu Items */}
         <nav style={{ padding: '0 0.75rem' }}>
           {menuItems.map(item => {
             const IconComponent = item.Icon;
             const isActive = activeMenu === item.id;
-
             return (
               <button
                 key={item.id}
@@ -206,31 +219,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   fontWeight: isActive ? '600' : '500',
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={e => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                    e.currentTarget.style.color = 'white';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.85)';
-                  }
-                }}
               >
-                <IconComponent
-                  size={20}
-                  strokeWidth={2.5}
-                  style={{ flexShrink: 0 }}
-                />
+                <IconComponent size={20} strokeWidth={2.5} />
                 <span>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
-        {/* User Info & Logout */}
         <div
           style={{
             position: 'absolute',
@@ -239,7 +235,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             right: '0.75rem',
           }}
         >
-          {/* User Card */}
           <div
             style={{
               padding: '1rem',
@@ -263,12 +258,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                   justifyContent: 'center',
                   color: 'white',
                   fontWeight: 'bold',
-                  fontSize: '1rem',
                 }}
               >
-                A
+                K
               </div>
-              <div style={{ flex: 1 }}>
+              <div>
                 <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
                   Kasir Utama
                 </div>
@@ -277,7 +271,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Logout Button */}
           <button
             style={{
               width: '100%',
@@ -293,15 +286,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               gap: '0.5rem',
               fontSize: '0.9rem',
               fontWeight: '600',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,107,107,0.1)';
-              e.currentTarget.style.borderColor = '#ff6b6b';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(255,107,107,0.5)';
             }}
           >
             <LogOut size={18} />
@@ -310,20 +294,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </aside>
 
-      {/* Styles */}
       <style>{`
         @media (min-width: 769px) {
-          .sidebar {
-            transform: translateX(0) !important;
-          }
-          .mobile-overlay {
-            display: none !important;
-          }
+          .sidebar { transform: translateX(0) !important; }
+          .mobile-overlay { display: none !important; }
         }
         @media (max-width: 768px) {
-          .mobile-overlay {
-            display: block !important;
-          }
+          .mobile-overlay { display: block !important; }
         }
       `}</style>
     </>
@@ -332,11 +309,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
 // ============= MAIN COMPONENT =============
 const KasirDashboardWithSidebar: React.FC = () => {
-  // Sidebar state
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Existing states from original component
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -346,38 +320,65 @@ const KasirDashboardWithSidebar: React.FC = () => {
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month'>(
     'today',
   );
-  const [stats, setStats] = useState({
+
+  const [stats, setStats] = useState<Stats>({
     todayOrders: 0,
     todayRevenue: 0,
     weekRevenue: 0,
     monthRevenue: 0,
     pendingPayment: 0,
+    pendingPaymentAmount: 0,
     completedToday: 0,
+    completedTodayRevenue: 0,
   });
 
-  // Fetch orders on mount and set interval
+  const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+
   useEffect(() => {
     fetchOrders();
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filter orders when period or orders change
   useEffect(() => {
     const filtered = filterOrdersByPeriod(allOrders, filterPeriod);
     setFilteredOrders(filtered);
   }, [filterPeriod, allOrders]);
 
-  // Fetch orders from API
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/orders.php`);
-      if (response.data.status === 'success') {
-        const orders = response.data.data?.orders || [];
-        setAllOrders(orders);
-        setStats(calculateStats(orders));
+      const ordersRes = await axios.get(`${API_BASE_URL}/orders.php`, {
+        params: { _t: Date.now() },
+      });
+
+      let ordersData: Order[] = [];
+      if (ordersRes.data.status === 'success') {
+        ordersData = ordersRes.data.data?.orders || [];
       }
+
+      const paymentsRes = await axios.get(`${API_BASE_URL}/payments.php`, {
+        params: { _t: Date.now() },
+      });
+
+      let paymentsData: any[] = [];
+      if (paymentsRes.data.status === 'success') {
+        paymentsData = paymentsRes.data.data?.payments || [];
+      }
+
+      const enrichedOrders = ordersData.map(order => {
+        const payment = paymentsData.find(p => p.id_order === order.id_order);
+        return {
+          ...order,
+          metode_pembayaran: payment?.metode_pembayaran || undefined,
+          status_pembayaran: payment?.status_pembayaran || 'pending',
+          jumlah_bayar: payment ? parseFloat(payment.jumlah_bayar) : undefined,
+        };
+      });
+
+      setAllOrders(enrichedOrders);
+      setStats(calculateStats(enrichedOrders));
+      setRevenueData(calculateRevenueData(enrichedOrders));
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -385,90 +386,87 @@ const KasirDashboardWithSidebar: React.FC = () => {
     }
   };
 
-  // Handle view order detail
   const handleViewDetail = async (order: Order) => {
     try {
-      // Fetch order detail
       const orderResponse = await axios.get(`${API_BASE_URL}/orders.php`, {
         params: { op: 'detail', id: order.id_order },
-        headers: { Accept: 'application/json' },
       });
       if (orderResponse.data.status !== 'success')
-        throw new Error('Gagal ambil detail order');
+        throw new Error('Gagal ambil detail');
       let orderDetail = orderResponse.data.data;
 
-      // Fetch design files
       try {
         const filesResponse = await axios.get(
           `${API_BASE_URL}/design_files.php`,
           {
             params: { op: 'by_order', id_order: order.id_order },
-            headers: { Accept: 'application/json' },
           },
         );
         if (filesResponse.data.status === 'success') {
           orderDetail.design_files = filesResponse.data.data?.files || [];
         }
-      } catch {
-        orderDetail.design_files = [];
-      }
+      } catch {}
 
-      // Fetch result files
       try {
         const resultResponse = await axios.get(
           `${API_BASE_URL}/result_files.php`,
           {
             params: { op: 'by_order', id_order: order.id_order },
-            headers: { Accept: 'application/json' },
           },
         );
         if (resultResponse.data.status === 'success') {
           orderDetail.result_files = resultResponse.data.data?.files || [];
         }
-      } catch {
-        orderDetail.result_files = [];
-      }
+      } catch {}
 
       setSelectedOrder(orderDetail);
       setShowDetailModal(true);
-    } catch (error: any) {
+    } catch {
       alert('Gagal memuat detail pesanan');
     }
   };
 
-  // Handle file download
   const handleDownloadFile = (fileUrl: string, fileName: string) => {
-    try {
-      const downloadUrl = `${API_BASE_URL}/download_file.php?file=${encodeURIComponent(
-        fileUrl,
-      )}`;
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      alert('Gagal download file');
-    }
+    const downloadUrl = `${API_BASE_URL}/download_file.php?file=${encodeURIComponent(
+      fileUrl,
+    )}`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Handle print invoice
   const handlePrintInvoice = (order: Order) => {
     window.open(`/invoice/${order.id_order}`, '_blank');
   };
 
-  // Handle menu change - auto open create order modal
   const handleMenuChange = (menu: string) => {
     setActiveMenu(menu);
-    if (menu === 'create') {
-      setShowCreateOrder(true);
+    if (menu === 'create') setShowCreateOrder(true);
+  };
+
+  // Get page title based on active menu
+  const getPageTitle = () => {
+    switch (activeMenu) {
+      case 'dashboard':
+        return 'Dashboard';
+      case 'orders':
+        return 'Pesanan';
+      case 'create':
+        return 'Buat Pesanan';
+      case 'reports':
+        return 'Laporan';
+      case 'settings':
+        return 'Pengaturan';
+      default:
+        return 'Dashboard';
     }
   };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f7fafc' }}>
-      {/* Sidebar */}
       <Sidebar
         activeMenu={activeMenu}
         onMenuChange={handleMenuChange}
@@ -476,55 +474,151 @@ const KasirDashboardWithSidebar: React.FC = () => {
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main Content */}
-      <main
-        style={{
-          marginLeft: '250px',
-          flex: 1,
-          transition: 'margin-left 0.3s ease',
-        }}
-        className="main-content"
-      >
-        <div className="kasir-container">
-          {/* Mobile Header */}
-          <div
-            style={{
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '1.5rem',
-            }}
-            className="mobile-header"
-          >
+      <main style={{ marginLeft: '250px', flex: 1 }} className="main-content">
+        {/* Top Bar */}
+        <div
+          style={{
+            background: 'white',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '20px 40px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
               style={{
-                background: 'white',
+                display: 'none',
+                background: 'transparent',
                 border: 'none',
-                padding: '0.75rem',
-                borderRadius: '8px',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                color: '#2d3748',
+              }}
+              className="mobile-menu-btn"
+            >
+              <Menu size={24} />
+            </button>
+            <h1
+              style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: '#2d3748',
+                margin: 0,
               }}
             >
-              <Menu size={24} color="#2d3748" />
-            </button>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#2d3748' }}>
-              Dashboard Kasir
-            </h2>
-            <div style={{ width: '40px' }} />
+              {getPageTitle()}
+            </h1>
           </div>
+          <div
+            style={{
+              fontSize: '15px',
+              color: '#718096',
+              fontWeight: '500',
+            }}
+          >
+            Welcome, <span style={{ color: '#2d3748' }}>Kasir Utama</span>
+          </div>
+        </div>
 
-          {/* Content based on active menu */}
+        <div className="kasir-container">
+          {/* Header Dashboard Kasir (hanya tampil di dashboard) */}
+          {activeMenu === 'dashboard' && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #3b5998 0%, #2d4373 100%)',
+                borderRadius: '16px',
+                padding: '32px 40px',
+                marginBottom: '30px',
+                boxShadow: '0 4px 20px rgba(59, 89, 152, 0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '20px',
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    color: 'white',
+                    fontSize: '32px',
+                    fontWeight: '700',
+                    margin: '0 0 8px 0',
+                  }}
+                >
+                  Dashboard Kasir
+                </h2>
+                <p
+                  style={{
+                    color: 'rgba(255, 255, 255, 0.85)',
+                    fontSize: '16px',
+                    margin: 0,
+                  }}
+                >
+                  Digital Printing Management System
+                </p>
+              </div>
+              <button
+                onClick={fetchOrders}
+                disabled={loading}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  color: 'white',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  opacity: loading ? 0.7 : 1,
+                }}
+                onMouseEnter={e => {
+                  if (!loading) {
+                    e.currentTarget.style.background =
+                      'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.borderColor =
+                      'rgba(255, 255, 255, 0.5)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background =
+                    'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.borderColor =
+                    'rgba(255, 255, 255, 0.3)';
+                }}
+              >
+                <RefreshCw
+                  size={18}
+                  style={{
+                    animation: loading ? 'spin 1s linear infinite' : 'none',
+                  }}
+                />
+                <span>Refresh</span>
+              </button>
+            </div>
+          )}
+
           {activeMenu === 'dashboard' && (
             <>
-              {/* Stats Cards */}
               <StatsCards stats={stats} formatRupiah={formatRupiah} />
 
-              {/* Action Button */}
+              {revenueData && (
+                <RevenueSection
+                  revenueData={revenueData}
+                  formatRupiah={formatRupiah}
+                />
+              )}
+
               <div className="kasir-actions">
                 <button
                   className="btn-primary btn-large"
@@ -540,7 +634,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
                 </button>
               </div>
 
-              {/* Orders Table */}
               <div className="kasir-orders">
                 <div
                   style={{
@@ -576,7 +669,7 @@ const KasirDashboardWithSidebar: React.FC = () => {
 
           {activeMenu === 'orders' && (
             <div className="kasir-orders">
-              <h2 style={{ marginBottom: '1rem' }}>Semua Pesanan</h2>
+              <h2>Semua Pesanan</h2>
               <OrdersTable
                 orders={allOrders}
                 loading={loading}
@@ -593,113 +686,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
             </div>
           )}
 
-          {activeMenu === 'create' && (
-            <div
-              style={{
-                background: 'white',
-                padding: '3rem 2rem',
-                borderRadius: '16px',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ 
-                width: '80px',
-                height: '80px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1.5rem',
-              }}>
-                <PlusCircle size={40} color="white" strokeWidth={2.5} />
-              </div>
-              <h3
-                style={{
-                  margin: '0 0 0.5rem 0',
-                  fontSize: '1.5rem',
-                  color: '#1a202c',
-                }}
-              >
-                Buat Pesanan Baru
-              </h3>
-              <p
-                style={{
-                  color: '#718096',
-                  marginBottom: '2rem',
-                  fontSize: '0.95rem',
-                }}
-              >
-                Tambahkan pesanan offline atau online baru ke sistem
-              </p>
-              <button
-                onClick={() => setShowCreateOrder(true)}
-                style={{
-                  padding: '1rem 2rem',
-                  background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-                  transition: 'all 0.2s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 6px 20px rgba(102, 126, 234, 0.5)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(102, 126, 234, 0.3)';
-                }}
-              >
-                <PlusCircle size={20} strokeWidth={2.5} />
-                Mulai Buat Pesanan
-              </button>
-            </div>
-          )}
-
-          {(activeMenu === 'reports' || activeMenu === 'settings') && (
-            <div
-              style={{
-                background: 'white',
-                padding: '3rem 2rem',
-                borderRadius: '16px',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ 
-                width: '80px',
-                height: '80px',
-                background: 'linear-gradient(135deg, #f6ad55 0%, #ed8936 100%)',
-                borderRadius: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1.5rem',
-              }}>
-                <Settings size={40} color="white" strokeWidth={2.5} />
-              </div>
-              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', color: '#1a202c' }}>
-                Dalam Pengembangan
-              </h3>
-              <p style={{ color: '#718096' }}>
-                Fitur ini sedang dalam proses pengembangan
-              </p>
-            </div>
-          )}
-
-          {/* Detail Modal */}
           {showDetailModal && selectedOrder && (
             <OrderDetailModal
               order={selectedOrder}
@@ -714,7 +700,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
             />
           )}
 
-          {/* Create Order Modal */}
           {showCreateOrder && (
             <CreateOrderKasir
               onClose={success => {
@@ -726,15 +711,15 @@ const KasirDashboardWithSidebar: React.FC = () => {
         </div>
       </main>
 
-      {/* Responsive Styles */}
       <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 768px) {
-          .main-content {
-            margin-left: 0 !important;
-          }
-          .mobile-header {
-            display: flex !important;
-          }
+          .main-content { margin-left: 0 !important; }
+          .mobile-menu-btn { display: block !important; }
         }
       `}</style>
     </div>

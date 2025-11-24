@@ -3,7 +3,7 @@ import axios from 'axios';
 import './LoginPage.css';
 
 // GANTI IP INI dengan IP komputer kamu!
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../config';
 const API_LOGIN = '/auth.php?op=login';
 
 interface LoginResponse {

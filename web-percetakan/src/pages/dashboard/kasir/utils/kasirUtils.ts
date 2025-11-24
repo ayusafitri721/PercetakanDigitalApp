@@ -9,9 +9,22 @@ export interface Order {
   total_harga: number;
   status_order: string;
   status_pembayaran?: string;
+  metode_pembayaran?: string; // ✅ TAMBAHAN untuk revenue tracking
+  jumlah_bayar?: number; // ✅ TAMBAHAN untuk actual payment amount
   jenis_order?: string;
   tanggal_order: string;
   tanggal_selesai?: string;
+}
+
+// ✅ NEW: Interface untuk Revenue Data
+export interface RevenueData {
+  total_pemasukan: number;
+  total_pending: number;
+  total_cash: number;
+  total_transfer: number;
+  total_qris: number;
+  paid_transactions: number;
+  pending_transactions: number;
 }
 
 // Format rupiah
@@ -69,7 +82,7 @@ export const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-// Get status label dengan emoji (✅ FIXED: Tambah status 'siap')
+// Get status label dengan emoji
 export const getStatusLabel = (status: string): string => {
   const labels: { [key: string]: string } = {
     pending: '⏳ Pending',
@@ -77,7 +90,7 @@ export const getStatusLabel = (status: string): string => {
     dibayar: '💳 Dibayar',
     diproses: '🔄 Diproses',
     cetak: '🖨️ Cetak',
-    siap: '📦 Siap Diambil', // ✅ TAMBAHAN
+    siap: '📦 Siap Diambil',
     dikirim: '🚚 Dikirim',
     selesai: '✔️ Selesai',
     dibatalkan: '❌ Dibatalkan',
@@ -85,7 +98,7 @@ export const getStatusLabel = (status: string): string => {
   return labels[status] || status;
 };
 
-// Get status color (✅ FIXED: Tambah warna untuk status 'siap')
+// Get status color
 export const getStatusColor = (status: string): string => {
   const colors: { [key: string]: string } = {
     pending: '#ffc107',
@@ -93,7 +106,7 @@ export const getStatusColor = (status: string): string => {
     dibayar: '#17a2b8',
     diproses: '#007bff',
     cetak: '#007bff',
-    siap: '#28a745', // ✅ TAMBAHAN - Hijau untuk siap diambil
+    siap: '#28a745',
     dikirim: '#6c757d',
     selesai: '#28a745',
     dibatalkan: '#dc3545',
@@ -115,7 +128,7 @@ export const isOrderPaid = (order: Order): boolean => {
     'cetak',
     'selesai',
     'dikirim',
-    'siap', // ✅ TAMBAHAN
+    'siap',
   ].includes(order.status_order);
 };
 
@@ -133,7 +146,7 @@ export const getStatusPembayaran = (order: Order): string => {
       'diproses',
       'validasi',
       'cetak',
-      'siap', // ✅ TAMBAHAN
+      'siap',
       'selesai',
       'dikirim',
     ].includes(order.status_order)
@@ -147,7 +160,7 @@ export const getStatusPembayaranColor = (order: Order): string => {
   return getStatusPembayaran(order) === 'Lunas' ? '#28a745' : '#ffc107';
 };
 
-// Calculate stats from orders
+// ✅ ENHANCED: Calculate stats dengan revenue data
 export const calculateStats = (orders: Order[]) => {
   const now = new Date();
   const todayDate = getDateOnly(now.toISOString());
@@ -175,33 +188,54 @@ export const calculateStats = (orders: Order[]) => {
     o => getDateOnly(o.tanggal_order) >= monthStartDate,
   );
 
-  // Calculate revenues
+  // Calculate revenues (paid only)
   const todayRevenue = todayOrders
     .filter(isOrderPaid)
-    .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
+    .reduce((sum, o) => {
+      const amount = o.jumlah_bayar || parseFloat(o.total_harga.toString());
+      return sum + amount;
+    }, 0);
 
   const weekRevenue = weekOrders
     .filter(isOrderPaid)
-    .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
+    .reduce((sum, o) => {
+      const amount = o.jumlah_bayar || parseFloat(o.total_harga.toString());
+      return sum + amount;
+    }, 0);
 
   const monthRevenue = monthOrders
     .filter(isOrderPaid)
-    .reduce((sum, o) => sum + parseFloat(o.total_harga.toString()), 0);
+    .reduce((sum, o) => {
+      const amount = o.jumlah_bayar || parseFloat(o.total_harga.toString());
+      return sum + amount;
+    }, 0);
 
-  // Count pending payments
-  const pendingPayment = orders.filter(o => {
+  // ✅ Calculate pending payment amount
+  const pendingOrders = orders.filter(o => {
     if (o.status_pembayaran)
       return o.status_pembayaran.toLowerCase() === 'pending';
     return o.status_order === 'pending';
-  }).length;
+  });
 
-  // Count completed today
-  const completedToday = orders.filter(
+  const pendingPayment = pendingOrders.length;
+  const pendingPaymentAmount = pendingOrders.reduce(
+    (sum, o) => sum + parseFloat(o.total_harga.toString()),
+    0,
+  );
+
+  // ✅ Count completed today with revenue
+  const completedTodayOrders = orders.filter(
     o =>
       o.status_order === 'selesai' &&
       o.tanggal_selesai &&
       getDateOnly(o.tanggal_selesai) === todayDate,
-  ).length;
+  );
+
+  const completedToday = completedTodayOrders.length;
+  const completedTodayRevenue = completedTodayOrders.reduce((sum, o) => {
+    const amount = o.jumlah_bayar || parseFloat(o.total_harga.toString());
+    return sum + amount;
+  }, 0);
 
   return {
     todayOrders: todayOrders.length,
@@ -209,7 +243,88 @@ export const calculateStats = (orders: Order[]) => {
     weekRevenue,
     monthRevenue,
     pendingPayment,
+    pendingPaymentAmount, // ✅ NEW
     completedToday,
+    completedTodayRevenue, // ✅ NEW
+  };
+};
+
+// ✅ NEW: Calculate Revenue Data (seperti Admin Dashboard)
+export const calculateRevenueData = (orders: Order[]): RevenueData => {
+  const now = new Date();
+  const todayDate = getDateOnly(now.toISOString());
+
+  // Filter today's orders only
+  const todayOrders = orders.filter(
+    o => getDateOnly(o.tanggal_order) === todayDate,
+  );
+
+  // Separate paid and pending transactions
+  const paidTxs = todayOrders.filter(order => {
+    if (order.status_pembayaran) {
+      const paidStatuses = ['dibayar', 'diterima', 'lunas', 'confirmed', 'paid'];
+      return paidStatuses.includes(order.status_pembayaran.toLowerCase());
+    }
+    return [
+      'dibayar',
+      'diproses',
+      'validasi',
+      'cetak',
+      'siap',
+      'selesai',
+      'dikirim',
+    ].includes(order.status_order);
+  });
+
+  const pendingTxs = todayOrders.filter(order => {
+    if (order.status_pembayaran) {
+      return order.status_pembayaran.toLowerCase() === 'pending';
+    }
+    return order.status_order === 'pending';
+  });
+
+  // Calculate total pemasukan (paid)
+  const total_pemasukan = paidTxs.reduce((sum, order) => {
+    const amount = order.jumlah_bayar || parseFloat(order.total_harga.toString());
+    return sum + amount;
+  }, 0);
+
+  // Calculate total pending
+  const total_pending = pendingTxs.reduce(
+    (sum, order) => sum + parseFloat(order.total_harga.toString()),
+    0,
+  );
+
+  // Calculate by payment method
+  const total_cash = paidTxs
+    .filter(order => order.metode_pembayaran?.toLowerCase() === 'cash')
+    .reduce((sum, order) => {
+      const amount = order.jumlah_bayar || parseFloat(order.total_harga.toString());
+      return sum + amount;
+    }, 0);
+
+  const total_transfer = paidTxs
+    .filter(order => order.metode_pembayaran?.toLowerCase() === 'transfer')
+    .reduce((sum, order) => {
+      const amount = order.jumlah_bayar || parseFloat(order.total_harga.toString());
+      return sum + amount;
+    }, 0);
+
+  const total_qris = paidTxs
+    .filter(order => order.metode_pembayaran?.toLowerCase() === 'qris')
+    .reduce((sum, order) => {
+      const amount = order.jumlah_bayar || parseFloat(order.total_harga.toString());
+      return sum + amount;
+    }, 0);
+
+  return {
+    total_pemasukan,
+    total_pending,
+    total_cash,
+    total_transfer,
+    total_qris,
+    paid_transactions: paidTxs.length,
+    pending_transactions: pendingTxs.length,
   };
 };
 

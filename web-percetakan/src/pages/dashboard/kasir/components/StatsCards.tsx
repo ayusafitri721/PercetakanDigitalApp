@@ -1,4 +1,4 @@
-// components/kasir/StatsCards.tsx
+// components/kasir/StatsCards.tsx - ENHANCED VERSION
 import React from 'react';
 import { ShoppingBag, DollarSign, Clock, CheckCircle } from 'lucide-react';
 
@@ -8,7 +8,9 @@ interface Stats {
   weekRevenue: number;
   monthRevenue: number;
   pendingPayment: number;
+  pendingPaymentAmount: number; 
   completedToday: number;
+  completedTodayRevenue: number; 
 }
 
 interface StatsCardsProps {
@@ -39,14 +41,14 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
       value: stats.pendingPayment.toString(),
       icon: Clock,
       gradient: 'linear-gradient(135deg, #ed64a6 0%, #d53f8c 100%)',
-      subtitle: null,
+      subtitle: `Total: ${formatRupiah(stats.pendingPaymentAmount)}`, // ✅ Tampilkan nominal
     },
     {
       title: 'SELESAI HARI INI',
       value: stats.completedToday.toString(),
       icon: CheckCircle,
       gradient: 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)',
-      subtitle: null,
+      subtitle: `Pendapatan: ${formatRupiah(stats.completedTodayRevenue)}`, // ✅ Tampilkan revenue
     },
   ];
 
@@ -67,18 +69,21 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
             key={index}
             style={{
               background: 'white',
-              padding: '20px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow =
+                '0 8px 20px rgba(0, 0, 0, 0.12)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.boxShadow =
+                '0 4px 12px rgba(0, 0, 0, 0.08)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
@@ -88,14 +93,14 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                marginBottom: '12px',
+                marginBottom: '16px',
               }}
             >
               <div
                 style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '12px',
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -104,14 +109,14 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
                   flexShrink: 0,
                 }}
               >
-                <IconComponent size={24} strokeWidth={2.5} />
+                <IconComponent size={28} strokeWidth={2.5} />
               </div>
               <h3
                 style={{
                   margin: 0,
                   fontSize: '12px',
                   color: '#718096',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}
@@ -124,7 +129,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
             <div
               style={{
                 margin: '8px 0 0 0',
-                fontSize: '32px',
+                fontSize: '36px',
                 fontWeight: 700,
                 color: '#1a202c',
                 lineHeight: 1,
@@ -137,10 +142,10 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, formatRupiah }) => {
             {stat.subtitle && (
               <div
                 style={{
-                  margin: '8px 0 0 0',
+                  margin: '12px 0 0 0',
                   fontSize: '13px',
                   color: '#a0aec0',
-                  fontWeight: 400,
+                  fontWeight: 500,
                 }}
               >
                 {stat.subtitle}
