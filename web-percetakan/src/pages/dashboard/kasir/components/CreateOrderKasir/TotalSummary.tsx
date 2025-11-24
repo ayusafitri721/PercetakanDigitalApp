@@ -1,6 +1,7 @@
-// TotalSummary.tsx
+// TotalSummary.tsx - Blue Theme with Lucide Icons
 
 import React from 'react';
+import { DollarSign, Tag, Zap, Sparkles } from 'lucide-react';
 import type {
   OrderItem,
   OrderSettings,
@@ -15,7 +16,7 @@ interface TotalSummaryProps {
   totalHarga: number;
   orderSettings: OrderSettings;
   promoData?: PromoData | null;
-  autoDiscount?: AutoDiscount; // ✅ TAMBAHAN BARU
+  autoDiscount?: AutoDiscount;
 }
 
 const TotalSummary: React.FC<TotalSummaryProps> = ({
@@ -24,50 +25,78 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
   totalHarga,
   orderSettings,
   promoData,
-  autoDiscount, // ✅ TAMBAHAN BARU
+  autoDiscount,
 }) => {
   // Tentukan diskon mana yang aktif
   let activeDiscount = 0;
   let discountLabel = '';
+  let discountIcon = null;
 
   if (promoData && promoData.nilai_diskon_rupiah > 0) {
     activeDiscount = promoData.nilai_diskon_rupiah;
-    discountLabel = `🎟️ Promo (${promoData.kode_promo})`;
+    discountLabel = `Promo (${promoData.kode_promo})`;
+    discountIcon = <Tag size={16} strokeWidth={2.5} />;
   } else if (autoDiscount && autoDiscount.active) {
     activeDiscount = autoDiscount.discount_amount;
-    discountLabel = '✨ Auto-Discount';
+    discountLabel = 'Auto-Discount';
+    discountIcon = <Sparkles size={16} strokeWidth={2.5} />;
   } else if (orderSettings.diskon > 0) {
     activeDiscount = orderSettings.diskon;
-    discountLabel = '💸 Diskon Manual';
+    discountLabel = 'Diskon Manual';
+    discountIcon = <Tag size={16} strokeWidth={2.5} />;
   }
 
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
         color: 'white',
         padding: '1.5rem',
         borderRadius: '12px',
         textAlign: 'center',
+        boxShadow: '0 8px 24px rgba(30,64,175,0.4)',
       }}
     >
-      <h3
+      <div
         style={{
-          margin: '0 0 0.5rem 0',
-          fontSize: '0.95rem',
-          opacity: 0.9,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          marginBottom: '0.5rem',
         }}
       >
-        TOTAL PEMBAYARAN
-      </h3>
-      <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold' }}>
+        <DollarSign size={20} strokeWidth={2.5} />
+        <h3
+          style={{
+            margin: 0,
+            fontSize: '1rem',
+            opacity: 0.95,
+            fontWeight: '600',
+            letterSpacing: '0.5px',
+          }}
+        >
+          TOTAL PEMBAYARAN
+        </h3>
+      </div>
+      <p
+        style={{
+          margin: '0.5rem 0 0 0',
+          fontSize: '2.5rem',
+          fontWeight: '700',
+          letterSpacing: '-1px',
+        }}
+      >
         {formatRupiah(totalHarga)}
       </p>
+
       {items.length > 0 && (
         <div
           style={{
-            marginTop: '1rem',
-            fontSize: '0.9rem',
+            marginTop: '1.25rem',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid rgba(255,255,255,0.2)',
+            fontSize: '0.95rem',
             opacity: 0.95,
           }}
         >
@@ -75,24 +104,47 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
             style={{
               display: 'flex',
               justifyContent: 'space-between',
-              marginBottom: '0.25rem',
+              marginBottom: '0.5rem',
+              alignItems: 'center',
             }}
           >
-            <span>Subtotal ({items.length} items):</span>
-            <strong>{formatRupiah(subtotal)}</strong>
+            <span style={{ fontWeight: '500' }}>
+              Subtotal ({items.length} items):
+            </span>
+            <strong style={{ fontSize: '1.05rem' }}>
+              {formatRupiah(subtotal)}
+            </strong>
           </div>
 
-          {/* ✅ TAMPILKAN DISKON AKTIF (MODIFIKASI) */}
+          {/* Tampilkan diskon aktif */}
           {activeDiscount > 0 && (
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                marginBottom: '0.25rem',
+                marginBottom: '0.5rem',
+                alignItems: 'center',
+                background: 'rgba(255,255,255,0.15)',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                marginLeft: '-0.75rem',
+                marginRight: '-0.75rem',
               }}
             >
-              <span>{discountLabel}:</span>
-              <strong>- {formatRupiah(activeDiscount)}</strong>
+              <span
+                style={{
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                {discountIcon}
+                {discountLabel}:
+              </span>
+              <strong style={{ fontSize: '1.05rem' }}>
+                - {formatRupiah(activeDiscount)}
+              </strong>
             </div>
           )}
 
@@ -101,20 +153,40 @@ const TotalSummary: React.FC<TotalSummaryProps> = ({
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(255,255,255,0.15)',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                marginLeft: '-0.75rem',
+                marginRight: '-0.75rem',
               }}
             >
-              <span>⚡ Express (+50%):</span>
-              <strong>+ {formatRupiah(subtotal * 0.5)}</strong>
+              <span
+                style={{
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <Zap size={16} strokeWidth={2.5} />
+                Express (+50%):
+              </span>
+              <strong style={{ fontSize: '1.05rem' }}>
+                + {formatRupiah(subtotal * 0.5)}
+              </strong>
             </div>
           )}
         </div>
       )}
+
       {items.length === 0 && (
         <p
           style={{
-            margin: '0.5rem 0 0 0',
-            fontSize: '0.85rem',
+            margin: '0.75rem 0 0 0',
+            fontSize: '0.875rem',
             opacity: 0.9,
+            fontWeight: '500',
           }}
         >
           Belum ada produk di keranjang
