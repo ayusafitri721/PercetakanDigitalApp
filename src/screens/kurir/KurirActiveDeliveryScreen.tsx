@@ -1,4 +1,4 @@
-// screens/kurir/KurirActiveDeliveryScreen.tsx
+// screens/kurir/KurirActiveDeliveryScreen.tsx - UPDATED WITH COD PROGRESS
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -27,6 +27,8 @@ interface OrderDetail {
   alamat_pengiriman: string;
   total_harga: number;
   status_order: string;
+  status_pembayaran: string;
+  metode_pembayaran: string;
   tanggal_order: string;
   catatan: string;
   items: OrderItem[];
@@ -68,6 +70,8 @@ export default function KurirActiveDeliveryScreen({
       if (response.data.status === 'success') {
         const orderData = response.data.data;
         console.log('✅ Order status:', orderData.status_order);
+        console.log('💳 Payment status:', orderData.status_pembayaran);
+        console.log('💰 Payment method:', orderData.metode_pembayaran);
         setOrder(orderData);
       } else {
         throw new Error('Gagal memuat detail pesanan');
@@ -98,7 +102,7 @@ export default function KurirActiveDeliveryScreen({
 
   const handleStartDelivery = async () => {
     Alert.alert(
-      'Mulai Pengiriman',
+      '🚚 Mulai Pengiriman',
       'Konfirmasi bahwa Anda sedang mengirim pesanan ini?',
       [
         { text: 'Batal', style: 'cancel' },
@@ -108,15 +112,12 @@ export default function KurirActiveDeliveryScreen({
             try {
               setUpdating(true);
 
-              // ✅ FIX: Langsung set ke 'selesai' karena ENUM tidak ada 'dikirim'
+              // Update status order ke 'dikirim'
               const params = new URLSearchParams();
               params.append('id_order', orderId);
-              params.append('status', 'selesai');
+              params.append('status', 'dikirim');
 
-              console.log(
-                '🔄 Updating status to selesai (skipping dikirim) for order:',
-                orderId,
-              );
+              console.log('🔄 Updating status to dikirim for order:', orderId);
 
               const response = await axios.post(
                 `${API_BASE_URL}/orders.php?op=update_status`,
@@ -133,13 +134,12 @@ export default function KurirActiveDeliveryScreen({
               if (response.data.status === 'success') {
                 Alert.alert(
                   '✅ Berhasil',
-                  'Pesanan berhasil dikirim! Terima kasih.',
+                  'Pesanan dalam pengiriman. Selamat jalan!',
                   [
                     {
                       text: 'OK',
                       onPress: () => {
-                        // Kembali ke dashboard dan refresh
-                        onComplete();
+                        fetchOrderDetail();
                       },
                     },
                   ],
@@ -164,10 +164,15 @@ export default function KurirActiveDeliveryScreen({
   };
 
   const handleCompleteDelivery = async () => {
-    // Function ini tidak dipakai lagi karena langsung selesai
+    const isCOD = order?.metode_pembayaran === 'cod';
+
     Alert.alert(
-      'Selesaikan Pengiriman',
-      'Konfirmasi bahwa pesanan sudah diterima oleh customer?',
+      '✅ Selesaikan Pengiriman',
+      isCOD
+        ? `Konfirmasi:\n• Pesanan sudah diterima customer\n• Pembayaran COD sebesar Rp ${order.total_harga.toLocaleString(
+            'id-ID',
+          )} sudah diterima`
+        : 'Konfirmasi bahwa pesanan sudah diterima oleh customer?',
       [
         { text: 'Belum', style: 'cancel' },
         {
@@ -176,15 +181,16 @@ export default function KurirActiveDeliveryScreen({
             try {
               setUpdating(true);
 
-              const params = new URLSearchParams();
-              params.append('id_order', orderId);
-              params.append('status', 'selesai');
+              // 1. Update status order ke 'selesai'
+              const orderParams = new URLSearchParams();
+              orderParams.append('id_order', orderId);
+              orderParams.append('status', 'selesai');
 
               console.log('🔄 Updating status to selesai for order:', orderId);
 
-              const response = await axios.post(
+              const orderResponse = await axios.post(
                 `${API_BASE_URL}/orders.php?op=update_status`,
-                params.toString(),
+                orderParams.toString(),
                 {
                   headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -192,30 +198,59 @@ export default function KurirActiveDeliveryScreen({
                 },
               );
 
-              console.log('✅ Delivery completed:', response.data);
-
-              if (response.data.status === 'success') {
-                Alert.alert(
-                  '✅ Berhasil',
-                  'Pesanan berhasil dikirim! Terima kasih.',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        onComplete();
-                      },
-                    },
-                  ],
-                );
-              } else {
-                throw new Error(response.data.message || 'Update gagal');
+              if (orderResponse.data.status !== 'success') {
+                throw new Error('Gagal update status order');
               }
+
+              // 2. Jika COD, update status pembayaran ke 'lunas'
+              if (isCOD) {
+                console.log('💰 Updating COD payment to lunas...');
+
+                const paymentParams = new URLSearchParams();
+                paymentParams.append('id_order', orderId);
+                paymentParams.append('status_pembayaran', 'lunas');
+
+                const paymentResponse = await axios.post(
+                  `${API_BASE_URL}/payments.php?op=update_status`,
+                  paymentParams.toString(),
+                  {
+                    headers: {
+                      'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                  },
+                );
+
+                console.log('💳 Payment status updated:', paymentResponse.data);
+
+                if (paymentResponse.data.status !== 'success') {
+                  console.warn(
+                    '⚠️ Payment status update failed, but order completed',
+                  );
+                }
+              }
+
+              console.log('✅ Delivery completed successfully');
+
+              Alert.alert(
+                '🎉 Berhasil',
+                isCOD
+                  ? 'Pesanan selesai dan pembayaran COD telah lunas!'
+                  : 'Pesanan berhasil dikirim! Terima kasih.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      onComplete();
+                    },
+                  },
+                ],
+              );
             } catch (error: any) {
-              console.error('❌ Error updating status:', error);
+              console.error('❌ Error completing delivery:', error);
               Alert.alert(
                 'Error',
                 error.response?.data?.message ||
-                  'Gagal memperbarui status pesanan',
+                  'Gagal menyelesaikan pengiriman',
               );
             } finally {
               setUpdating(false);
@@ -233,6 +268,12 @@ export default function KurirActiveDeliveryScreen({
         bgColor: '#FEF3C7',
         textColor: '#D97706',
         icon: '📦',
+      },
+      dikirim: {
+        label: 'Dalam Pengiriman',
+        bgColor: '#E0E7FF',
+        textColor: '#4F46E5',
+        icon: '🚚',
       },
       selesai: {
         label: 'Terkirim',
@@ -270,6 +311,7 @@ export default function KurirActiveDeliveryScreen({
   const isReady = order.status_order === 'siap';
   const isOnDelivery = order.status_order === 'dikirim';
   const isCompleted = order.status_order === 'selesai';
+  const isCOD = order.metode_pembayaran === 'cod';
 
   return (
     <View style={styles.container}>
@@ -311,11 +353,73 @@ export default function KurirActiveDeliveryScreen({
               minute: '2-digit',
             })}
           </Text>
+
+          {/* COD Badge */}
+          {isCOD && (
+            <View style={styles.codBadge}>
+              <Text style={styles.codBadgeText}>💰 COD - Bayar di Tempat</Text>
+            </View>
+          )}
         </View>
+
+        {/* Payment Info - COD */}
+        {isCOD && (
+          <View style={styles.paymentCard}>
+            <Text style={styles.cardTitle}>💰 Pembayaran COD</Text>
+            <View style={styles.divider} />
+
+            <View style={styles.paymentRow}>
+              <Text style={styles.paymentLabel}>Status Pembayaran:</Text>
+              <View
+                style={[
+                  styles.paymentStatusBadge,
+                  {
+                    backgroundColor:
+                      order.status_pembayaran === 'lunas'
+                        ? '#D1FAE5'
+                        : '#FEF3C7',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.paymentStatusText,
+                    {
+                      color:
+                        order.status_pembayaran === 'lunas'
+                          ? '#10B981'
+                          : '#D97706',
+                    },
+                  ]}
+                >
+                  {order.status_pembayaran === 'lunas'
+                    ? '✅ Sudah Dibayar'
+                    : '⏳ Belum Dibayar'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.paymentRow}>
+              <Text style={styles.totalLabel}>Yang Harus Ditagih:</Text>
+              <Text style={styles.totalValue}>
+                Rp {order.total_harga.toLocaleString('id-ID')}
+              </Text>
+            </View>
+
+            {order.status_pembayaran !== 'lunas' && isOnDelivery && (
+              <View style={styles.codWarning}>
+                <Text style={styles.codWarningIcon}>💡</Text>
+                <Text style={styles.codWarningText}>
+                  Tagih pembayaran saat pesanan diterima customer
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Customer Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informasi Customer</Text>
+          <Text style={styles.cardTitle}>👤 Informasi Customer</Text>
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
@@ -367,7 +471,7 @@ export default function KurirActiveDeliveryScreen({
 
         {/* Order Items Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Detail Pesanan</Text>
+          <Text style={styles.cardTitle}>📦 Detail Pesanan</Text>
           <View style={styles.divider} />
 
           {order.items && order.items.length > 0 ? (
@@ -443,8 +547,11 @@ export default function KurirActiveDeliveryScreen({
               <View style={styles.deliveryNote}>
                 <Text style={styles.noteIcon}>⚠️</Text>
                 <Text style={styles.noteText}>
-                  Pastikan pesanan sudah diterima oleh customer sebelum
-                  menyelesaikan pengiriman
+                  {isCOD
+                    ? `Pastikan:\n• Pesanan sudah diterima customer\n• Pembayaran COD sebesar Rp ${order.total_harga.toLocaleString(
+                        'id-ID',
+                      )} sudah diterima`
+                    : 'Pastikan pesanan sudah diterima oleh customer sebelum menyelesaikan pengiriman'}
                 </Text>
               </View>
 
@@ -458,7 +565,11 @@ export default function KurirActiveDeliveryScreen({
                 ) : (
                   <>
                     <Text style={styles.buttonIcon}>✅</Text>
-                    <Text style={styles.buttonText}>Selesaikan Pengiriman</Text>
+                    <Text style={styles.buttonText}>
+                      {isCOD
+                        ? 'Terima Pembayaran & Selesai'
+                        : 'Selesaikan Pengiriman'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -469,7 +580,16 @@ export default function KurirActiveDeliveryScreen({
           {isCompleted && (
             <View style={styles.completedNote}>
               <Text style={styles.completedIcon}>✅</Text>
-              <Text style={styles.completedText}>Pengiriman telah selesai</Text>
+              <View>
+                <Text style={styles.completedText}>
+                  Pengiriman telah selesai
+                </Text>
+                {isCOD && order.status_pembayaran === 'lunas' && (
+                  <Text style={styles.completedSubtext}>
+                    Pembayaran COD telah diterima
+                  </Text>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -558,6 +678,68 @@ const styles = StyleSheet.create({
   orderDate: {
     fontSize: 13,
     color: '#6B7280',
+  },
+  codBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  codBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D97706',
+  },
+  paymentCard: {
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    elevation: 2,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#92400E',
+  },
+  paymentStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  paymentStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  codWarning: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  codWarningIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  codWarningText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '500',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -722,7 +904,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1FAE5',
     padding: 20,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   completedIcon: {
@@ -733,5 +914,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#065F46',
+  },
+  completedSubtext: {
+    fontSize: 13,
+    color: '#059669',
+    marginTop: 4,
   },
 });

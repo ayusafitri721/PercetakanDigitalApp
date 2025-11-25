@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import {
-  Printer,
   RefreshCw,
   ClipboardList,
   BarChart3,
@@ -312,9 +311,11 @@ const OperatorDashboard: React.FC = () => {
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="logo">
-            <div className="logo-icon">
-              <Printer size={24} />
-            </div>
+            <img
+              src="/images/logoprin.png"
+              alt="PrintifyGo Logo"
+              className="logo-image"
+            />
             {!sidebarCollapsed && <span className="logo-text">PrintifyGo</span>}
           </div>
           <button

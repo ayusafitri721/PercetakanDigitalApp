@@ -1,4 +1,4 @@
-// screens/customer/HomeScreen.tsx
+// screens/customer/HomeScreen.tsx - BLUE THEME LIKE KURIR
 import React from 'react';
 import {
   View,
@@ -37,7 +37,7 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* Header - BLUE THEME */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View>
@@ -54,20 +54,26 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
           </View>
         </View>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - BLUE THEME */}
         <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
-            <Icon name="cube-outline" size={28} color="#4F46E5" />
+          <View style={[styles.statCard, styles.statCardBlue]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#2563EB' }]}>
+              <Icon name="cube-outline" size={22} color="#FFFFFF" />
+            </View>
             <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>Total Pesanan</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
-            <Icon name="time-outline" size={28} color="#F59E0B" />
+          <View style={[styles.statCard, styles.statCardOrange]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#EA580C' }]}>
+              <Icon name="time-outline" size={22} color="#FFFFFF" />
+            </View>
             <Text style={styles.statNumber}>3</Text>
             <Text style={styles.statLabel}>Diproses</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#D1FAE5' }]}>
-            <Icon name="checkmark-circle-outline" size={28} color="#10B981" />
+          <View style={[styles.statCard, styles.statCardGreen]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#059669' }]}>
+              <Icon name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+            </View>
             <Text style={styles.statNumber}>9</Text>
             <Text style={styles.statLabel}>Selesai</Text>
           </View>
@@ -80,31 +86,31 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
             <ServiceCard
               iconName="print-outline"
               title="Print"
-              gradient="#667EEA"
+              gradient="#2563EB"
               onPress={() => onNavigate('catalog')}
             />
             <ServiceCard
               iconName="document-outline"
               title="Fotocopy"
-              gradient="#F093FB"
+              gradient="#7C3AED"
               onPress={() => onNavigate('catalog')}
             />
             <ServiceCard
               iconName="color-palette-outline"
               title="Desain"
-              gradient="#4FACFE"
+              gradient="#0891B2"
               onPress={() => Alert.alert('Info', 'Fitur desain segera hadir!')}
             />
             <ServiceCard
               iconName="book-outline"
               title="Jilid"
-              gradient="#43E97B"
+              gradient="#059669"
               onPress={() => Alert.alert('Info', 'Fitur jilid segera hadir!')}
             />
           </View>
         </View>
 
-        {/* Promo Banner */}
+        {/* Promo Banner - BLUE */}
         <TouchableOpacity
           style={styles.promoBanner}
           activeOpacity={0.8}
@@ -136,14 +142,14 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
             service="Print Berwarna"
             status="Diproses"
             date="20 Nov 2024"
-            statusColor="#F59E0B"
+            statusColor="#EA580C"
           />
           <OrderItem
             orderNumber="#ORD-2024-002"
             service="Fotocopy A4"
             status="Selesai"
             date="19 Nov 2024"
-            statusColor="#10B981"
+            statusColor="#059669"
           />
         </View>
 
@@ -151,7 +157,7 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - BLUE THEME */}
       <View style={styles.bottomNav}>
         <NavButton
           iconName="home"
@@ -160,10 +166,10 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
           onPress={() => handleTabPress('home')}
         />
         <NavButton
-          iconName="grid"
-          label="Katalog"
-          isActive={activeTab === 'catalog'}
-          onPress={() => handleTabPress('catalog', 'catalog')}
+          iconName="navigate"
+          label="Tracking"
+          isActive={activeTab === 'tracking'}
+          onPress={() => handleTabPress('tracking', 'tracking_list')}
         />
         <TouchableOpacity
           style={styles.fabButton}
@@ -235,7 +241,7 @@ function OrderItem({
         <Text style={styles.orderNumber}>{orderNumber}</Text>
         <Text style={styles.orderService}>{service}</Text>
         <View style={styles.orderDateContainer}>
-          <Icon name="calendar-outline" size={14} color="#9CA3AF" />
+          <Icon name="calendar-outline" size={14} color="#64748B" />
           <Text style={styles.orderDate}>{date}</Text>
         </View>
       </View>
@@ -271,7 +277,7 @@ function NavButton({
       <Icon
         name={isActive ? iconName : iconName + '-outline'}
         size={24}
-        color={isActive ? '#4F46E5' : '#9CA3AF'}
+        color={isActive ? '#2563EB' : '#94A3B8'}
       />
       <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
         {label}
@@ -283,7 +289,7 @@ function NavButton({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
   scrollView: {
     flex: 1,
@@ -292,17 +298,17 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    backgroundColor: '#2563EB',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
   },
   headerContent: {
     flexDirection: 'row',
@@ -310,59 +316,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greeting: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#BFDBFE',
     marginBottom: 4,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   profileButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4F46E5',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     gap: 12,
   },
   statCard: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+  },
+  statCardBlue: {
+    borderTopWidth: 3,
+    borderTopColor: '#2563EB',
+  },
+  statCardOrange: {
+    borderTopWidth: 3,
+    borderTopColor: '#EA580C',
+  },
+  statCardGreen: {
+    borderTopWidth: 3,
+    borderTopColor: '#059669',
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
+    color: '#1E293B',
     marginTop: 4,
   },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
   sectionContainer: {
-    marginTop: 28,
-    paddingHorizontal: 24,
+    marginTop: 24,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E293B',
     marginBottom: 16,
   },
   servicesGrid: {
@@ -377,11 +405,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 3,
   },
   serviceTitle: {
     fontSize: 14,
@@ -390,15 +418,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   promoBanner: {
-    marginHorizontal: 24,
+    marginHorizontal: 20,
     marginTop: 24,
     borderRadius: 16,
-    backgroundColor: '#4F46E5',
-    shadowColor: '#4F46E5',
+    backgroundColor: '#2563EB',
+    elevation: 4,
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
   },
   promoContent: {
     flexDirection: 'row',
@@ -417,7 +445,7 @@ const styles = StyleSheet.create({
   },
   promoText: {
     fontSize: 13,
-    color: '#E0E7FF',
+    color: '#BFDBFE',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -428,7 +456,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4F46E5',
+    color: '#2563EB',
   },
   orderItem: {
     backgroundColor: '#FFFFFF',
@@ -438,11 +466,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 2,
   },
   orderLeft: {
     flex: 1,
@@ -450,12 +478,12 @@ const styles = StyleSheet.create({
   orderNumber: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E293B',
     marginBottom: 4,
   },
   orderService: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B',
     marginBottom: 6,
   },
   orderDateContainer: {
@@ -465,7 +493,7 @@ const styles = StyleSheet.create({
   },
   orderDate: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#64748B',
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -487,15 +515,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     paddingVertical: 12,
-    paddingBottom: 20,
     paddingHorizontal: 8,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 20,
   },
   navButton: {
     flex: 1,
@@ -505,25 +532,25 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#94A3B8',
     marginTop: 4,
     fontWeight: '600',
   },
   navLabelActive: {
-    color: '#4F46E5',
+    color: '#2563EB',
   },
   fabButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -28,
-    shadowColor: '#4F46E5',
+    elevation: 8,
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 8,
   },
 });

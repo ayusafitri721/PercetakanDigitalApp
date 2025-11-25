@@ -1,13 +1,15 @@
-// screens/customer/DashboardScreen.tsx (UPDATED)
+// screens/customer/DashboardScreen.tsx - FIXED TRACKING
 import React, { useState } from 'react';
 import { View, StyleSheet, StatusBar, Alert } from 'react-native';
 import HomeScreen from './HomeScreen';
 import CatalogScreen from './CatalogScreen';
 import OrderFormScreen from './OrderFormScreen';
-import CartOrderFormScreen from './CartOrderFormScreen'; // 👈 IMPORT FILE BARU
+import CartOrderFormScreen from './CartOrderFormScreen';
 import CartScreen from './CartScreen';
 import CheckoutScreen from './CheckoutScreen';
 import OrderHistoryScreen from './OrderHistoryScreen';
+import OrderTrackingScreen from './OrderTrackingScreen';
+import OrderListToTrackScreen from './OrderListToTrackScreen';
 import ProfileScreen from './ProfileScreen';
 
 interface DashboardScreenProps {
@@ -25,15 +27,16 @@ interface DashboardScreenProps {
   onLogout: () => void;
 }
 
-// 👉 UPDATE TYPE dengan screen baru
 export type CustomerScreen =
   | 'home'
   | 'catalog'
-  | 'order' // Pesan langsung (3 step)
-  | 'cart_order' // 👈 BARU! Tambah ke keranjang (1 step)
-  | 'cart' // Lihat keranjang
-  | 'checkout' // Checkout dari keranjang
+  | 'order'
+  | 'cart_order'
+  | 'cart'
+  | 'checkout'
   | 'history'
+  | 'tracking_list' // 👈 List order untuk tracking
+  | 'tracking' // 👈 Detail tracking
   | 'profile';
 
 export default function DashboardScreen({
@@ -42,6 +45,7 @@ export default function DashboardScreen({
 }: DashboardScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<CustomerScreen>('home');
   const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   if (!userData) {
     return (
@@ -53,13 +57,17 @@ export default function DashboardScreen({
 
   const { user } = userData;
 
-  // Navigation helper
   const navigate = (screen: CustomerScreen, data?: any) => {
-    if (data) setSelectedService(data);
+    if (data) {
+      if (typeof data === 'string') {
+        setSelectedOrderId(data);
+      } else {
+        setSelectedService(data);
+      }
+    }
     setCurrentScreen(screen);
   };
 
-  // Render screen based on current state
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
@@ -71,18 +79,16 @@ export default function DashboardScreen({
             onBack={() => navigate('home')}
             onSelectService={(service, mode) => {
               setSelectedService(service);
-              // 👉 BEDAKAN MODE
               if (mode === 'cart') {
-                navigate('cart_order'); // Pakai CartOrderFormScreen
+                navigate('cart_order');
               } else {
-                navigate('order'); // Pakai OrderFormScreen
+                navigate('order');
               }
             }}
-            onViewCart={() => navigate('cart')} // 👈 Tombol cart di header
+            onViewCart={() => navigate('cart')}
           />
         );
 
-      // 👉 PESAN LANGSUNG (3 Step)
       case 'order':
         return (
           <OrderFormScreen
@@ -91,16 +97,14 @@ export default function DashboardScreen({
           />
         );
 
-      // 👉 TAMBAH KE KERANJANG (1 Step - FILE BARU)
       case 'cart_order':
         return (
           <CartOrderFormScreen
             service={selectedService}
-            onBack={() => navigate('cart')} // Setelah tambah, langsung ke cart
+            onBack={() => navigate('cart')}
           />
         );
 
-      // 👉 LIHAT KERANJANG
       case 'cart':
         return (
           <CartScreen
@@ -124,7 +128,6 @@ export default function DashboardScreen({
           />
         );
 
-      // 👉 CHECKOUT (dari cart)
       case 'checkout':
         return (
           <CheckoutScreen
@@ -149,6 +152,37 @@ export default function DashboardScreen({
           <OrderHistoryScreen
             userId={user.id_user}
             onBack={() => navigate('home')}
+          />
+        );
+
+      // 👉 LIST ORDER UNTUK TRACKING (dari menu bottom nav)
+      case 'tracking_list':
+        return (
+          <OrderListToTrackScreen
+            userId={user.id_user}
+            onBack={() => navigate('home')}
+            onSelectOrder={orderId => {
+              setSelectedOrderId(orderId);
+              navigate('tracking');
+            }}
+          />
+        );
+
+      // 👉 DETAIL TRACKING SCREEN
+      case 'tracking':
+        if (!selectedOrderId) {
+          // Kalau belum pilih order, balik ke list
+          navigate('tracking_list');
+          return null;
+        }
+
+        return (
+          <OrderTrackingScreen
+            orderId={selectedOrderId}
+            onBack={() => {
+              setSelectedOrderId(null);
+              navigate('tracking_list'); // Balik ke list tracking
+            }}
           />
         );
 
