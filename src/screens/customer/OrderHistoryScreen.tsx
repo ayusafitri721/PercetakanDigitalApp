@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
-import OrderDetailScreen from './OrderDetailScreen'; // TAMBAH IMPORT INI
+import OrderDetailScreen from './OrderDetailScreen';
 
 interface OrderHistoryScreenProps {
   userId: string;
@@ -43,13 +44,13 @@ import { API_BASE_URL } from '../../config/api';
 // Helper functions
 function getIconByCategory(cat: string): string {
   const lower = cat.toLowerCase();
-  if (lower.includes('dokumen')) return '📄';
-  if (lower.includes('banner')) return '🎨';
-  if (lower.includes('kaos')) return '👕';
-  if (lower.includes('stiker')) return '🏷️';
-  if (lower.includes('packaging')) return '📦';
-  if (lower.includes('foto')) return '📸';
-  return '🖨️';
+  if (lower.includes('dokumen')) return 'document-text';
+  if (lower.includes('banner')) return 'color-palette';
+  if (lower.includes('kaos')) return 'shirt';
+  if (lower.includes('stiker')) return 'pricetag';
+  if (lower.includes('packaging')) return 'cube';
+  if (lower.includes('foto')) return 'camera';
+  return 'print';
 }
 
 function mapOrderStatus(status: string): Order['status'] {
@@ -81,13 +82,13 @@ function getStatusConfig(status: Order['status']) {
     },
     processing: {
       label: 'Diproses',
-      bgColor: '#E0E7FF',
-      textColor: '#4F46E5',
+      bgColor: '#BFDBFE',
+      textColor: '#1E40AF',
     },
     printing: {
       label: 'Sedang Cetak',
-      bgColor: '#DDD6FE',
-      textColor: '#7C3AED',
+      bgColor: '#93C5FD',
+      textColor: '#1E3A8A',
     },
     ready: {
       label: 'Siap',
@@ -131,8 +132,6 @@ export default function OrderHistoryScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-
-  // ✅ TAMBAH STATE UNTUK DETAIL SCREEN
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -154,7 +153,6 @@ export default function OrderHistoryScreen({
         throw new Error('Gagal mengambil data orders');
       }
 
-      // Handle berbagai kemungkinan struktur response
       let allOrders = [];
 
       if (Array.isArray(ordersResponse.data.data)) {
@@ -199,13 +197,11 @@ export default function OrderHistoryScreen({
               `${API_BASE_URL}/order_items.php`,
             );
 
-            // LOG FULL RESPONSE untuk debugging
             console.log(
               '📦 Order Items API Response:',
               JSON.stringify(itemsResponse.data, null, 2),
             );
 
-            // Handle berbagai kemungkinan struktur response
             let allItems = [];
 
             if (itemsResponse.data.status === 'success') {
@@ -246,7 +242,6 @@ export default function OrderHistoryScreen({
               orderItems.length,
             );
 
-            // LOG UNTUK DEBUG - Lihat struktur item yang sebenarnya
             if (orderItems.length > 0) {
               console.log(
                 '🔍 First item structure:',
@@ -254,10 +249,8 @@ export default function OrderHistoryScreen({
               );
             }
 
-            // PERBAIKAN: Coba berbagai kemungkinan nama field quantity
             const totalQuantity = orderItems.reduce(
               (sum: number, item: any) => {
-                // Coba berbagai kemungkinan nama field
                 const qty = parseInt(
                   item.jumlah ||
                     item.quantity ||
@@ -318,7 +311,7 @@ export default function OrderHistoryScreen({
               id: order.id_order?.toString() || '',
               orderNumber: order.kode_order || `ORD-${order.id_order}`,
               serviceName: 'Produk',
-              serviceIcon: '🖨️',
+              serviceIcon: 'print',
               status: mapOrderStatus(order.status_order),
               totalPrice: parseFloat(order.total_harga || 0),
               quantity: 0,
@@ -380,14 +373,13 @@ export default function OrderHistoryScreen({
 
   const filteredOrders = getFilteredOrders();
 
-  // ✅ JIKA DETAIL SCREEN AKTIF, TAMPILKAN DETAIL SCREEN
   if (selectedOrderId) {
     return (
       <OrderDetailScreen
         orderId={selectedOrderId}
         onBack={() => {
           setSelectedOrderId(null);
-          fetchOrders(); // Refresh data setelah kembali
+          fetchOrders();
         }}
       />
     );
@@ -398,13 +390,13 @@ export default function OrderHistoryScreen({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.title}>Riwayat Pesanan</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Memuat riwayat pesanan...</Text>
         </View>
       </View>
@@ -415,7 +407,7 @@ export default function OrderHistoryScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Riwayat Pesanan</Text>
         <View style={{ width: 40 }} />
@@ -426,6 +418,11 @@ export default function OrderHistoryScreen({
           style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
           onPress={() => setFilter('all')}
         >
+          <Icon
+            name="list"
+            size={16}
+            color={filter === 'all' ? '#FFFFFF' : '#64748B'}
+          />
           <Text
             style={[
               styles.filterTabText,
@@ -442,6 +439,11 @@ export default function OrderHistoryScreen({
           ]}
           onPress={() => setFilter('active')}
         >
+          <Icon
+            name="time"
+            size={16}
+            color={filter === 'active' ? '#FFFFFF' : '#64748B'}
+          />
           <Text
             style={[
               styles.filterTabText,
@@ -458,6 +460,11 @@ export default function OrderHistoryScreen({
           ]}
           onPress={() => setFilter('completed')}
         >
+          <Icon
+            name="checkmark-circle"
+            size={16}
+            color={filter === 'completed' ? '#FFFFFF' : '#64748B'}
+          />
           <Text
             style={[
               styles.filterTabText,
@@ -478,7 +485,7 @@ export default function OrderHistoryScreen({
       >
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📦</Text>
+            <Icon name="cube-outline" size={64} color="#9CA3AF" />
             <Text style={styles.emptyStateTitle}>Belum Ada Pesanan</Text>
             <Text style={styles.emptyStateText}>
               {filter === 'all'
@@ -494,7 +501,7 @@ export default function OrderHistoryScreen({
               <OrderCard
                 key={order.id}
                 order={order}
-                onPress={() => setSelectedOrderId(order.id)} // ✅ TAMBAH HANDLER
+                onPress={() => setSelectedOrderId(order.id)}
               />
             ))}
             <View style={{ height: 20 }} />
@@ -505,7 +512,6 @@ export default function OrderHistoryScreen({
   );
 }
 
-// ✅ UPDATE OrderCard untuk handle press
 function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
   const statusConfig = getStatusConfig(order.status);
 
@@ -513,11 +519,13 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
     <TouchableOpacity
       style={styles.orderCard}
       activeOpacity={0.7}
-      onPress={onPress} // ✅ TAMBAH onPress handler
+      onPress={onPress}
     >
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
-          <Text style={styles.orderIcon}>{order.serviceIcon}</Text>
+          <View style={styles.orderIconContainer}>
+            <Icon name={order.serviceIcon} size={28} color="#3B82F6" />
+          </View>
           <View>
             <Text style={styles.orderNumber}>{order.orderNumber}</Text>
             <Text style={styles.orderDate}>{formatDate(order.date)}</Text>
@@ -539,11 +547,17 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
 
       <View style={styles.orderBody}>
         <Text style={styles.orderServiceName}>{order.serviceName}</Text>
-        <Text style={styles.orderQuantity}>Jumlah: {order.quantity} pcs</Text>
+        <View style={styles.orderQuantityRow}>
+          <Icon name="cube-outline" size={14} color="#64748B" />
+          <Text style={styles.orderQuantity}>Jumlah: {order.quantity} pcs</Text>
+        </View>
         {order.estimatedDate && (
-          <Text style={styles.orderEstimated}>
-            📅 Estimasi: {formatDate(order.estimatedDate)}
-          </Text>
+          <View style={styles.orderEstimatedRow}>
+            <Icon name="calendar-outline" size={14} color="#3B82F6" />
+            <Text style={styles.orderEstimated}>
+              Estimasi: {formatDate(order.estimatedDate)}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -555,7 +569,8 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
           </Text>
         </View>
         <TouchableOpacity style={styles.detailButton} onPress={onPress}>
-          <Text style={styles.detailButtonText}>Lihat Detail →</Text>
+          <Text style={styles.detailButtonText}>Lihat Detail</Text>
+          <Icon name="arrow-forward" size={14} color="#3B82F6" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -565,7 +580,7 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
   },
   loadingContainer: {
     flex: 1,
@@ -576,7 +591,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '500',
   },
   header: {
@@ -588,23 +603,23 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     elevation: 4,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#1F2937',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -612,21 +627,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0F2FE',
   },
   filterTab: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    gap: 6,
   },
   filterTabActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#3B82F6',
+    elevation: 2,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   filterTabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   filterTabTextActive: {
     color: '#FFFFFF',
@@ -639,19 +664,16 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     paddingHorizontal: 40,
   },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginTop: 16,
     marginBottom: 12,
   },
   emptyStateText: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
   },
   orderCard: {
@@ -660,7 +682,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 16,
     padding: 16,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -673,19 +701,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  orderIcon: {
-    fontSize: 32,
+  orderIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   orderNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
     marginBottom: 2,
   },
   orderDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -698,7 +731,7 @@ const styles = StyleSheet.create({
   },
   orderDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#E0F2FE',
     marginVertical: 12,
   },
   orderBody: {
@@ -707,18 +740,28 @@ const styles = StyleSheet.create({
   orderServiceName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginBottom: 6,
+  },
+  orderQuantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
   orderQuantity: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: '#64748B',
+    marginLeft: 6,
+  },
+  orderEstimatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   orderEstimated: {
     fontSize: 13,
-    color: '#4F46E5',
+    color: '#2563EB',
     fontWeight: '600',
+    marginLeft: 6,
   },
   orderFooter: {
     flexDirection: 'row',
@@ -727,23 +770,28 @@ const styles = StyleSheet.create({
   },
   orderPriceLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     marginBottom: 2,
   },
   orderPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   detailButton: {
-    backgroundColor: '#EEF2FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   detailButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4F46E5',
+    color: '#3B82F6',
   },
 });

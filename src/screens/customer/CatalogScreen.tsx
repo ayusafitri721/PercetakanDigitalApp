@@ -1,4 +1,4 @@
-// screens/customer/CatalogScreen.tsx (UPDATED)
+// screens/customer/CatalogScreen.tsx (BLUE THEME)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { useCart } from './contexts/CartContext';
 import API_CONFIG from '../../config/api';
 
 interface CatalogScreenProps {
   onBack: () => void;
   onSelectService: (service: Product, mode: 'direct' | 'cart') => void;
-  onViewCart: () => void; // NEW
+  onViewCart: () => void;
 }
 
 interface Product {
@@ -38,7 +39,7 @@ export default function CatalogScreen({
 }: CatalogScreenProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { itemCount } = useCart(); // NEW: Get cart count
+  const { itemCount } = useCart();
 
   useEffect(() => {
     fetchProducts();
@@ -100,24 +101,26 @@ export default function CatalogScreen({
 
   const getIconByCategory = (categoryName: string): string => {
     const lower = categoryName.toLowerCase();
-    if (lower.includes('dokumen') || lower.includes('document')) return '📄';
-    if (lower.includes('banner')) return '🎴';
-    if (lower.includes('kaos') || lower.includes('textile')) return '👕';
-    if (lower.includes('stiker') || lower.includes('sticker')) return '🖼️';
-    if (lower.includes('packaging') || lower.includes('kemasan')) return '🎁';
-    if (lower.includes('foto') || lower.includes('photo')) return '📸';
-    return '🖨️';
+    if (lower.includes('dokumen') || lower.includes('document'))
+      return 'document-text';
+    if (lower.includes('banner')) return 'images';
+    if (lower.includes('kaos') || lower.includes('textile')) return 'shirt';
+    if (lower.includes('stiker') || lower.includes('sticker'))
+      return 'pricetag';
+    if (lower.includes('packaging') || lower.includes('kemasan')) return 'cube';
+    if (lower.includes('foto') || lower.includes('photo')) return 'camera';
+    return 'print';
   };
 
   const getColorByCategory = (categoryName: string): string => {
     const lower = categoryName.toLowerCase();
-    if (lower.includes('dokumen')) return '#4F46E5';
-    if (lower.includes('banner')) return '#10B981';
-    if (lower.includes('kaos')) return '#F59E0B';
-    if (lower.includes('stiker')) return '#EF4444';
-    if (lower.includes('packaging')) return '#8B5CF6';
-    if (lower.includes('foto')) return '#EC4899';
-    return '#6366F1';
+    if (lower.includes('dokumen')) return '#1E40AF';
+    if (lower.includes('banner')) return '#0369A1';
+    if (lower.includes('kaos')) return '#0891B2';
+    if (lower.includes('stiker')) return '#0284C7';
+    if (lower.includes('packaging')) return '#2563EB';
+    if (lower.includes('foto')) return '#1D4ED8';
+    return '#3B82F6';
   };
 
   if (loading) {
@@ -125,13 +128,13 @@ export default function CatalogScreen({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.title}>Katalog Layanan</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Memuat produk...</Text>
         </View>
       </View>
@@ -143,12 +146,12 @@ export default function CatalogScreen({
       {/* Header with Cart Badge */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Katalog Layanan</Text>
-        {/* NEW: Cart Button */}
+        {/* Cart Button */}
         <TouchableOpacity onPress={onViewCart} style={styles.cartButton}>
-          <Text style={styles.cartIcon}>🛒</Text>
+          <Icon name="cart" size={22} color="#3B82F6" />
           {itemCount > 0 && (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{itemCount}</Text>
@@ -167,7 +170,7 @@ export default function CatalogScreen({
 
         {products.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📦</Text>
+            <Icon name="cube-outline" size={64} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>Belum Ada Produk</Text>
             <Text style={styles.emptyText}>
               Produk belum tersedia saat ini.{'\n'}
@@ -177,14 +180,14 @@ export default function CatalogScreen({
         ) : (
           <>
             {products.map(product => {
-              const icon = getIconByCategory(product.nama_category);
+              const iconName = getIconByCategory(product.nama_category);
               const color = getColorByCategory(product.nama_category);
 
               return (
                 <ServiceCard
                   key={product.id_product}
                   product={product}
-                  icon={icon}
+                  iconName={iconName}
                   color={color}
                   onDirectOrder={() => onSelectService(product, 'direct')}
                   onAddToCart={() => onSelectService(product, 'cart')}
@@ -202,13 +205,13 @@ export default function CatalogScreen({
 // Service Card Component with Two Buttons
 function ServiceCard({
   product,
-  icon,
+  iconName,
   color,
   onDirectOrder,
   onAddToCart,
 }: {
   product: Product;
-  icon: string;
+  iconName: string;
   color: string;
   onDirectOrder: () => void;
   onAddToCart: () => void;
@@ -225,12 +228,15 @@ function ServiceCard({
         activeOpacity={0.7}
         onPress={onDirectOrder}
       >
-        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-          <Text style={styles.icon}>{icon}</Text>
+        <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
+          <Icon name={iconName} size={28} color={color} />
         </View>
         <View style={styles.content}>
           <Text style={styles.name}>{product.nama_product}</Text>
-          <Text style={styles.category}>📁 {product.nama_category}</Text>
+          <View style={styles.categoryRow}>
+            <Icon name="folder-outline" size={14} color="#6B7280" />
+            <Text style={styles.category}>{product.nama_category}</Text>
+          </View>
           <Text style={styles.description} numberOfLines={2}>
             {product.deskripsi || 'Layanan cetak berkualitas'}
           </Text>
@@ -243,14 +249,15 @@ function ServiceCard({
         </View>
       </TouchableOpacity>
 
-      {/* NEW: Action Buttons */}
+      {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.cartButton2]}
           onPress={onAddToCart}
           activeOpacity={0.7}
         >
-          <Text style={styles.cartButtonText}>🛒 Keranjang</Text>
+          <Icon name="cart-outline" size={16} color="#3B82F6" />
+          <Text style={styles.cartButtonText}>Keranjang</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
@@ -261,7 +268,8 @@ function ServiceCard({
           onPress={onDirectOrder}
           activeOpacity={0.7}
         >
-          <Text style={styles.orderButtonText}>Pesan Langsung →</Text>
+          <Text style={styles.orderButtonText}>Pesan Langsung</Text>
+          <Icon name="arrow-forward" size={16} color="#FFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -271,7 +279,7 @@ function ServiceCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
   },
   header: {
     flexDirection: 'row',
@@ -282,41 +290,38 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     elevation: 4,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#1F2937',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   cartButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-  },
-  cartIcon: {
-    fontSize: 20,
   },
   cartBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#3B82F6',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -337,14 +342,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
   },
   scrollView: {
     flex: 1,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     paddingHorizontal: 24,
     marginTop: 20,
     marginBottom: 16,
@@ -354,19 +359,16 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     paddingHorizontal: 40,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -376,7 +378,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     padding: 16,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
   },
   serviceCardMain: {
     flexDirection: 'row',
@@ -391,26 +399,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  icon: {
-    fontSize: 28,
-  },
   content: {
     flex: 1,
   },
   name: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginBottom: 4,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
   category: {
     fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: '#64748B',
+    marginLeft: 4,
   },
   description: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#64748B',
     marginBottom: 6,
   },
   priceRow: {
@@ -423,7 +433,7 @@ const styles = StyleSheet.create({
   },
   unit: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#94A3B8',
     marginLeft: 4,
   },
   actionButtons: {
@@ -435,19 +445,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   cartButton2: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#EFF6FF',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#BFDBFE',
   },
   cartButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#3B82F6',
   },
   orderButton: {
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   orderButtonText: {
     fontSize: 13,

@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 
@@ -54,60 +55,67 @@ interface OrderDetail {
 }
 
 function getStatusConfig(status: string) {
-  const configs: { [key: string]: { label: string; bgColor: string; textColor: string; icon: string } } = {
+  const configs: {
+    [key: string]: {
+      label: string;
+      bgColor: string;
+      textColor: string;
+      iconName: string;
+    };
+  } = {
     pending: {
       label: 'Menunggu',
       bgColor: '#FEF3C7',
       textColor: '#D97706',
-      icon: '⏳',
+      iconName: 'time',
     },
     validasi: {
       label: 'Validasi',
       bgColor: '#DBEAFE',
       textColor: '#2563EB',
-      icon: '🔍',
+      iconName: 'search',
     },
     dibayar: {
       label: 'Dibayar',
       bgColor: '#D1FAE5',
       textColor: '#059669',
-      icon: '💰',
+      iconName: 'cash',
     },
     diproses: {
       label: 'Diproses',
-      bgColor: '#E0E7FF',
-      textColor: '#4F46E5',
-      icon: '⚙️',
+      bgColor: '#BFDBFE',
+      textColor: '#1E40AF',
+      iconName: 'settings',
     },
     cetak: {
       label: 'Sedang Cetak',
-      bgColor: '#DDD6FE',
-      textColor: '#7C3AED',
-      icon: '🖨️',
+      bgColor: '#93C5FD',
+      textColor: '#1E3A8A',
+      iconName: 'print',
     },
     siap: {
       label: 'Siap',
       bgColor: '#D1FAE5',
       textColor: '#059669',
-      icon: '✅',
+      iconName: 'checkmark-circle',
     },
     dikirim: {
       label: 'Dikirim',
       bgColor: '#BFDBFE',
       textColor: '#1D4ED8',
-      icon: '🚚',
+      iconName: 'car',
     },
     selesai: {
       label: 'Selesai',
       bgColor: '#D1FAE5',
       textColor: '#10B981',
-      icon: '✅',
+      iconName: 'checkmark-done',
     },
     dibatalkan: {
       label: 'Dibatalkan',
       bgColor: '#FEE2E2',
       textColor: '#DC2626',
-      icon: '❌',
+      iconName: 'close-circle',
     },
   };
   return configs[status.toLowerCase()] || configs.pending;
@@ -173,13 +181,13 @@ export default function OrderDetailScreen({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detail Pesanan</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Memuat detail pesanan...</Text>
         </View>
       </View>
@@ -191,12 +199,13 @@ export default function OrderDetailScreen({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detail Pesanan</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyContainer}>
+          <Icon name="document-outline" size={64} color="#9CA3AF" />
           <Text style={styles.emptyText}>Data pesanan tidak ditemukan</Text>
         </View>
       </View>
@@ -210,13 +219,16 @@ export default function OrderDetailScreen({
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detail Pesanan</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Status Badge */}
         <View style={styles.statusContainer}>
           <View
@@ -225,7 +237,11 @@ export default function OrderDetailScreen({
               { backgroundColor: statusConfig.bgColor },
             ]}
           >
-            <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
+            <Icon
+              name={statusConfig.iconName}
+              size={28}
+              color={statusConfig.textColor}
+            />
             <Text
               style={[styles.statusLabel, { color: statusConfig.textColor }]}
             >
@@ -236,7 +252,10 @@ export default function OrderDetailScreen({
 
         {/* Order Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informasi Pesanan</Text>
+          <View style={styles.cardHeader}>
+            <Icon name="document-text" size={20} color="#3B82F6" />
+            <Text style={styles.cardTitle}>Informasi Pesanan</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Kode Order</Text>
             <Text style={styles.infoValue}>{orderDetail.kode_order}</Text>
@@ -251,18 +270,40 @@ export default function OrderDetailScreen({
           <View style={styles.divider} />
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Jenis Order</Text>
-            <Text style={styles.infoValue}>
-              {orderDetail.jenis_order === 'online' ? '🌐 Online' : '🏪 Offline'}
-            </Text>
+            <View style={styles.badgeRow}>
+              <Icon
+                name={
+                  orderDetail.jenis_order === 'online'
+                    ? 'globe-outline'
+                    : 'storefront-outline'
+                }
+                size={14}
+                color="#64748B"
+              />
+              <Text style={styles.infoValue}>
+                {orderDetail.jenis_order === 'online' ? 'Online' : 'Offline'}
+              </Text>
+            </View>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Kecepatan</Text>
-            <Text style={styles.infoValue}>
-              {orderDetail.kecepatan_pengerjaan === 'normal'
-                ? '⏱️ Normal'
-                : '⚡ Express'}
-            </Text>
+            <View style={styles.badgeRow}>
+              <Icon
+                name={
+                  orderDetail.kecepatan_pengerjaan === 'normal'
+                    ? 'time-outline'
+                    : 'flash-outline'
+                }
+                size={14}
+                color="#64748B"
+              />
+              <Text style={styles.infoValue}>
+                {orderDetail.kecepatan_pengerjaan === 'normal'
+                  ? 'Normal'
+                  : 'Express'}
+              </Text>
+            </View>
           </View>
           {orderDetail.tanggal_selesai && (
             <>
@@ -279,7 +320,10 @@ export default function OrderDetailScreen({
 
         {/* Customer Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informasi Pelanggan</Text>
+          <View style={styles.cardHeader}>
+            <Icon name="person" size={20} color="#3B82F6" />
+            <Text style={styles.cardTitle}>Informasi Pelanggan</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Nama</Text>
             <Text style={styles.infoValue}>{orderDetail.nama_customer}</Text>
@@ -313,7 +357,10 @@ export default function OrderDetailScreen({
 
         {/* Payment Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informasi Pembayaran</Text>
+          <View style={styles.cardHeader}>
+            <Icon name="card" size={20} color="#3B82F6" />
+            <Text style={styles.cardTitle}>Informasi Pembayaran</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Status Pembayaran</Text>
             <View
@@ -327,6 +374,19 @@ export default function OrderDetailScreen({
                 },
               ]}
             >
+              <Icon
+                name={
+                  orderDetail.status_pembayaran === 'lunas'
+                    ? 'checkmark-circle'
+                    : 'time'
+                }
+                size={14}
+                color={
+                  orderDetail.status_pembayaran === 'lunas'
+                    ? '#059669'
+                    : '#D97706'
+                }
+              />
               <Text
                 style={[
                   styles.paymentBadgeText,
@@ -339,10 +399,10 @@ export default function OrderDetailScreen({
                 ]}
               >
                 {orderDetail.status_pembayaran === 'lunas'
-                  ? '✅ Lunas'
+                  ? 'Lunas'
                   : orderDetail.status_pembayaran === 'belum_bayar'
-                  ? '⏳ Belum Bayar'
-                  : '💰 ' + orderDetail.status_pembayaran}
+                  ? 'Belum Bayar'
+                  : orderDetail.status_pembayaran}
               </Text>
             </View>
           </View>
@@ -361,7 +421,10 @@ export default function OrderDetailScreen({
 
         {/* Items Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Item Pesanan</Text>
+          <View style={styles.cardHeader}>
+            <Icon name="cube" size={20} color="#3B82F6" />
+            <Text style={styles.cardTitle}>Item Pesanan</Text>
+          </View>
           {orderDetail.items.map((item, index) => (
             <View key={item.id_item}>
               {index > 0 && <View style={styles.divider} />}
@@ -373,21 +436,30 @@ export default function OrderDetailScreen({
                   />
                 ) : (
                   <View style={styles.itemImagePlaceholder}>
-                    <Text style={styles.itemImagePlaceholderText}>📦</Text>
+                    <Icon name="cube-outline" size={24} color="#9CA3AF" />
                   </View>
                 )}
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.nama_produk}</Text>
                   {item.ukuran && (
-                    <Text style={styles.itemDetail}>Ukuran: {item.ukuran}</Text>
+                    <View style={styles.itemDetailRow}>
+                      <Icon name="resize-outline" size={12} color="#64748B" />
+                      <Text style={styles.itemDetail}>
+                        Ukuran: {item.ukuran}
+                      </Text>
+                    </View>
                   )}
-                  <Text style={styles.itemDetail}>
-                    {item.jumlah} x {formatPrice(item.harga_satuan)}
-                  </Text>
-                  {item.catatan_item && (
-                    <Text style={styles.itemNote}>
-                      Catatan: {item.catatan_item}
+                  <View style={styles.itemDetailRow}>
+                    <Icon name="pricetag-outline" size={12} color="#64748B" />
+                    <Text style={styles.itemDetail}>
+                      {item.jumlah} x {formatPrice(item.harga_satuan)}
                     </Text>
+                  </View>
+                  {item.catatan_item && (
+                    <View style={styles.itemNoteContainer}>
+                      <Icon name="chatbox-outline" size={12} color="#3B82F6" />
+                      <Text style={styles.itemNote}>{item.catatan_item}</Text>
+                    </View>
                   )}
                 </View>
                 <Text style={styles.itemSubtotal}>
@@ -401,14 +473,20 @@ export default function OrderDetailScreen({
         {/* Catatan Card */}
         {orderDetail.catatan && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Catatan Pelanggan</Text>
+            <View style={styles.cardHeader}>
+              <Icon name="chatbox-ellipses" size={20} color="#3B82F6" />
+              <Text style={styles.cardTitle}>Catatan Pelanggan</Text>
+            </View>
             <Text style={styles.noteText}>{orderDetail.catatan}</Text>
           </View>
         )}
 
         {/* Price Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Rincian Harga</Text>
+          <View style={styles.cardHeader}>
+            <Icon name="calculator" size={20} color="#3B82F6" />
+            <Text style={styles.cardTitle}>Rincian Harga</Text>
+          </View>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Subtotal</Text>
             <Text style={styles.priceValue}>
@@ -464,7 +542,6 @@ export default function OrderDetailScreen({
                     text: 'Ya, Batalkan',
                     style: 'destructive',
                     onPress: () => {
-                      // TODO: Implement cancel order
                       Alert.alert('Info', 'Fitur ini akan segera tersedia');
                     },
                   },
@@ -472,7 +549,8 @@ export default function OrderDetailScreen({
               );
             }}
           >
-            <Text style={styles.cancelButtonText}>❌ Batalkan Pesanan</Text>
+            <Icon name="close-circle" size={20} color="#DC2626" />
+            <Text style={styles.cancelButtonText}>Batalkan Pesanan</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -483,7 +561,7 @@ export default function OrderDetailScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
   },
   loadingContainer: {
     flex: 1,
@@ -493,7 +571,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '500',
   },
   emptyContainer: {
@@ -504,8 +582,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
+    marginTop: 16,
   },
   header: {
     flexDirection: 'row',
@@ -516,23 +595,23 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     elevation: 4,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#1F2937',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   scrollView: {
     flex: 1,
@@ -549,9 +628,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 12,
   },
-  statusIcon: {
-    fontSize: 32,
-  },
   statusLabel: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -563,12 +639,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     elevation: 2,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
+    color: '#1E3A8A',
   },
   infoRow: {
     flexDirection: 'row',
@@ -581,12 +668,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#1E3A8A',
     fontWeight: '600',
     textAlign: 'right',
     maxWidth: '60%',
@@ -596,25 +683,33 @@ const styles = StyleSheet.create({
   },
   infoValueMultiline: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#1E3A8A',
     fontWeight: '500',
     marginTop: 8,
     lineHeight: 20,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   divider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#E0F2FE',
     marginVertical: 4,
   },
   dividerBold: {
     height: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#BFDBFE',
     marginVertical: 8,
   },
   paymentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    gap: 4,
   },
   paymentBadgeText: {
     fontSize: 13,
@@ -629,18 +724,15 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
   },
   itemImagePlaceholder: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  itemImagePlaceholderText: {
-    fontSize: 24,
   },
   itemInfo: {
     flex: 1,
@@ -648,28 +740,39 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
     marginBottom: 4,
+  },
+  itemDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
   },
   itemDetail: {
     fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 2,
+    color: '#64748B',
+  },
+  itemNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 4,
+    marginTop: 4,
   },
   itemNote: {
+    flex: 1,
     fontSize: 12,
-    color: '#4F46E5',
+    color: '#3B82F6',
     fontStyle: 'italic',
-    marginTop: 4,
   },
   itemSubtotal: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   noteText: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#1E3A8A',
     lineHeight: 20,
     fontStyle: 'italic',
   },
@@ -681,11 +784,11 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B',
   },
   priceValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#1E3A8A',
     fontWeight: '600',
   },
   discountText: {
@@ -694,12 +797,12 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
   },
   totalValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4F46E5',
+    color: '#3B82F6',
   },
   bottomActions: {
     position: 'absolute',
@@ -712,12 +815,19 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FEE2E2',
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    gap: 8,
   },
   cancelButtonText: {
     fontSize: 16,

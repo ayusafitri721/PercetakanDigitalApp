@@ -1,4 +1,4 @@
-// screens/customer/HomeScreen.tsx - BLUE THEME LIKE KURIR
+// screens/customer/HomeScreen.tsx - BALANCED BLUE THEME
 import React from 'react';
 import {
   View,
@@ -37,7 +37,7 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header - BLUE THEME */}
+        {/* Header - BLUE GRADIENT */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View>
@@ -54,24 +54,24 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
           </View>
         </View>
 
-        {/* Stats Cards - BLUE THEME */}
+        {/* Stats Cards - COLORFUL */}
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, styles.statCardBlue]}>
-            <View style={[styles.iconCircle, { backgroundColor: '#2563EB' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#3B82F6' }]}>
               <Icon name="cube-outline" size={22} color="#FFFFFF" />
             </View>
             <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>Total Pesanan</Text>
           </View>
           <View style={[styles.statCard, styles.statCardOrange]}>
-            <View style={[styles.iconCircle, { backgroundColor: '#EA580C' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#F59E0B' }]}>
               <Icon name="time-outline" size={22} color="#FFFFFF" />
             </View>
             <Text style={styles.statNumber}>3</Text>
             <Text style={styles.statLabel}>Diproses</Text>
           </View>
           <View style={[styles.statCard, styles.statCardGreen]}>
-            <View style={[styles.iconCircle, { backgroundColor: '#059669' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#10B981' }]}>
               <Icon name="checkmark-circle-outline" size={22} color="#FFFFFF" />
             </View>
             <Text style={styles.statNumber}>9</Text>
@@ -79,38 +79,38 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
           </View>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - COLORFUL */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Layanan Kami</Text>
           <View style={styles.servicesGrid}>
             <ServiceCard
               iconName="print-outline"
               title="Print"
-              gradient="#2563EB"
+              gradient="#3B82F6"
               onPress={() => onNavigate('catalog')}
             />
             <ServiceCard
               iconName="document-outline"
               title="Fotocopy"
-              gradient="#7C3AED"
+              gradient="#8B5CF6"
               onPress={() => onNavigate('catalog')}
             />
             <ServiceCard
               iconName="color-palette-outline"
               title="Desain"
-              gradient="#0891B2"
+              gradient="#06B6D4"
               onPress={() => Alert.alert('Info', 'Fitur desain segera hadir!')}
             />
             <ServiceCard
               iconName="book-outline"
               title="Jilid"
-              gradient="#059669"
+              gradient="#10B981"
               onPress={() => Alert.alert('Info', 'Fitur jilid segera hadir!')}
             />
           </View>
         </View>
 
-        {/* Promo Banner - BLUE */}
+        {/* Promo Banner - BLUE GRADIENT */}
         <TouchableOpacity
           style={styles.promoBanner}
           activeOpacity={0.8}
@@ -142,14 +142,14 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
             service="Print Berwarna"
             status="Diproses"
             date="20 Nov 2024"
-            statusColor="#EA580C"
+            statusColor="#F59E0B"
           />
           <OrderItem
             orderNumber="#ORD-2024-002"
             service="Fotocopy A4"
             status="Selesai"
             date="19 Nov 2024"
-            statusColor="#059669"
+            statusColor="#10B981"
           />
         </View>
 
@@ -157,7 +157,7 @@ export default function HomeScreen({ user, onNavigate }: HomeScreenProps) {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Bottom Navigation - BLUE THEME */}
+      {/* Bottom Navigation - BLUE ACCENT */}
       <View style={styles.bottomNav}>
         <NavButton
           iconName="home"
@@ -277,7 +277,7 @@ function NavButton({
       <Icon
         name={isActive ? iconName : iconName + '-outline'}
         size={24}
-        color={isActive ? '#2563EB' : '#94A3B8'}
+        color={isActive ? '#3B82F6' : '#94A3B8'}
       />
       <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
         {label}
@@ -298,16 +298,16 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#3B82F6',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: '#1E40AF',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
   },
   headerContent: {
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: '#BFDBFE',
+    color: '#DBEAFE',
     marginBottom: 4,
   },
   userName: {
@@ -353,15 +353,15 @@ const styles = StyleSheet.create({
   },
   statCardBlue: {
     borderTopWidth: 3,
-    borderTopColor: '#2563EB',
+    borderTopColor: '#3B82F6',
   },
   statCardOrange: {
     borderTopWidth: 3,
-    borderTopColor: '#EA580C',
+    borderTopColor: '#F59E0B',
   },
   statCardGreen: {
     borderTopWidth: 3,
-    borderTopColor: '#059669',
+    borderTopColor: '#10B981',
   },
   iconCircle: {
     width: 36,
@@ -421,9 +421,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 24,
     borderRadius: 16,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#3B82F6',
     elevation: 4,
-    shadowColor: '#2563EB',
+    shadowColor: '#1E40AF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   promoText: {
     fontSize: 13,
-    color: '#BFDBFE',
+    color: '#DBEAFE',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#3B82F6',
   },
   orderItem: {
     backgroundColor: '#FFFFFF',
@@ -471,6 +471,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   orderLeft: {
     flex: 1,
@@ -537,18 +539,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   navLabelActive: {
-    color: '#2563EB',
+    color: '#3B82F6',
   },
   fabButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -28,
     elevation: 8,
-    shadowColor: '#2563EB',
+    shadowColor: '#1E40AF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

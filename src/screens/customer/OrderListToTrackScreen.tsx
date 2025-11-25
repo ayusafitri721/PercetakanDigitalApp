@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 
@@ -34,21 +35,21 @@ interface Order {
 
 function getIconByCategory(cat: string): string {
   const lower = cat.toLowerCase();
-  if (lower.includes('dokumen')) return '📄';
-  if (lower.includes('banner')) return '🎨';
-  if (lower.includes('kaos')) return '👕';
-  if (lower.includes('stiker')) return '🏷️';
-  if (lower.includes('packaging')) return '📦';
-  if (lower.includes('foto')) return '📸';
-  return '🖨️';
+  if (lower.includes('dokumen')) return 'document-text';
+  if (lower.includes('banner')) return 'color-palette';
+  if (lower.includes('kaos')) return 'shirt';
+  if (lower.includes('stiker')) return 'pricetag';
+  if (lower.includes('packaging')) return 'cube';
+  if (lower.includes('foto')) return 'camera';
+  return 'print';
 }
 
 function getStatusConfig(status: string) {
   const configs: any = {
     pending: { label: 'Menunggu', bgColor: '#FEF3C7', textColor: '#D97706' },
     validasi: { label: 'Validasi', bgColor: '#DBEAFE', textColor: '#2563EB' },
-    proses: { label: 'Diproses', bgColor: '#E0E7FF', textColor: '#4F46E5' },
-    cetak: { label: 'Sedang Cetak', bgColor: '#DDD6FE', textColor: '#7C3AED' },
+    proses: { label: 'Diproses', bgColor: '#BFDBFE', textColor: '#1E40AF' },
+    cetak: { label: 'Sedang Cetak', bgColor: '#93C5FD', textColor: '#1E3A8A' },
     siap: { label: 'Siap', bgColor: '#D1FAE5', textColor: '#059669' },
     dikirim: { label: 'Dikirim', bgColor: '#BFDBFE', textColor: '#1D4ED8' },
     selesai: { label: 'Selesai', bgColor: '#D1FAE5', textColor: '#10B981' },
@@ -184,7 +185,7 @@ export default function OrderListToTrackScreen({
               id: order.id_order?.toString() || '',
               orderNumber: order.kode_order || `ORD-${order.id_order}`,
               serviceName: 'Produk',
-              serviceIcon: '🖨️',
+              serviceIcon: 'print',
               status: order.status_order || 'pending',
               totalPrice: parseFloat(order.total_harga || 0),
               quantity: 0,
@@ -221,13 +222,13 @@ export default function OrderListToTrackScreen({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.title}>Lacak Pesanan</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Memuat pesanan...</Text>
         </View>
       </View>
@@ -238,7 +239,7 @@ export default function OrderListToTrackScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Lacak Pesanan</Text>
         <View style={{ width: 40 }} />
@@ -253,7 +254,7 @@ export default function OrderListToTrackScreen({
       >
         {orders.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📍</Text>
+            <Icon name="location-outline" size={64} color="#9CA3AF" />
             <Text style={styles.emptyStateTitle}>Tidak Ada Pesanan Aktif</Text>
             <Text style={styles.emptyStateText}>
               Belum ada pesanan yang dapat dilacak saat ini
@@ -262,7 +263,7 @@ export default function OrderListToTrackScreen({
         ) : (
           <>
             <View style={styles.infoCard}>
-              <Text style={styles.infoIcon}>💡</Text>
+              <Icon name="information-circle" size={24} color="#3B82F6" />
               <Text style={styles.infoText}>
                 Pilih pesanan di bawah untuk melihat tracking pengiriman
               </Text>
@@ -301,7 +302,9 @@ function TrackableOrderCard({
     >
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
-          <Text style={styles.orderIcon}>{order.serviceIcon}</Text>
+          <View style={styles.orderIconContainer}>
+            <Icon name={order.serviceIcon} size={28} color="#3B82F6" />
+          </View>
           <View>
             <Text style={styles.orderNumber}>{order.orderNumber}</Text>
             <Text style={styles.orderDate}>{formatDate(order.date)}</Text>
@@ -323,15 +326,22 @@ function TrackableOrderCard({
 
       <View style={styles.orderBody}>
         <Text style={styles.orderServiceName}>{order.serviceName}</Text>
-        <Text style={styles.orderQuantity}>Jumlah: {order.quantity} pcs</Text>
+        <View style={styles.orderQuantityRow}>
+          <Icon name="cube-outline" size={14} color="#64748B" />
+          <Text style={styles.orderQuantity}>Jumlah: {order.quantity} pcs</Text>
+        </View>
         {order.estimatedDate && (
-          <Text style={styles.orderEstimated}>
-            📅 Estimasi: {formatDate(order.estimatedDate)}
-          </Text>
+          <View style={styles.orderEstimatedRow}>
+            <Icon name="calendar-outline" size={14} color="#3B82F6" />
+            <Text style={styles.orderEstimated}>
+              Estimasi: {formatDate(order.estimatedDate)}
+            </Text>
+          </View>
         )}
         {isCOD && (
           <View style={styles.codBadge}>
-            <Text style={styles.codBadgeText}>💰 COD</Text>
+            <Icon name="cash-outline" size={14} color="#D97706" />
+            <Text style={styles.codBadgeText}>COD</Text>
           </View>
         )}
       </View>
@@ -344,7 +354,9 @@ function TrackableOrderCard({
           </Text>
         </View>
         <View style={styles.trackButton}>
-          <Text style={styles.trackButtonText}>📍 Lacak →</Text>
+          <Icon name="location" size={16} color="#FFFFFF" />
+          <Text style={styles.trackButtonText}>Lacak</Text>
+          <Icon name="arrow-forward" size={14} color="#FFFFFF" />
         </View>
       </View>
     </TouchableOpacity>
@@ -352,7 +364,7 @@ function TrackableOrderCard({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  container: { flex: 1, backgroundColor: '#F0F9FF' },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -362,7 +374,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '500',
   },
   header: {
@@ -374,58 +386,67 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     elevation: 4,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: { fontSize: 24, color: '#1F2937' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#1F2937' },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#1E3A8A' },
   scrollView: { flex: 1 },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#EFF6FF',
     marginHorizontal: 24,
     marginTop: 16,
     marginBottom: 8,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: '#BFDBFE',
   },
-  infoIcon: { fontSize: 24, marginRight: 12 },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#4F46E5',
+    color: '#1E40AF',
     fontWeight: '500',
     lineHeight: 18,
+    marginLeft: 12,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 80,
     paddingHorizontal: 40,
   },
-  emptyStateIcon: { fontSize: 64, marginBottom: 20 },
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginTop: 16,
     marginBottom: 12,
   },
-  emptyStateText: { fontSize: 15, color: '#6B7280', textAlign: 'center' },
+  emptyStateText: { fontSize: 15, color: '#64748B', textAlign: 'center' },
   orderCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
     marginTop: 12,
     borderRadius: 16,
     padding: 16,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -434,32 +455,56 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orderHeaderLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  orderIcon: { fontSize: 32, marginRight: 12 },
+  orderIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   orderNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
     marginBottom: 2,
   },
-  orderDate: { fontSize: 12, color: '#6B7280' },
+  orderDate: { fontSize: 12, color: '#64748B' },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '600' },
-  orderDivider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 12 },
+  orderDivider: { height: 1, backgroundColor: '#E0F2FE', marginVertical: 12 },
   orderBody: { marginBottom: 12 },
   orderServiceName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1E3A8A',
+    marginBottom: 6,
+  },
+  orderQuantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  orderQuantity: { fontSize: 14, color: '#6B7280', marginBottom: 4 },
+  orderQuantity: {
+    fontSize: 14,
+    color: '#64748B',
+    marginLeft: 6,
+  },
+  orderEstimatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   orderEstimated: {
     fontSize: 13,
-    color: '#4F46E5',
+    color: '#2563EB',
     fontWeight: '600',
-    marginBottom: 4,
+    marginLeft: 6,
   },
   codBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 10,
@@ -468,6 +513,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderWidth: 1,
     borderColor: '#F59E0B',
+    gap: 4,
   },
   codBadgeText: { fontSize: 11, fontWeight: '600', color: '#D97706' },
   orderFooter: {
@@ -475,14 +521,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  orderPriceLabel: { fontSize: 12, color: '#6B7280', marginBottom: 2 },
-  orderPrice: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
+  orderPriceLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
+  orderPrice: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A' },
   trackButton: {
-    backgroundColor: '#4F46E5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    gap: 6,
   },
   trackButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 });
