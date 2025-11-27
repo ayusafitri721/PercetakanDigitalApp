@@ -1,4 +1,4 @@
-// KasirDashboardWithSidebar.tsx - COLLAPSIBLE SIDEBAR VERSION WITH LOGOUT
+// KasirDashboardWithSidebar.tsx - COLLAPSIBLE SIDEBAR VERSION WITH LOGOUT & SETTINGS
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -19,6 +19,7 @@ import OrdersTable from './components/OrdersTable';
 import OrderDetailModal from './components/OrderDetailModal';
 import PeriodFilter from './components/PeriodFilter';
 import CreateOrderKasir from './components/CreateOrderKasir';
+import SettingsPage from './SettingsPage';
 import {
   formatRupiah,
   formatDate,
@@ -104,6 +105,13 @@ interface RevenueData {
   pending_transactions: number;
 }
 
+interface UserData {
+  nama: string;
+  email: string;
+  no_telepon?: string;
+  role: string;
+}
+
 // ============= SIDEBAR COMPONENT =============
 interface SidebarProps {
   activeMenu: string;
@@ -112,6 +120,7 @@ interface SidebarProps {
   onMobileClose: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  currentUser: UserData;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -121,6 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
   isCollapsed,
   onToggleCollapse,
+  currentUser,
 }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
@@ -132,17 +142,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleLogout = () => {
     if (window.confirm('Apakah Anda yakin ingin logout?')) {
-      // Hapus semua data login dari localStorage
       localStorage.removeItem('userToken');
       localStorage.removeItem('userData');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userId');
-
-      // Redirect ke halaman login - SESUAIKAN dengan path login Anda
       window.location.href = '/login';
-
-      // Atau jika menggunakan React Router, gunakan:
-      // navigate('/login');
     }
   };
 
@@ -183,7 +187,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         }}
         className="sidebar"
       >
-        {/* Logo Section */}
         <div
           style={{
             padding: isCollapsed ? '0 1rem' : '0 1.5rem',
@@ -206,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             }}
           >
             <img
-              src="/public/images/logoprin.png"
+              src="/images/logoprin.png"
               alt="PrintifyGo Logo"
               style={{
                 width: '50px',
@@ -232,7 +235,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
-          {/* Toggle Button in Header */}
           <button
             onClick={onToggleCollapse}
             style={{
@@ -258,7 +260,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Menu Items */}
         <nav style={{ padding: '0 0.75rem' }}>
           {menuItems.map(item => {
             const IconComponent = item.Icon;
@@ -298,7 +299,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* User Profile & Logout */}
         <div
           style={{
             position: 'absolute',
@@ -338,13 +338,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                     flexShrink: 0,
                   }}
                 >
-                  K
+                  {currentUser.nama.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
-                    Kasir Utama
+                    {currentUser.nama}
                   </div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Kasir</div>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      opacity: 0.8,
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {currentUser.role}
+                  </div>
                 </div>
               </div>
             </div>
@@ -371,7 +379,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   fontWeight: 'bold',
                 }}
               >
-                K
+                {currentUser.nama.charAt(0).toUpperCase()}
               </div>
             </div>
           )}
@@ -443,6 +451,13 @@ const KasirDashboardWithSidebar: React.FC = () => {
     'today',
   );
 
+  const [currentUser, setCurrentUser] = useState<UserData>({
+    nama: 'Kasir Utama',
+    email: 'kasir@printifygo.com',
+    no_telepon: '08123456789',
+    role: 'kasir',
+  });
+
   const [stats, setStats] = useState<Stats>({
     todayOrders: 0,
     todayRevenue: 0,
@@ -455,6 +470,24 @@ const KasirDashboardWithSidebar: React.FC = () => {
   });
 
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+
+  useEffect(() => {
+    // Load user data dari localStorage
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setCurrentUser({
+          nama: user.nama || 'Kasir Utama',
+          email: user.email || 'kasir@printifygo.com',
+          no_telepon: user.no_telepon || '08123456789',
+          role: user.role || 'kasir',
+        });
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -595,6 +628,7 @@ const KasirDashboardWithSidebar: React.FC = () => {
         onMobileClose={() => setIsMobileSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        currentUser={currentUser}
       />
 
       <main
@@ -605,7 +639,6 @@ const KasirDashboardWithSidebar: React.FC = () => {
         }}
         className="main-content"
       >
-        {/* Top Bar */}
         <div
           style={{
             background: 'white',
@@ -651,7 +684,8 @@ const KasirDashboardWithSidebar: React.FC = () => {
               fontWeight: '500',
             }}
           >
-            Welcome, <span style={{ color: '#2d3748' }}>Kasir Utama</span>
+            Welcome,{' '}
+            <span style={{ color: '#2d3748' }}>{currentUser.nama}</span>
           </div>
         </div>
 
@@ -833,6 +867,12 @@ const KasirDashboardWithSidebar: React.FC = () => {
                 onPrintInvoice={handlePrintInvoice}
                 onRefresh={fetchOrders}
               />
+            </div>
+          )}
+
+          {activeMenu === 'settings' && (
+            <div style={{ padding: '0 40px' }}>
+              <SettingsPage currentUser={currentUser} />
             </div>
           )}
 

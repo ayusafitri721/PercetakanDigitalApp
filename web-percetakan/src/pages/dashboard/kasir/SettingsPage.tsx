@@ -1,4 +1,3 @@
-// SettingsPage.tsx - Component for Settings Menu
 import React, { useState } from 'react';
 import {
   User,
@@ -13,10 +12,10 @@ import {
 } from 'lucide-react';
 
 interface SettingsPageProps {
-  currentUser?: {
-    name: string;
+  currentUser: {
+    nama: string;
     email: string;
-    phone: string;
+    no_telepon?: string;
     role: string;
   };
 }
@@ -28,10 +27,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const [formData, setFormData] = useState({
-    name: currentUser?.name || 'Kasir Utama',
-    email: currentUser?.email || 'kasir@printifygo.com',
-    phone: currentUser?.phone || '08123456789',
-    currentPassword: '',
+    name: currentUser.nama,
+    email: currentUser.email,
+    phone: currentUser.no_telepon || '',
     newPassword: '',
     confirmPassword: '',
   });
@@ -59,10 +57,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
       newErrors.email = 'Format email tidak valid';
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Nomor telepon harus diisi';
-    }
-
     if (formData.newPassword && formData.newPassword.length < 6) {
       newErrors.newPassword = 'Password minimal 6 karakter';
     }
@@ -86,14 +80,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
     setErrorMessage('');
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       setSuccessMessage('Pengaturan berhasil disimpan!');
       setIsEditing(false);
       setFormData(prev => ({
         ...prev,
-        currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       }));
@@ -110,10 +102,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
-      name: currentUser?.name || 'Kasir Utama',
-      email: currentUser?.email || 'kasir@printifygo.com',
-      phone: currentUser?.phone || '08123456789',
-      currentPassword: '',
+      name: currentUser.nama,
+      email: currentUser.email,
+      phone: currentUser.no_telepon || '',
       newPassword: '',
       confirmPassword: '',
     });
@@ -123,7 +114,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
 
   return (
     <div style={{ padding: 0 }}>
-      {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <h2
           style={{
@@ -135,17 +125,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
         >
           Pengaturan Akun
         </h2>
-        <p
-          style={{
-            fontSize: '14px',
-            color: '#6b7280',
-          }}
-        >
+        <p style={{ fontSize: '14px', color: '#6b7280' }}>
           Kelola informasi profil dan keamanan akun Anda
         </p>
       </div>
 
-      {/* Alert Messages */}
       {successMessage && (
         <div
           style={{
@@ -188,7 +172,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Content Grid */}
       <div
         style={{
           display: 'grid',
@@ -225,7 +208,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                 border: '4px solid rgba(255, 255, 255, 0.3)',
               }}
             >
-              K
+              {currentUser.nama.charAt(0).toUpperCase()}
             </div>
             <h3
               style={{
@@ -234,7 +217,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                 marginBottom: '4px',
               }}
             >
-              {formData.name}
+              {currentUser.nama}
             </h3>
             <div
               style={{
@@ -245,18 +228,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                 fontSize: '12px',
                 fontWeight: '600',
                 margin: '8px 0',
+                textTransform: 'capitalize',
               }}
             >
-              Kasir
+              {currentUser.role}
             </div>
-            <div
-              style={{
-                fontSize: '13px',
-                opacity: 0.9,
-                marginTop: '8px',
-              }}
-            >
-              {formData.email}
+            <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '8px' }}>
+              {currentUser.email}
             </div>
           </div>
 
@@ -338,7 +316,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                     textTransform: 'capitalize',
                   }}
                 >
-                  Kasir
+                  {currentUser.role}
                 </span>
               </div>
             </div>
@@ -355,7 +333,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
             border: '1px solid #e8ecef',
           }}
         >
-          {/* Form Header */}
           <div
             style={{
               display: 'flex',
@@ -367,11 +344,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
             }}
           >
             <h3
-              style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1f2937',
-              }}
+              style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937' }}
             >
               Informasi Pribadi
             </h3>
@@ -392,14 +365,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = '#5568d3';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = '#667eea';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
               >
                 <Edit2 size={16} />
                 Edit Profil
@@ -407,9 +372,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
             )}
           </div>
 
-          {/* Form Fields */}
           <div>
-            {/* Name */}
             <div style={{ marginBottom: '20px' }}>
               <label
                 style={{
@@ -440,7 +403,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                   color: '#1f2937',
                   background: isEditing ? 'white' : '#f9fafb',
                   cursor: isEditing ? 'text' : 'not-allowed',
-                  transition: 'all 0.2s',
                 }}
               />
               {errors.name && (
@@ -457,7 +419,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
               )}
             </div>
 
-            {/* Email & Phone Row */}
             <div
               style={{
                 display: 'grid',
@@ -497,7 +458,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                     color: '#1f2937',
                     background: isEditing ? 'white' : '#f9fafb',
                     cursor: isEditing ? 'text' : 'not-allowed',
-                    transition: 'all 0.2s',
                   }}
                 />
                 {errors.email && (
@@ -538,31 +498,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                   style={{
                     width: '100%',
                     padding: '12px 16px',
-                    border: `1px solid ${errors.phone ? '#ef4444' : '#d1d5db'}`,
+                    border: '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '14px',
                     color: '#1f2937',
                     background: isEditing ? 'white' : '#f9fafb',
                     cursor: isEditing ? 'text' : 'not-allowed',
-                    transition: 'all 0.2s',
                   }}
                 />
-                {errors.phone && (
-                  <span
-                    style={{
-                      display: 'block',
-                      color: '#ef4444',
-                      fontSize: '12px',
-                      marginTop: '4px',
-                    }}
-                  >
-                    {errors.phone}
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Divider */}
             {isEditing && (
               <>
                 <div
@@ -598,7 +544,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                   />
                 </div>
 
-                {/* Password Fields */}
                 <div style={{ marginBottom: '20px' }}>
                   <label
                     style={{
@@ -628,7 +573,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                       }`,
                       borderRadius: '8px',
                       fontSize: '14px',
-                      transition: 'all 0.2s',
                     }}
                   />
                   {errors.newPassword && (
@@ -674,7 +618,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                       }`,
                       borderRadius: '8px',
                       fontSize: '14px',
-                      transition: 'all 0.2s',
                     }}
                   />
                   {errors.confirmPassword && (
@@ -690,107 +633,83 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
                     </span>
                   )}
                 </div>
-              </>
-            )}
 
-            {/* Form Actions */}
-            {isEditing && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '28px',
-                  paddingTop: '20px',
-                  borderTop: '1px solid #e5e7eb',
-                }}
-                className="form-actions-responsive"
-              >
-                <button
-                  onClick={handleCancel}
-                  disabled={loading}
+                <div
                   style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    opacity: loading ? 0.6 : 1,
-                    transition: 'all 0.2s',
+                    gap: '12px',
+                    marginTop: '28px',
+                    paddingTop: '20px',
+                    borderTop: '1px solid #e5e7eb',
                   }}
-                  onMouseEnter={e =>
-                    !loading && (e.currentTarget.style.background = '#e5e7eb')
-                  }
-                  onMouseLeave={e =>
-                    (e.currentTarget.style.background = '#f3f4f6')
-                  }
+                  className="form-actions-responsive"
                 >
-                  <X size={16} />
-                  Batal
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    opacity: loading ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={e => {
-                    if (!loading) {
-                      e.currentTarget.style.background = '#5568d3';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow =
-                        '0 4px 12px rgba(102, 126, 234, 0.3)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#667eea';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <div
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          border: '2px solid rgba(255, 255, 255, 0.3)',
-                          borderTopColor: 'white',
-                          borderRadius: '50%',
-                          animation: 'spin 0.6s linear infinite',
-                        }}
-                      />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      Simpan Perubahan
-                    </>
-                  )}
-                </button>
-              </div>
+                  <button
+                    onClick={handleCancel}
+                    disabled={loading}
+                    style={{
+                      flex: 1,
+                      padding: '12px 24px',
+                      background: '#f3f4f6',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    <X size={16} />
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    style={{
+                      flex: 1,
+                      padding: '12px 24px',
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <div
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                            borderTopColor: 'white',
+                            borderRadius: '50%',
+                            animation: 'spin 0.6s linear infinite',
+                          }}
+                        />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        Simpan Perubahan
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -801,20 +720,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser }) => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-
         @media (max-width: 768px) {
-          .settings-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .form-row-responsive {
-            grid-template-columns: 1fr !important;
-          }
-          .form-actions-responsive {
-            flex-direction: column;
-          }
-          .form-actions-responsive button {
-            width: 100%;
-          }
+          .settings-grid { grid-template-columns: 1fr !important; }
+          .form-row-responsive { grid-template-columns: 1fr !important; }
+          .form-actions-responsive { flex-direction: column; }
+          .form-actions-responsive button { width: 100%; }
         }
       `}</style>
     </div>

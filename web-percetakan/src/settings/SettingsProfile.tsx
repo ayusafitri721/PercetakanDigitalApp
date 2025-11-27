@@ -121,34 +121,36 @@ const SettingsProfile: React.FC<SettingsProfileProps> = ({
     }
   }, [user]);
 
-  const fetchUserDetail = async () => {
-    if (!user) return;
+ const fetchUserDetail = async () => {
+   if (!user) return;
 
-    try {
-      setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/users.php`, {
-        params: { op: 'detail', id: user.id_user },
-      });
+   try {
+     setLoading(true);
+     const response = await axios.get(`${API_BASE_URL}/users.php`, {
+       params: { op: 'detail', id: user.id_user },
+     });
 
-      if (response.data.status === 'success') {
-        setUserData(response.data.data);
-        setFormData({
-          nama: response.data.data.nama || '',
-          email: response.data.data.email || '',
-          no_telepon: response.data.data.no_telepon || '',
-          alamat: response.data.data.alamat || '',
-          kota: response.data.data.kota || '',
-          provinsi: response.data.data.provinsi || '',
-          password: '',
-          confirmPassword: '',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching user detail:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+     if (response.data.status === 'success') {
+       // Gunakan data dari user yang login (dari localStorage/props)
+       // bukan dari response API
+       setUserData(user);
+       setFormData({
+         nama: user.nama || '',
+         email: user.email || '',
+         no_telepon: user.no_telepon || '',
+         alamat: user.alamat || '',
+         kota: user.kota || '',
+         provinsi: user.provinsi || '',
+         password: '',
+         confirmPassword: '',
+       });
+     }
+   } catch (error) {
+     console.error('Error fetching user detail:', error);
+   } finally {
+     setLoading(false);
+   }
+ };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -306,11 +308,11 @@ const SettingsProfile: React.FC<SettingsProfileProps> = ({
         {/* Profile Card */}
         <div className="profile-card">
           <div className="profile-avatar-large">
-            {userData?.nama?.charAt(0) || 'U'}
+            {user?.nama?.charAt(0) || 'U'}
           </div>
-          <h3>{userData?.nama}</h3>
-          <p className="profile-role">{userData?.role}</p>
-          <p className="profile-email">{userData?.email}</p>
+          <h3>{user?.nama}</h3>
+          <p className="profile-role">{user?.role}</p>
+          <p className="profile-email">{user?.email}</p>
         </div>
 
         {/* Form Card */}
@@ -514,13 +516,13 @@ const SettingsProfile: React.FC<SettingsProfileProps> = ({
           <h4>Informasi Akun</h4>
           <div className="info-item">
             <span className="info-label">Role:</span>
-            <span className="info-value">{userData?.role}</span>
+            <span className="info-value">{user?.role}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Status:</span>
             <span className="badge badge-active">Aktif</span>
           </div>
-        </div>
+        </div>      
       </div>
     </div>
   );
