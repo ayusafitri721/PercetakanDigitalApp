@@ -16,6 +16,7 @@ import {
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { register } from '../../config/authAPI';
 import { API_BASE_URL } from '../../config/api';
 
@@ -77,7 +78,7 @@ export default function RegisterScreen({
 
       if (data.success) {
         Alert.alert(
-          '✅ Registrasi Berhasil!',
+          'Registrasi Berhasil!',
           'Akun Anda berhasil dibuat. Silakan login untuk melanjutkan.',
           [
             {
@@ -98,12 +99,12 @@ export default function RegisterScreen({
         );
       } else {
         Alert.alert(
-          '❌ Registrasi Gagal',
+          'Registrasi Gagal',
           data.message || 'Terjadi kesalahan saat registrasi',
         );
       }
     } catch (error: any) {
-      Alert.alert('⚠️ Error', error.message || 'Tidak bisa connect ke server!');
+      Alert.alert('Error', error.message || 'Tidak bisa connect ke server!');
     } finally {
       setLoading(false);
     }
@@ -134,7 +135,7 @@ export default function RegisterScreen({
               onPress={onGoToLogin}
               disabled={loading}
             >
-              <Text style={styles.backIcon}>←</Text>
+              <Icon name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
 
             {/* Logo - Diperkecil */}
@@ -156,7 +157,12 @@ export default function RegisterScreen({
               {/* Nama */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>👤</Text>
+                  <Icon
+                    name="person-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Nama Lengkap"
@@ -172,7 +178,12 @@ export default function RegisterScreen({
               {/* Email */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>📧</Text>
+                  <Icon
+                    name="mail-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Email Address"
@@ -190,7 +201,12 @@ export default function RegisterScreen({
               {/* Password */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                  <Icon
+                    name="lock-closed-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Password (min. 6 characters)"
@@ -205,9 +221,11 @@ export default function RegisterScreen({
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeButton}
                   >
-                    <Text style={styles.eyeIcon}>
-                      {showPassword ? '👁️' : '🔍'}
-                    </Text>
+                    <Icon
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="#5AB9EA"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -215,7 +233,12 @@ export default function RegisterScreen({
               {/* Confirm Password */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔐</Text>
+                  <Icon
+                    name="lock-closed-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Confirm Password"
@@ -230,9 +253,13 @@ export default function RegisterScreen({
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                     style={styles.eyeButton}
                   >
-                    <Text style={styles.eyeIcon}>
-                      {showConfirmPassword ? '👁️' : '🔍'}
-                    </Text>
+                    <Icon
+                      name={
+                        showConfirmPassword ? 'eye-outline' : 'eye-off-outline'
+                      }
+                      size={20}
+                      color="#5AB9EA"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -240,7 +267,12 @@ export default function RegisterScreen({
               {/* No Telepon */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>📱</Text>
+                  <Icon
+                    name="call-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Phone Number (Optional)"
@@ -256,7 +288,12 @@ export default function RegisterScreen({
               {/* Alamat */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapperMultiline}>
-                  <Text style={styles.inputIcon}>📍</Text>
+                  <Icon
+                    name="location-outline"
+                    size={20}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.inputMultiline}
                     placeholder="Address (Optional)"
@@ -336,11 +373,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
   },
-  backIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   logoContainer: {
     alignItems: 'center',
     marginTop: 20,
@@ -404,7 +436,6 @@ const styles = StyleSheet.create({
     minHeight: 70,
   },
   inputIcon: {
-    fontSize: 18,
     marginRight: 12,
   },
   input: {
@@ -421,9 +452,6 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 8,
-  },
-  eyeIcon: {
-    fontSize: 18,
   },
   registerButton: {
     width: '100%',

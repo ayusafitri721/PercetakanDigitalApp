@@ -53,32 +53,50 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
     console.log('🚀 Starting checkout process...', data);
 
     // ✅ TENTUKAN STATUS BERDASARKAN DELIVERY METHOD & PAYMENT PROOF
-    let statusOrder = 'diproses'; // ⭐ DEFAULT: SEMUA LANGSUNG DIPROSES
+    let statusOrder = 'diproses';
     let statusPembayaran = 'pending';
     let autoApproved = false;
 
+    // ⭐ LOGIC PAYMENT STATUS (Sama dengan orderHelpers.ts)
     if (data.delivery_method === 'cod') {
-      // COD belum bayar = pending pembayaran, tapi ORDER TETAP DIPROSES
-      statusOrder = 'diproses'; // ⭐ TETAP DIPROSES
-      statusPembayaran = 'pending'; // ⭐ PEMBAYARAN PENDING
-      console.log('💵 COD Belum Bayar - Order: diproses, Pembayaran: pending');
-    } else if (data.delivery_method === 'pickup' && data.payment_proof) {
-      // Pickup + bukti bayar = LUNAS + DIPROSES
-      statusOrder = 'diproses';
-      statusPembayaran = 'lunas'; // ⭐ LANGSUNG LUNAS
-      autoApproved = true;
-      console.log('🏪 Pickup + Bukti Bayar - Order: diproses, Pembayaran: lunas');
-    } else if (data.delivery_method === 'transfer_delivery' && data.payment_proof) {
-      // Transfer delivery + bukti bayar = LUNAS + DIPROSES
-      statusOrder = 'diproses';
-      statusPembayaran = 'lunas'; // ⭐ LANGSUNG LUNAS
-      autoApproved = true;
-      console.log('🚚 Transfer Delivery + Bukti Bayar - Order: diproses, Pembayaran: lunas');
-    } else {
-      // Default: DIPROSES
-      statusOrder = 'diproses';
-      statusPembayaran = 'pending';
-      console.log('📦 Default - Order: diproses, Pembayaran: pending');
+      if (data.payment_proof) {
+        // COD SUDAH BAYAR = LUNAS
+        statusPembayaran = 'lunas';
+        statusOrder = 'diproses';
+        autoApproved = true;
+        console.log('✅ COD Sudah Bayar - Status: LUNAS');
+      } else {
+        // COD BELUM BAYAR = PENDING
+        statusPembayaran = 'pending';
+        statusOrder = 'diproses';
+        console.log('💵 COD Belum Bayar - Status: PENDING');
+      }
+    } else if (data.delivery_method === 'pickup') {
+      if (data.payment_proof) {
+        // PICKUP + BUKTI BAYAR = LUNAS
+        statusPembayaran = 'lunas';
+        statusOrder = 'diproses';
+        autoApproved = true;
+        console.log('✅ Pickup + Bukti Bayar - Status: LUNAS');
+      } else {
+        // PICKUP TANPA BUKTI = PENDING
+        statusPembayaran = 'pending';
+        statusOrder = 'validasi';
+        console.log('⚠️ Pickup Tanpa Bukti - Status: PENDING');
+      }
+    } else if (data.delivery_method === 'transfer_delivery') {
+      if (data.payment_proof) {
+        // TRANSFER DELIVERY + BUKTI BAYAR = LUNAS
+        statusPembayaran = 'lunas';
+        statusOrder = 'diproses';
+        autoApproved = true;
+        console.log('✅ Transfer Delivery + Bukti Bayar - Status: LUNAS');
+      } else {
+        // TRANSFER TANPA BUKTI = PENDING
+        statusPembayaran = 'pending';
+        statusOrder = 'validasi';
+        console.log('⚠️ Transfer Tanpa Bukti - Status: PENDING');
+      }
     }
 
     // STEP 1: CREATE ORDER
@@ -104,7 +122,6 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
     const orderResult = await orderResponse.json();
     console.log('📦 Order response:', orderResult);
 
-    // ✅ FIX: Cek 'status' === 'success' ATAU 'success' === true
     const isSuccess = orderResult.status === 'success' || orderResult.success === true;
     
     if (!isSuccess || !orderResult.data) {
@@ -139,7 +156,6 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
           body: itemForm,
         });
 
-        // ✅ CEK RESPONSE TEXT DULU
         const itemText = await itemResponse.text();
         console.log('📦 Item raw response:', itemText);
 
@@ -159,15 +175,26 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
       const payForm = new FormData();
       payForm.append('id_order', id_order.toString());
       payForm.append('jumlah_bayar', data.total.toString());
-      payForm.append('status_pembayaran', statusPembayaran); // ✅ Status dinamis
+      payForm.append('status_pembayaran', statusPembayaran); // ✅ Status dinamis (lunas/pending)
 
       if (data.delivery_method === 'cod') {
-        // COD = pending, bayar ke kurir
+        // COD
         payForm.append('metode_pembayaran', 'cod');
-        console.log('💵 Payment COD - pending');
+        
+        if (data.payment_proof?.uri) {
+          // COD SUDAH BAYAR - Upload bukti
+          payForm.append('bukti_pembayaran', {
+            uri: data.payment_proof.uri,
+            name: data.payment_proof.name,
+            type: data.payment_proof.type,
+          } as any);
+          console.log('✅ COD - Bukti bayar uploaded (LUNAS)');
+        } else {
+          console.log('💵 COD - Belum bayar (PENDING)');
+        }
       } else {
-        // Transfer/QRIS + Upload bukti bayar
-        payForm.append('metode_pembayaran', data.payment_method);
+        // Transfer/QRIS/Pickup
+        payForm.append('metode_pembayaran', data.payment_method || 'transfer');
         
         if (data.payment_proof?.uri) {
           payForm.append('bukti_pembayaran', {
@@ -175,7 +202,9 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
             name: data.payment_proof.name,
             type: data.payment_proof.type,
           } as any);
-          console.log('💳 Payment proof uploaded');
+          console.log('✅ Bukti bayar uploaded (LUNAS)');
+        } else {
+          console.log('⚠️ Tidak ada bukti bayar (PENDING)');
         }
       }
 
@@ -218,7 +247,6 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
         body: deliveryForm,
       });
 
-      // ✅ CEK RESPONSE TEXT DULU SEBELUM PARSE JSON
       const deliveryText = await deliveryResponse.text();
       console.log('🚚 Delivery raw response:', deliveryText);
 
@@ -227,11 +255,9 @@ export async function processCheckout(data: CheckoutData): Promise<CheckoutResul
         console.log('🚚 Delivery parsed:', deliveryResult);
       } catch (parseError) {
         console.error('⚠️ Delivery response bukan JSON valid:', deliveryText);
-        // Tetap lanjut, delivery optional
       }
     } catch (deliveryError) {
       console.error('❌ Delivery error:', deliveryError);
-      // Delivery error tidak boleh gagalkan checkout
     }
 
     console.log('🎉 Checkout complete!');

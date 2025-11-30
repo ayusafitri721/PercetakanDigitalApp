@@ -1,4 +1,4 @@
-// screens/auth/LoginScreen.tsx (FIXED VERSION)
+// screens/auth/LoginScreen.tsx (NO EMOJIS VERSION)
 import React, { useState } from 'react';
 import {
   View,
@@ -16,6 +16,7 @@ import {
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login } from '../../config/authAPI';
 import { API_BASE_URL } from '../../config/api';
@@ -56,21 +57,21 @@ export default function LoginScreen({
         password: password,
       });
 
-      console.log('🔐 Login Response:', JSON.stringify(data, null, 2));
+      console.log('Login Response:', JSON.stringify(data, null, 2));
 
       if (data.success && data.data) {
-        console.log('✅ Login Success!');
-        console.log('✅ User ID:', data.data.user.id_user);
-        console.log('✅ User Name:', data.data.user.nama);
-        console.log('✅ User Email:', data.data.user.email);
+        console.log('Login Success!');
+        console.log('User ID:', data.data.user.id_user);
+        console.log('User Name:', data.data.user.nama);
+        console.log('User Email:', data.data.user.email);
 
-        // ⭐⭐⭐ CRITICAL FIX: CLEAR OLD DATA FIRST ⭐⭐⭐
-        console.log('🧹 Clearing old user data from storage...');
+        // CRITICAL FIX: CLEAR OLD DATA FIRST
+        console.log('Clearing old user data from storage...');
         await AsyncStorage.removeItem('userData');
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('currentUser');
 
-        // ⭐⭐⭐ SAVE NEW USER DATA PROPERLY ⭐⭐⭐
+        // SAVE NEW USER DATA PROPERLY
         const userDataToSave = {
           user: {
             id_user: data.data.user.id_user,
@@ -84,7 +85,7 @@ export default function LoginScreen({
           loginTime: new Date().toISOString(),
         };
 
-        console.log('💾 Saving user data to AsyncStorage:', userDataToSave);
+        console.log('Saving user data to AsyncStorage:', userDataToSave);
 
         // Save di beberapa key untuk redundancy
         await AsyncStorage.setItem('userData', JSON.stringify(userDataToSave));
@@ -96,36 +97,30 @@ export default function LoginScreen({
 
         // Verify save berhasil
         const savedData = await AsyncStorage.getItem('userData');
-        console.log(
-          '✅ Verified saved data:',
-          savedData ? 'SUCCESS' : 'FAILED',
-        );
+        console.log('Verified saved data:', savedData ? 'SUCCESS' : 'FAILED');
 
-        Alert.alert(
-          '✅ Login Berhasil!',
-          `Selamat datang ${data.data.user.nama}`,
-        );
+        Alert.alert('Login Berhasil!', `Selamat datang ${data.data.user.nama}`);
 
         // Clear form
         setEmail('');
         setPassword('');
 
-        // ⭐ Pass complete user data
+        // Pass complete user data
         onLoginSuccess({
           ...data.data,
           userId: data.data.user.id_user,
           user: data.data.user,
         });
       } else {
-        console.log('❌ Login Failed:', data.message);
+        console.log('Login Failed:', data.message);
         Alert.alert(
-          '❌ Login Gagal',
+          'Login Gagal',
           data.message || 'Email atau password salah!',
         );
       }
     } catch (error: any) {
-      console.error('❌ Login Error:', error);
-      Alert.alert('⚠️ Error', error.message || 'Tidak bisa connect ke server!');
+      console.error('Login Error:', error);
+      Alert.alert('Error', error.message || 'Tidak bisa connect ke server!');
     } finally {
       setLoading(false);
     }
@@ -168,7 +163,12 @@ export default function LoginScreen({
               {/* Email Input */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>✉️</Text>
+                  <Icon
+                    name="mail-outline"
+                    size={22}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Email Address"
@@ -186,7 +186,12 @@ export default function LoginScreen({
               {/* Password Input */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                  <Icon
+                    name="lock-closed-outline"
+                    size={22}
+                    color="#5AB9EA"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your password"
@@ -201,9 +206,11 @@ export default function LoginScreen({
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeButton}
                   >
-                    <Text style={styles.eyeIcon}>
-                      {showPassword ? '👁️' : '🔍'}
-                    </Text>
+                    <Icon
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={22}
+                      color="#5AB9EA"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -309,7 +316,6 @@ const styles = StyleSheet.create({
     borderColor: '#E1EDF5',
   },
   inputIcon: {
-    fontSize: 20,
     marginRight: 12,
   },
   input: {
@@ -319,9 +325,6 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 8,
-  },
-  eyeIcon: {
-    fontSize: 20,
   },
   loginButton: {
     width: '100%',

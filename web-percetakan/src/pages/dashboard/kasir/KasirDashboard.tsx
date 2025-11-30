@@ -34,7 +34,7 @@ import {
 } from './utils/kasirUtils';
 import './kasir.css';
 
-const API_BASE_URL = 'http://localhost/api-percetakan/api';
+import { API_BASE_URL } from '../../../config';
 
 interface DesignFile {
   id_file: string;
