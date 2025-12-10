@@ -1,6 +1,7 @@
 // src/screens/customer/components/UploadFileCard.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface UploadedFile {
   uri: string;
@@ -49,7 +50,8 @@ export default function UploadFileCard({
           </View>
         </View>
         <TouchableOpacity onPress={onRemove} style={styles.removeButton}>
-          <Text style={styles.removeButtonText}>🗑️ Hapus</Text>
+          <Icon name="trash-outline" size={16} color="#EF4444" />
+          <Text style={styles.removeButtonText}> Hapus</Text>
         </TouchableOpacity>
       </View>
     );
@@ -57,7 +59,7 @@ export default function UploadFileCard({
 
   return (
     <TouchableOpacity style={styles.uploadButton} onPress={onPick}>
-      <Text style={styles.uploadIcon}>{icon}</Text>
+      <Icon name="cloud-upload-outline" size={48} color="#2563EB" />
       <Text style={styles.uploadText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -74,7 +76,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadIcon: { fontSize: 48, marginBottom: 12 },
-  uploadText: { fontSize: 16, fontWeight: '600', color: '#4F46E5' },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2563EB',
+    marginTop: 12,
+  }, // UBAH DARI UNGU #4F46E5 KE BIRU #2563EB
   uploadedCard: {
     backgroundColor: '#F0FDF4',
     borderRadius: 16,
@@ -102,7 +109,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     borderRadius: 10,
     paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#EF4444',
   },

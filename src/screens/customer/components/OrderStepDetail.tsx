@@ -7,6 +7,7 @@ import {
   TextInput,
   StyleSheet,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import UploadFileCard from './UploadFileCard';
 
 interface UploadedFile {
@@ -48,7 +49,10 @@ export default function OrderStepDetail({
   return (
     <>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📁 Upload Desain</Text>
+        <View style={styles.sectionTitleContainer}>
+          <Icon name="folder-outline" size={20} color="#1F2937" />
+          <Text style={styles.sectionTitle}> Upload Desain</Text>
+        </View>
         <UploadFileCard
           file={uploadedFile}
           onPick={onPickImage}
@@ -118,7 +122,7 @@ export default function OrderStepDetail({
               })
             }
           >
-            <Text style={styles.quantityButtonText}>−</Text>
+            <Icon name="remove" size={24} color="#1F2937" />
           </TouchableOpacity>
           <TextInput
             style={styles.quantityInput}
@@ -132,7 +136,7 @@ export default function OrderStepDetail({
               onUpdateDetails({ quantity: orderDetails.quantity + 1 })
             }
           >
-            <Text style={styles.quantityButtonText}>+</Text>
+            <Icon name="add" size={24} color="#1F2937" />
           </TouchableOpacity>
         </View>
       </View>
@@ -147,7 +151,12 @@ export default function OrderStepDetail({
             ]}
             onPress={() => onUpdateDetails({ speed: 'normal' })}
           >
-            <Text style={styles.speedEmoji}>🕐</Text>
+            <Icon
+              name="time-outline"
+              size={32}
+              color={orderDetails.speed === 'normal' ? '#60A5FA' : '#6B7280'}
+              style={styles.speedIcon}
+            />
             <Text style={styles.speedTitle}>Normal</Text>
             <Text style={styles.speedSubtitle}>3-5 hari</Text>
           </TouchableOpacity>
@@ -158,7 +167,12 @@ export default function OrderStepDetail({
             ]}
             onPress={() => onUpdateDetails({ speed: 'express' })}
           >
-            <Text style={styles.speedEmoji}>⚡</Text>
+            <Icon
+              name="flash-outline"
+              size={32}
+              color={orderDetails.speed === 'express' ? '#60A5FA' : '#6B7280'}
+              style={styles.speedIcon}
+            />
             <Text style={styles.speedTitle}>Express</Text>
             <Text style={styles.speedSubtitle}>1-2 hari (+50%)</Text>
           </TouchableOpacity>
@@ -182,11 +196,18 @@ export default function OrderStepDetail({
 
 const styles = StyleSheet.create({
   section: { marginTop: 20, paddingHorizontal: 20 },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 12,
   },
   label: {
     fontSize: 15,
@@ -194,7 +215,11 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 10,
   },
-  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
   optionButton: {
     backgroundColor: '#FFF',
     borderWidth: 2,
@@ -202,11 +227,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
+    margin: 5,
   },
-  optionButtonActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  optionButtonActive: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
   optionButtonText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
   optionButtonTextActive: { color: '#FFF' },
-  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  quantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   quantityButton: {
     width: 48,
     height: 48,
@@ -216,8 +245,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#E5E7EB',
+    marginHorizontal: 6,
   },
-  quantityButtonText: { fontSize: 22, fontWeight: '600', color: '#1F2937' },
   quantityInput: {
     flex: 1,
     height: 48,
@@ -229,8 +258,11 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     borderWidth: 2,
     borderColor: '#E5E7EB',
+    marginHorizontal: 6,
   },
-  speedRow: { flexDirection: 'row', gap: 12 },
+  speedRow: {
+    flexDirection: 'row',
+  },
   speedCard: {
     flex: 1,
     backgroundColor: '#FFF',
@@ -239,9 +271,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E5E7EB',
     alignItems: 'center',
+    marginHorizontal: 6,
   },
-  speedCardActive: { borderColor: '#4F46E5', backgroundColor: '#EEF2FF' },
-  speedEmoji: { fontSize: 32, marginBottom: 8 },
+  speedCardActive: { borderColor: '#60A5FA', backgroundColor: '#EFF6FF' },
+  speedIcon: { marginBottom: 8 },
   speedTitle: {
     fontSize: 15,
     fontWeight: '700',

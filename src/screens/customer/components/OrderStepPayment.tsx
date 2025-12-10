@@ -1,6 +1,7 @@
 // src/screens/customer/components/OrderStepPayment.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import UploadFileCard from './UploadFileCard';
 
 interface UploadedFile {
@@ -33,7 +34,12 @@ export default function OrderStepPayment({
   if (orderDetails.deliveryMethod === 'cod') {
     return (
       <View style={styles.infoCard}>
-        <Text style={styles.infoEmoji}>✅</Text>
+        <Icon
+          name="checkmark-circle"
+          size={48}
+          color="#2563EB"
+          style={styles.infoIcon}
+        />
         <Text style={styles.infoTitle}>Siap Diproses</Text>
         <Text style={styles.infoText}>
           Pesanan akan diproses setelah dikonfirmasi admin. Pembayaran dilakukan
@@ -46,7 +52,10 @@ export default function OrderStepPayment({
   return (
     <>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💳 Pilih Metode Pembayaran</Text>
+        <Text style={styles.sectionTitle}>
+          <Icon name="card-outline" size={18} color="#1F2937" /> Pilih Metode
+          Pembayaran
+        </Text>
 
         <TouchableOpacity
           style={[
@@ -55,7 +64,13 @@ export default function OrderStepPayment({
           ]}
           onPress={() => onUpdateDetails({ paymentMethod: 'qris' })}
         >
-          <Text style={styles.paymentEmoji}>📱</Text>
+          <Icon
+            name="qr-code-outline"
+            size={36}
+            color={
+              orderDetails.paymentMethod === 'qris' ? '#2563EB' : '#6B7280'
+            }
+          />
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>QRIS</Text>
             <Text style={styles.paymentSubtitle}>Scan barcode untuk bayar</Text>
@@ -70,7 +85,13 @@ export default function OrderStepPayment({
           ]}
           onPress={() => onUpdateDetails({ paymentMethod: 'transfer' })}
         >
-          <Text style={styles.paymentEmoji}>🏦</Text>
+          <Icon
+            name="business-outline"
+            size={36}
+            color={
+              orderDetails.paymentMethod === 'transfer' ? '#2563EB' : '#6B7280'
+            }
+          />
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Transfer Bank</Text>
             <Text style={styles.paymentSubtitle}>
@@ -84,14 +105,20 @@ export default function OrderStepPayment({
         <View style={styles.paymentInfoCard}>
           {orderDetails.paymentMethod === 'qris' ? (
             <>
-              <Text style={styles.paymentInfoTitle}>📱 QRIS</Text>
+              <View style={styles.paymentInfoHeader}>
+                <Icon name="qr-code" size={20} color="#1E40AF" />
+                <Text style={styles.paymentInfoTitle}> QRIS</Text>
+              </View>
               <Text style={styles.paymentInfoText}>
                 Scan QRIS di kasir atau minta ke admin
               </Text>
             </>
           ) : (
             <>
-              <Text style={styles.paymentInfoTitle}>🏦 Bank Transfer</Text>
+              <View style={styles.paymentInfoHeader}>
+                <Icon name="business" size={20} color="#1E40AF" />
+                <Text style={styles.paymentInfoTitle}> Bank Transfer</Text>
+              </View>
               <Text style={styles.paymentInfoText}>BCA: 1234567890</Text>
               <Text style={styles.paymentInfoText}>
                 a.n. Percetakan Digital
@@ -102,7 +129,10 @@ export default function OrderStepPayment({
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📸 Upload Bukti Bayar</Text>
+        <Text style={styles.sectionTitle}>
+          <Icon name="image-outline" size={18} color="#1F2937" /> Upload Bukti
+          Bayar
+        </Text>
         <UploadFileCard
           file={paymentProof}
           onPick={onPickPaymentProof}
@@ -133,7 +163,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'center',
   },
-  paymentCardActive: { borderColor: '#4F46E5', backgroundColor: '#EEF2FF' },
+  paymentCardActive: { borderColor: '#2563EB', backgroundColor: '#EFF6FF' },
   paymentEmoji: { fontSize: 36, marginRight: 16 },
   paymentInfo: { flex: 1 },
   paymentTitle: {
@@ -144,21 +174,25 @@ const styles = StyleSheet.create({
   },
   paymentSubtitle: { fontSize: 13, color: '#6B7280' },
   paymentInfoCard: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#DBEAFE',
     marginHorizontal: 20,
     marginTop: 8,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: '#2563EB',
+  },
+  paymentInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   paymentInfoTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 8,
+    color: '#1E40AF',
   },
-  paymentInfoText: { fontSize: 14, color: '#78350F', marginBottom: 4 },
+  paymentInfoText: { fontSize: 14, color: '#1E3A8A', marginBottom: 4 },
   infoCard: {
     backgroundColor: '#DBEAFE',
     marginHorizontal: 20,
@@ -169,7 +203,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#3B82F6',
   },
-  infoEmoji: { fontSize: 48, marginBottom: 12 },
+  infoIcon: { marginBottom: 12 },
   infoTitle: {
     fontSize: 18,
     fontWeight: '700',

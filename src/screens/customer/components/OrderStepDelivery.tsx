@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import API_CONFIG from '../../../config/api';
 
 interface OrderDetails {
@@ -25,7 +26,7 @@ interface CurrentUser {
   id_user: string;
   nama: string;
   email: string;
-  role: string; // ✅ ADA 'role'
+  role: string;
   no_telepon?: string;
   alamat?: string;
   kota?: string;
@@ -50,26 +51,26 @@ export default function OrderStepDelivery({
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  console.log('🔍 OrderStepDelivery - currentUser:', currentUser);
-  console.log('🔍 OrderStepDelivery - loadingUser:', loadingUser);
+  console.log('OrderStepDelivery - currentUser:', currentUser);
+  console.log('OrderStepDelivery - loadingUser:', loadingUser);
 
   const hasCompleteAddress = Boolean(
     currentUser?.alamat &&
-      currentUser?.alamat.trim() !== '' && // ✅ Tambah validasi trim
+      currentUser?.alamat.trim() !== '' &&
       currentUser?.kota &&
       currentUser?.kota.trim() !== '' &&
       currentUser?.no_telepon &&
       currentUser?.no_telepon.trim() !== '',
   );
 
-  console.log('🔍 hasCompleteAddress:', hasCompleteAddress);
+  console.log('hasCompleteAddress:', hasCompleteAddress);
 
   const handleSaveAddressToProfile = async () => {
-    console.log('🔄 handleSaveAddressToProfile called');
-    console.log('🔍 currentUser before save:', currentUser);
+    console.log('handleSaveAddressToProfile called');
+    console.log('currentUser before save:', currentUser);
 
     if (!currentUser) {
-      console.error('❌ currentUser is null/undefined!');
+      console.error('currentUser is null/undefined!');
       Alert.alert(
         'Error',
         'User tidak ditemukan. Silakan refresh halaman atau login ulang.',
@@ -77,7 +78,7 @@ export default function OrderStepDelivery({
       return;
     }
 
-    console.log('✅ currentUser exists:', {
+    console.log('currentUser exists:', {
       id: currentUser.id_user,
       nama: currentUser.nama,
     });
@@ -94,7 +95,7 @@ export default function OrderStepDelivery({
       return;
     }
 
-    console.log('✅ Validation passed, proceeding to save...');
+    console.log('Validation passed, proceeding to save...');
 
     try {
       setSaving(true);
@@ -106,7 +107,7 @@ export default function OrderStepDelivery({
       formData.append('kota', orderDetails.city.trim());
       formData.append('provinsi', orderDetails.province?.trim() || '');
 
-      console.log('📤 Saving address to profile...', {
+      console.log('Saving address to profile...', {
         user_id: currentUser.id_user,
         phone: orderDetails.recipientPhone,
         city: orderDetails.city,
@@ -115,9 +116,9 @@ export default function OrderStepDelivery({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      console.log('🌐 Sending request to API...');
+      console.log('Sending request to API...');
       console.log(
-        '🔗 API URL:',
+        'API URL:',
         API_CONFIG.getUrl('/users.php?op=update_address'),
       );
 
@@ -132,43 +133,41 @@ export default function OrderStepDelivery({
 
       clearTimeout(timeoutId);
 
-      console.log('📡 Response status:', response.status);
+      console.log('Response status:', response.status);
 
       const responseText = await response.text();
-      console.log('📥 Raw API Response:', responseText);
+      console.log('Raw API Response:', responseText);
 
       let result;
       try {
         result = JSON.parse(responseText);
-        console.log('📥 Parsed API Response:', result);
+        console.log('Parsed API Response:', result);
       } catch (parseError) {
-        console.error('❌ JSON Parse Error:', parseError);
+        console.error('JSON Parse Error:', parseError);
         throw new Error(
           'Server response is not valid JSON: ' +
             responseText.substring(0, 100),
         );
       }
 
-      // ✅ FIX: API menggunakan 'status' bukan 'success'
       if (result.status === 'success' && result.data) {
-        console.log('✅ Update SUCCESS! New user data:', result.data);
+        console.log('Update SUCCESS! New user data:', result.data);
 
-        // Update parent state dengan data terbaru dari API
         if (onUpdateUserAddress) {
           onUpdateUserAddress(result.data);
-          console.log('✅ Parent state updated via onUpdateUserAddress');
+          console.log('Parent state updated via onUpdateUserAddress');
         }
 
-        Alert.alert('✅ Berhasil', 'Alamat berhasil disimpan ke profil Anda!');
+        Alert.alert('Berhasil', 'Alamat berhasil disimpan ke profil Anda!');
         setShowAddressForm(false);
       } else {
-        console.error('❌ API returned error:', result);
-        Alert.alert('❌ Error', result.message || 'Gagal menyimpan alamat');
+        console.error('API returned error:', result);
+        Alert.alert('Error', result.message || 'Gagal menyimpan alamat');
       }
     } catch (error: any) {
-      console.error('❌ Save address error:', error);
-      console.error('❌ Error name:', error.name);
-      console.error('❌ Error message:', error.message);
+      console.error('Save address error:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
 
       let errorMsg = 'Gagal menyimpan alamat.';
 
@@ -188,7 +187,10 @@ export default function OrderStepDelivery({
   return (
     <>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🚚 Metode Pengiriman</Text>
+        <View style={styles.sectionTitleContainer}>
+          <Icon name="car-outline" size={20} color="#1F2937" />
+          <Text style={styles.sectionTitle}> Metode Pengiriman</Text>
+        </View>
 
         <TouchableOpacity
           style={[
@@ -199,7 +201,15 @@ export default function OrderStepDelivery({
             onUpdateDetails({ deliveryMethod: 'cod', shippingCost: 15000 })
           }
         >
-          <Text style={styles.deliveryEmoji}>🚚💵</Text>
+          <View style={styles.deliveryIconContainer}>
+            <Icon name="car" size={24} color="#60A5FA" />
+            <Icon
+              name="cash"
+              size={16}
+              color="#10B981"
+              style={styles.deliverySubIcon}
+            />
+          </View>
           <View style={styles.deliveryInfo}>
             <Text style={styles.deliveryTitle}>Diantar (COD)</Text>
             <Text style={styles.deliverySubtitle}>Bayar saat terima</Text>
@@ -220,7 +230,15 @@ export default function OrderStepDelivery({
             })
           }
         >
-          <Text style={styles.deliveryEmoji}>🚚💳</Text>
+          <View style={styles.deliveryIconContainer}>
+            <Icon name="car" size={24} color="#60A5FA" />
+            <Icon
+              name="card"
+              size={16}
+              color="#3B82F6"
+              style={styles.deliverySubIcon}
+            />
+          </View>
           <View style={styles.deliveryInfo}>
             <Text style={styles.deliveryTitle}>Diantar (Transfer)</Text>
             <Text style={styles.deliverySubtitle}>
@@ -240,7 +258,12 @@ export default function OrderStepDelivery({
             onUpdateDetails({ deliveryMethod: 'pickup', shippingCost: 0 })
           }
         >
-          <Text style={styles.deliveryEmoji}>🏪</Text>
+          <Icon
+            name="storefront"
+            size={32}
+            color="#60A5FA"
+            style={styles.deliverySingleIcon}
+          />
           <View style={styles.deliveryInfo}>
             <Text style={styles.deliveryTitle}>Ambil di Toko</Text>
             <Text style={styles.deliverySubtitle}>
@@ -255,12 +278,12 @@ export default function OrderStepDelivery({
         <>
           {loadingUser ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#4F46E5" />
+              <ActivityIndicator size="large" color="#60A5FA" />
               <Text style={styles.loadingText}>Memuat data user...</Text>
             </View>
           ) : !currentUser ? (
             <View style={styles.errorCard}>
-              <Text style={styles.errorEmoji}>⚠️</Text>
+              <Icon name="alert-circle" size={48} color="#DC2626" />
               <Text style={styles.errorTitle}>User Tidak Ditemukan</Text>
               <Text style={styles.errorText}>
                 Silakan logout dan login kembali untuk melanjutkan.
@@ -271,42 +294,63 @@ export default function OrderStepDelivery({
               {hasCompleteAddress && !showAddressForm ? (
                 <View style={styles.addressCard}>
                   <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>📍 Alamat Pengiriman</Text>
+                    <View style={styles.cardTitleContainer}>
+                      <Icon name="location" size={18} color="#10B981" />
+                      <Text style={styles.cardTitle}> Alamat Pengiriman</Text>
+                    </View>
                     <TouchableOpacity
                       style={styles.editButton}
                       onPress={() => setShowAddressForm(true)}
                     >
-                      <Text style={styles.editButtonText}>✏️ Ubah</Text>
+                      <Icon name="pencil" size={14} color="#D97706" />
+                      <Text style={styles.editButtonText}> Ubah</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.addressContent}>
                     <Text style={styles.addressName}>{currentUser.nama}</Text>
-                    <Text style={styles.addressPhone}>
-                      📞 {currentUser.no_telepon}
-                    </Text>
-                    <Text style={styles.addressDetail}>
-                      📍 {currentUser.alamat}
-                    </Text>
-                    <Text style={styles.addressLocation}>
-                      🏙️ {currentUser.kota}
-                      {currentUser.provinsi ? `, ${currentUser.provinsi}` : ''}
-                    </Text>
+                    <View style={styles.addressRow}>
+                      <Icon name="call" size={14} color="#4B5563" />
+                      <Text style={styles.addressPhone}>
+                        {' '}
+                        {currentUser.no_telepon}
+                      </Text>
+                    </View>
+                    <View style={styles.addressRow}>
+                      <Icon name="location-outline" size={14} color="#374151" />
+                      <Text style={styles.addressDetail}>
+                        {' '}
+                        {currentUser.alamat}
+                      </Text>
+                    </View>
+                    <View style={styles.addressRow}>
+                      <Icon name="business" size={14} color="#059669" />
+                      <Text style={styles.addressLocation}>
+                        {' '}
+                        {currentUser.kota}
+                        {currentUser.provinsi
+                          ? `, ${currentUser.provinsi}`
+                          : ''}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               ) : (
                 <View style={styles.formCard}>
                   <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>
-                      📝{' '}
-                      {hasCompleteAddress ? 'Edit Alamat' : 'Lengkapi Alamat'}
-                    </Text>
+                    <View style={styles.cardTitleContainer}>
+                      <Icon name="create" size={18} color="#3B82F6" />
+                      <Text style={styles.cardTitle}>
+                        {' '}
+                        {hasCompleteAddress ? 'Edit Alamat' : 'Lengkapi Alamat'}
+                      </Text>
+                    </View>
                     {hasCompleteAddress && (
                       <TouchableOpacity
                         style={styles.cancelButton}
                         onPress={() => setShowAddressForm(false)}
                       >
-                        <Text style={styles.cancelButtonText}>✖️</Text>
+                        <Icon name="close" size={18} color="#DC2626" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -387,16 +431,28 @@ export default function OrderStepDelivery({
                       {saving ? (
                         <ActivityIndicator color="#FFF" />
                       ) : (
-                        <Text style={styles.saveButtonText}>
-                          💾 Simpan ke Profil Saya
-                        </Text>
+                        <View style={styles.saveButtonContent}>
+                          <Icon name="save" size={16} color="#FFF" />
+                          <Text style={styles.saveButtonText}>
+                            {' '}
+                            Simpan ke Profil Saya
+                          </Text>
+                        </View>
                       )}
                     </TouchableOpacity>
 
-                    <Text style={styles.helperText}>
-                      ℹ️ Alamat akan tersimpan dan otomatis terisi saat order
-                      berikutnya
-                    </Text>
+                    <View style={styles.helperTextContainer}>
+                      <Icon
+                        name="information-circle"
+                        size={14}
+                        color="#6B7280"
+                      />
+                      <Text style={styles.helperText}>
+                        {' '}
+                        Alamat akan tersimpan dan otomatis terisi saat order
+                        berikutnya
+                      </Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -405,7 +461,7 @@ export default function OrderStepDelivery({
         </>
       ) : (
         <View style={styles.infoCard}>
-          <Text style={styles.infoEmoji}>🏪</Text>
+          <Icon name="storefront" size={48} color="#60A5FA" />
           <Text style={styles.infoTitle}>Ambil di Toko</Text>
           <Text style={styles.infoText}>
             Pesanan akan siap diambil setelah selesai diproduksi. Anda akan
@@ -419,11 +475,15 @@ export default function OrderStepDelivery({
 
 const styles = StyleSheet.create({
   section: { marginTop: 20, paddingHorizontal: 20 },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 12,
   },
   deliveryCard: {
     flexDirection: 'row',
@@ -436,10 +496,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deliveryCardActive: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    borderColor: '#60A5FA',
+    backgroundColor: '#EFF6FF',
   },
-  deliveryEmoji: { fontSize: 36, marginRight: 16 },
+  deliveryIconContainer: {
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    position: 'relative',
+  },
+  deliverySubIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+  deliverySingleIcon: {
+    marginRight: 16,
+  },
   deliveryInfo: { flex: 1 },
   deliveryTitle: {
     fontSize: 16,
@@ -448,7 +523,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   deliverySubtitle: { fontSize: 13, color: '#6B7280', marginBottom: 4 },
-  deliveryPrice: { fontSize: 13, fontWeight: '600', color: '#4F46E5' },
+  deliveryPrice: { fontSize: 13, fontWeight: '600', color: '#60A5FA' },
   addressCard: {
     backgroundColor: '#FFF',
     marginHorizontal: 20,
@@ -483,12 +558,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  cardTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
   },
   editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: '#FEF3C7',
@@ -505,18 +586,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     borderRadius: 8,
   },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
   addressContent: {
-    gap: 8,
+    marginTop: 4,
   },
   addressName: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
+    marginBottom: 8,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   addressPhone: {
     fontSize: 14,
@@ -526,6 +608,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     lineHeight: 20,
+    flex: 1,
   },
   addressLocation: {
     fontSize: 13,
@@ -533,15 +616,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   formContent: {
-    gap: 16,
+    marginTop: 4,
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#F9FAFB',
@@ -573,16 +657,25 @@ const styles = StyleSheet.create({
   saveButtonDisabled: {
     backgroundColor: '#9CA3AF',
   },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   saveButtonText: {
     color: '#FFF',
     fontSize: 15,
     fontWeight: '700',
   },
+  helperTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
   helperText: {
     fontSize: 12,
     color: '#6B7280',
     textAlign: 'center',
-    marginTop: -8,
   },
   loadingCard: {
     backgroundColor: '#F9FAFB',
@@ -609,14 +702,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#DC2626',
   },
-  errorEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
   errorTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#DC2626',
+    marginTop: 12,
     marginBottom: 8,
   },
   errorText: {
@@ -626,20 +716,20 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   infoCard: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EFF6FF',
     marginHorizontal: 20,
     marginTop: 16,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: '#60A5FA',
   },
-  infoEmoji: { fontSize: 48, marginBottom: 12 },
   infoTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1E40AF',
+    marginTop: 12,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -650,3 +740,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+

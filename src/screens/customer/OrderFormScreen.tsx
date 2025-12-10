@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import OrderProgress from './components/OrderProgress';
 import OrderStepDetail from './components/OrderStepDetail';
@@ -71,26 +72,15 @@ export default function OrderFormScreen({
       ? service.ukuran_standar.split(',').map(s => s.trim())
       : ['Standard'];
 
-  const getIconByCategory = (cat: string): string => {
-    const lower = cat.toLowerCase();
-    if (lower.includes('dokumen')) return '📄';
-    if (lower.includes('banner')) return '🎨';
-    if (lower.includes('kaos')) return '👕';
-    if (lower.includes('stiker')) return '🏷';
-    if (lower.includes('packaging')) return '📦';
-    if (lower.includes('foto')) return '📸';
-    return '🖨';
-  };
-
   const getColorByCategory = (cat: string): string => {
     const lower = cat.toLowerCase();
-    if (lower.includes('dokumen')) return '#4F46E5';
-    if (lower.includes('banner')) return '#10B981';
-    if (lower.includes('kaos')) return '#F59E0B';
-    if (lower.includes('stiker')) return '#EF4444';
-    if (lower.includes('packaging')) return '#8B5CF6';
-    if (lower.includes('foto')) return '#EC4899';
-    return '#6366F1';
+    if (lower.includes('dokumen')) return '#60A5FA';
+    if (lower.includes('banner')) return '#3B82F6';
+    if (lower.includes('kaos')) return '#2563EB';
+    if (lower.includes('stiker')) return '#1D4ED8';
+    if (lower.includes('packaging')) return '#1E40AF';
+    if (lower.includes('foto')) return '#60A5FA';
+    return '#3B82F6';
   };
 
   const handleNext = () => {
@@ -167,7 +157,7 @@ export default function OrderFormScreen({
   if (loadingUser) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#60A5FA" />
         <Text style={styles.loadingText}>Memuat data user...</Text>
       </View>
     );
@@ -176,7 +166,7 @@ export default function OrderFormScreen({
   if (!currentUser) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Icon name="warning" size={64} color="#DC2626" />
         <Text style={styles.errorTitle}>User Tidak Ditemukan</Text>
         <Text style={styles.errorDesc}>
           Session expired. Silakan logout dan login kembali.
@@ -188,7 +178,6 @@ export default function OrderFormScreen({
     );
   }
 
-  const icon = getIconByCategory(service.nama_category);
   const color = getColorByCategory(service.nama_category);
   const estimatedPrice = calculatePrice();
   const totalPrice = calculateTotal();
@@ -197,7 +186,7 @@ export default function OrderFormScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Form Pemesanan</Text>
         <View style={{ width: 40 }} />
@@ -210,13 +199,21 @@ export default function OrderFormScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.userInfoCard}>
-          <Text style={styles.userInfoLabel}>👤 Customer:</Text>
+          <View style={styles.userInfoHeader}>
+            <Icon name="person" size={16} color="#6B7280" />
+            <Text style={styles.userInfoLabel}> Customer:</Text>
+          </View>
           <Text style={styles.userInfoName}>{currentUser.nama}</Text>
           <Text style={styles.userInfoEmail}>{currentUser.email}</Text>
         </View>
 
         <View style={[styles.serviceInfoCard, { borderLeftColor: color }]}>
-          <Text style={styles.serviceIcon}>{icon}</Text>
+          <Icon
+            name="print"
+            size={40}
+            color={color}
+            style={styles.serviceIcon}
+          />
           <View style={styles.serviceInfo}>
             <Text style={styles.serviceName}>{service.nama_product}</Text>
             <Text style={styles.serviceCategory}>{service.nama_category}</Text>
@@ -273,7 +270,8 @@ export default function OrderFormScreen({
               style={styles.backStepButton}
               onPress={() => setCurrentStep(currentStep - 1)}
             >
-              <Text style={styles.backStepButtonText}>← Kembali</Text>
+              <Icon name="arrow-back" size={16} color="#1F2937" />
+              <Text style={styles.backStepButtonText}> Kembali</Text>
             </TouchableOpacity>
           )}
           <View style={styles.bottomBarRight}>
@@ -300,12 +298,15 @@ export default function OrderFormScreen({
               {loading ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.submitButtonText}>
-                  {currentStep === 3 ||
-                  (currentStep === 2 && orderDetails.deliveryMethod === 'cod')
-                    ? 'Pesan →'
-                    : 'Lanjut →'}
-                </Text>
+                <>
+                  <Text style={styles.submitButtonText}>
+                    {currentStep === 3 ||
+                    (currentStep === 2 && orderDetails.deliveryMethod === 'cod')
+                      ? 'Pesan'
+                      : 'Lanjut'}
+                  </Text>
+                  <Icon name="arrow-forward" size={16} color="#FFF" />
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -328,15 +329,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  errorEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
   errorTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#DC2626',
     marginBottom: 12,
+    marginTop: 16,
     textAlign: 'center',
   },
   errorDesc: {
@@ -355,7 +353,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 20,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#60A5FA',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -383,22 +381,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: { fontSize: 20, color: '#1F2937', fontWeight: 'bold' },
   title: { fontSize: 18, fontWeight: '700', color: '#1F2937' },
   scrollView: { flex: 1 },
   userInfoCard: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#EFF6FF',
     marginHorizontal: 20,
     marginTop: 16,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#4F46E5',
+    borderLeftColor: '#60A5FA',
+  },
+  userInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   userInfoLabel: {
     fontSize: 12,
     color: '#6B7280',
-    marginBottom: 4,
     fontWeight: '500',
   },
   userInfoName: {
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     borderLeftWidth: 5,
   },
-  serviceIcon: { fontSize: 40, marginRight: 16 },
+  serviceIcon: { marginRight: 16 },
   serviceInfo: { flex: 1 },
   serviceName: {
     fontSize: 17,
@@ -463,6 +464,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backStepButtonText: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
   bottomBarRight: {
@@ -480,15 +483,18 @@ const styles = StyleSheet.create({
   },
   bottomBarPrice: { fontSize: 18, fontWeight: '700', color: '#1F2937' },
   submitButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#60A5FA',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
     elevation: 3,
-    shadowColor: '#4F46E5',
+    shadowColor: '#60A5FA',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   submitButtonDisabled: { opacity: 0.6, elevation: 0 },
   submitButtonText: { fontSize: 15, fontWeight: '700', color: '#FFF' },

@@ -1,5 +1,5 @@
 // screens/customer/ProfileScreen.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,12 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import EditProfileModal from './components/EditProfileModal';
+import ChangePasswordModal from './components/ChangePasswordModal';
+import { API_BASE_URL } from '../../config/api';
 
 interface ProfileScreenProps {
   user: {
@@ -17,22 +22,49 @@ interface ProfileScreenProps {
     role: string;
     no_telepon?: string;
     alamat?: string;
+    kota?: string;
+    provinsi?: string;
+    foto_profil?: string;
+    status_aktif?: number;
+    tanggal_daftar?: string;
   };
   onBack: () => void;
   onLogout: () => void;
+  onUpdateProfile: (updatedUser: any) => void;
 }
 
 export default function ProfileScreen({
   user,
   onBack,
   onLogout,
+  onUpdateProfile,
 }: ProfileScreenProps) {
-  const handleEditProfile = () => {
-    Alert.alert('Info', 'Fitur edit profile segera hadir!');
-  };
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleChangePassword = () => {
-    Alert.alert('Info', 'Fitur ubah password segera hadir!');
+  // ✅ Function untuk refresh user data dari server
+  const refreshUserData = async () => {
+    console.log('🔄 Refreshing user data...');
+    setRefreshing(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/users.php?op=detail&id=${user.id_user}`,
+      );
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        console.log('✅ User data refreshed:', result.data);
+        onUpdateProfile(result.data);
+      } else {
+        console.error('❌ Failed to refresh user data:', result);
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing user data:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAbout = () => {
@@ -45,7 +77,7 @@ export default function ProfileScreen({
   const handleHelp = () => {
     Alert.alert(
       'Bantuan',
-      'Hubungi kami:\n\n📱 WhatsApp: 0812-3456-7890\n📧 Email: support@percetakan.com',
+      'Hubungi kami:\n\nWhatsApp: 0812-3456-7890\nEmail: support@percetakan.com',
     );
   };
 
@@ -54,10 +86,20 @@ export default function ProfileScreen({
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Profile</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={refreshUserData}
+          style={styles.refreshButton}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color="#4F46E5" />
+          ) : (
+            <Icon name="refresh" size={24} color="#4F46E5" />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -74,46 +116,76 @@ export default function ProfileScreen({
           <Text style={styles.userName}>{user.nama}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>👤 {user.role}</Text>
+            <Icon name="person" size={14} color="#4F46E5" />
+            <Text style={styles.roleText}> {user.role}</Text>
           </View>
         </View>
 
         {/* User Details Card */}
         <View style={styles.detailsCard}>
           <Text style={styles.cardTitle}>Informasi Akun</Text>
-          <InfoRow icon="👤" label="Nama Lengkap" value={user.nama} />
-          <InfoRow icon="📧" label="Email" value={user.email} />
+          <InfoRow
+            icon="person-outline"
+            label="Nama Lengkap"
+            value={user.nama}
+          />
+          <InfoRow icon="mail-outline" label="Email" value={user.email} />
           {user.no_telepon && (
-            <InfoRow icon="📱" label="No. Telepon" value={user.no_telepon} />
+            <InfoRow
+              icon="call-outline"
+              label="No. Telepon"
+              value={user.no_telepon}
+            />
           )}
           {user.alamat && (
-            <InfoRow icon="📍" label="Alamat" value={user.alamat} />
+            <InfoRow
+              icon="location-outline"
+              label="Alamat"
+              value={user.alamat}
+            />
           )}
-          <InfoRow icon="🆔" label="User ID" value={user.id_user} />
+          {user.kota && (
+            <InfoRow icon="business-outline" label="Kota" value={user.kota} />
+          )}
+          {user.provinsi && (
+            <InfoRow
+              icon="map-outline"
+              label="Provinsi"
+              value={user.provinsi}
+            />
+          )}
+          <InfoRow icon="card-outline" label="User ID" value={user.id_user} />
+          {user.tanggal_daftar && (
+            <InfoRow
+              icon="calendar-outline"
+              label="Tanggal Daftar"
+              value={new Date(user.tanggal_daftar).toLocaleDateString('id-ID')}
+            />
+          )}
         </View>
 
         {/* Menu Options */}
         <View style={styles.menuSection}>
           <MenuButton
-            icon="✏️"
+            icon="create-outline"
             title="Edit Profile"
             subtitle="Ubah data profil Anda"
-            onPress={handleEditProfile}
+            onPress={() => setEditModalVisible(true)}
           />
           <MenuButton
-            icon="🔒"
+            icon="lock-closed-outline"
             title="Ubah Password"
             subtitle="Ganti password akun"
-            onPress={handleChangePassword}
+            onPress={() => setPasswordModalVisible(true)}
           />
           <MenuButton
-            icon="💬"
+            icon="chatbubbles-outline"
             title="Bantuan"
             subtitle="Hubungi customer service"
             onPress={handleHelp}
           />
           <MenuButton
-            icon="ℹ️"
+            icon="information-circle-outline"
             title="Tentang Aplikasi"
             subtitle="Versi & informasi aplikasi"
             onPress={handleAbout}
@@ -126,7 +198,7 @@ export default function ProfileScreen({
           onPress={onLogout}
           activeOpacity={0.8}
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <Icon name="log-out-outline" size={20} color="#DC2626" />
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
 
@@ -135,6 +207,20 @@ export default function ProfileScreen({
           <Text style={styles.footerSubtext}>© 2025 Kelompok 5</Text>
         </View>
       </ScrollView>
+
+      {/* Modals */}
+      <EditProfileModal
+        visible={editModalVisible}
+        user={user}
+        onClose={() => setEditModalVisible(false)}
+        onUpdate={onUpdateProfile}
+      />
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        userId={user.id_user}
+        onClose={() => setPasswordModalVisible(false)}
+        onPasswordChanged={refreshUserData} // ✅ Callback refresh data
+      />
     </View>
   );
 }
@@ -151,7 +237,7 @@ function InfoRow({
 }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoIcon}>{icon}</Text>
+      <Icon name={icon} size={24} color="#6B7280" style={styles.infoIcon} />
       <View style={styles.infoContent}>
         <Text style={styles.infoLabel}>{label}</Text>
         <Text style={styles.infoValue}>{value}</Text>
@@ -179,13 +265,13 @@ function MenuButton({
       activeOpacity={0.7}
     >
       <View style={styles.menuIconContainer}>
-        <Text style={styles.menuIcon}>{icon}</Text>
+        <Icon name={icon} size={24} color="#4F46E5" />
       </View>
       <View style={styles.menuContent}>
         <Text style={styles.menuTitle}>{title}</Text>
         <Text style={styles.menuSubtitle}>{subtitle}</Text>
       </View>
-      <Text style={styles.menuArrow}>→</Text>
+      <Icon name="chevron-forward" size={20} color="#9CA3AF" />
     </TouchableOpacity>
   );
 }
@@ -204,6 +290,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   backButton: {
     width: 40,
@@ -213,9 +303,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: '#1F2937',
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 20,
@@ -240,6 +334,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     elevation: 4,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   avatarText: {
     fontSize: 40,
@@ -258,6 +356,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -270,10 +370,14 @@ const styles = StyleSheet.create({
   },
   detailsCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
+    marginHorizontal: 20,
     borderRadius: 16,
     padding: 20,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
     marginBottom: 16,
   },
   cardTitle: {
@@ -290,7 +394,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   infoIcon: {
-    fontSize: 24,
     marginRight: 16,
     width: 30,
   },
@@ -309,10 +412,14 @@ const styles = StyleSheet.create({
   },
   menuSection: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
+    marginHorizontal: 20,
     borderRadius: 16,
     padding: 8,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
     marginBottom: 24,
   },
   menuButton: {
@@ -325,13 +432,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  menuIcon: {
-    fontSize: 24,
   },
   menuContent: {
     flex: 1,
@@ -346,28 +450,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
   },
-  menuArrow: {
-    fontSize: 20,
-    color: '#9CA3AF',
-  },
   logoutButton: {
     flexDirection: 'row',
     backgroundColor: '#FEE2E2',
-    marginHorizontal: 24,
+    marginHorizontal: 20,
     borderRadius: 12,
     paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 2,
-  },
-  logoutIcon: {
-    fontSize: 20,
-    marginRight: 8,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#DC2626',
+    marginLeft: 8,
   },
   footer: {
     alignItems: 'center',
