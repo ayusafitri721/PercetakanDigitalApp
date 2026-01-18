@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Search, Plus, Edit2, Trash2 } from 'lucide-react';
 import ProductForm from './ProductForm';
 import ProductDelete from './ProductDelete';
 import './products.css';
@@ -143,19 +144,23 @@ const ProductList: React.FC = () => {
           <p className="subtitle">Kelola produk percetakan</p>
         </div>
         <button className="btn-add" onClick={handleAdd}>
-          + Tambah Produk
+          <Plus size={18} />
+          <span>Tambah Produk</span>
         </button>
       </div>
 
       {/* Search */}
       <div className="search-section">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Cari produk atau kategori..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-        />
+        <div className="search-box">
+          <Search className="search-icon" size={18} />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Cari produk atau kategori..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Product Table */}
@@ -231,15 +236,53 @@ const ProductList: React.FC = () => {
                           className="btn-icon btn-edit"
                           onClick={() => handleEdit(product)}
                           title="Edit"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#3b82f6',
+                            cursor: 'pointer',
+                            padding: '8px',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.backgroundColor = '#eff6ff';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.backgroundColor =
+                              'transparent';
+                          }}
                         >
-                          ✏️
+                          <Edit2 size={18} />
                         </button>
                         <button
                           className="btn-icon btn-delete"
                           onClick={() => handleDelete(product)}
                           title="Hapus"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '8px',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.backgroundColor = '#fef2f2';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.backgroundColor =
+                              'transparent';
+                          }}
                         >
-                          🗑️
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
