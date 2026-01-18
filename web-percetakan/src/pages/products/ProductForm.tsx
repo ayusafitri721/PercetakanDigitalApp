@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import './products.css';
 
 import { API_BASE_URL } from '../../config';
@@ -85,7 +86,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      alert('Gagal memuat kategori');
+      await Swal.fire({
+        icon: 'error',
+        title: 'Gagal Memuat Kategori',
+        text: 'Tidak dapat memuat daftar kategori',
+        confirmButtonColor: '#3085d6',
+      });
     }
   };
 
@@ -101,7 +107,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     }));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -125,14 +131,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
       'image/webp',
     ];
     if (!validTypes.includes(file.type)) {
-      alert('Format gambar tidak valid! Gunakan JPG, PNG, GIF, atau WebP');
+      await Swal.fire({
+        icon: 'error',
+        title: 'Format Tidak Valid',
+        text: 'Format gambar tidak valid! Gunakan JPG, PNG, GIF, atau WebP',
+        confirmButtonColor: '#3085d6',
+      });
       e.target.value = '';
       return;
     }
 
     // Validasi ukuran (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Ukuran file terlalu besar! Maksimal 5MB');
+      await Swal.fire({
+        icon: 'error',
+        title: 'File Terlalu Besar',
+        text: 'Ukuran file terlalu besar! Maksimal 5MB',
+        confirmButtonColor: '#3085d6',
+      });
       e.target.value = '';
       return;
     }
@@ -165,13 +181,41 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     e.preventDefault();
 
     if (!formData.id_category || !formData.nama_product) {
-      alert('Kategori dan Nama Produk wajib diisi!');
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Data Tidak Lengkap',
+        text: 'Kategori dan Nama Produk wajib diisi!',
+        confirmButtonColor: '#3085d6',
+      });
       return;
     }
 
     if (formData.harga_dasar <= 0) {
-      alert('Harga Dasar harus lebih dari 0!');
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Harga Tidak Valid',
+        text: 'Harga Dasar harus lebih dari 0!',
+        confirmButtonColor: '#3085d6',
+      });
       return;
+    }
+
+    // Konfirmasi hanya untuk edit/update
+    if (product) {
+      const result = await Swal.fire({
+        title: 'Update Produk?',
+        text: `Apakah Anda yakin ingin mengupdate produk ${formData.nama_product}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Update',
+        cancelButtonText: 'Batal',
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
     }
 
     setLoading(true);
@@ -187,23 +231,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
       // Tambahkan file jika ada
       if (selectedImage) {
         formDataToSend.append('gambar_preview', selectedImage);
-        console.log('✅ Adding image to FormData:', {
+        console.log('Adding image to FormData:', {
           name: selectedImage.name,
           type: selectedImage.type,
           size: selectedImage.size,
         });
       } else {
-        console.log('⚠️ No image selected');
+        console.log('No image selected');
       }
 
       const url = product
         ? `${API_BASE_URL}/products.php?op=update&id=${product.id_product}`
         : `${API_BASE_URL}/products.php?op=create`;
 
-      console.log('📤 Sending request to:', url);
+      console.log('Sending request to:', url);
 
       // Debug: Log FormData contents
-      console.log('📦 FormData contents:');
+      console.log('FormData contents:');
       for (let pair of formDataToSend.entries()) {
         if (pair[1] instanceof File) {
           console.log(pair[0] + ':', '(File)', pair[1].name);
@@ -218,7 +262,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
         },
       });
 
-      console.log('✅ Response received:', response.data);
+      console.log('Response received:', response.data);
 
       if (
         response.data.status === 'success' ||
@@ -227,35 +271,48 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
         // Log path gambar yang dikembalikan dari server
         if (response.data.data?.gambar_preview) {
           console.log(
-            '🖼️ Uploaded image path:',
+            'Uploaded image path:',
             response.data.data.gambar_preview,
           );
           console.log(
-            '🔗 Full URL:',
+            'Full URL:',
             `${BASE_URL}/${response.data.data.gambar_preview}`,
           );
         }
 
-        alert(
-          '✅ ' +
-            (product
-              ? 'Produk berhasil diupdate!'
-              : 'Produk berhasil ditambahkan!'),
-        );
+        await Swal.fire({
+          icon: 'success',
+          title: 'Berhasil!',
+          text: product
+            ? 'Produk berhasil diupdate!'
+            : 'Produk berhasil ditambahkan!',
+          timer: 1500,
+          showConfirmButton: false,
+        });
         onClose(true); // Refresh parent component
       } else {
-        console.error('❌ Error response:', response.data);
-        alert(response.data.message || 'Terjadi kesalahan');
+        console.error('Error response:', response.data);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menyimpan',
+          text: response.data.message || 'Terjadi kesalahan',
+          confirmButtonColor: '#3085d6',
+        });
       }
     } catch (error: any) {
-      console.error('❌ Error:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
+      console.error('Error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
         'Gagal menyimpan produk';
-      alert('Error: ' + errorMsg);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: errorMsg,
+        confirmButtonColor: '#3085d6',
+      });
     } finally {
       setLoading(false);
     }
@@ -265,7 +322,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
     <div className="modal-overlay" onClick={() => onClose(false)}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{product ? '✏️ Edit Produk' : '➕ Tambah Produk'}</h2>
+          <h2>{product ? 'Edit Produk' : 'Tambah Produk'}</h2>
           <button className="btn-close" onClick={() => onClose(false)}>
             ✕
           </button>
@@ -386,7 +443,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
 
           {/* Upload Gambar */}
           <div className="form-group">
-            <label>📷 Gambar Produk</label>
+            <label>Gambar Produk</label>
             <div
               style={{
                 border: '2px dashed #ddd',
@@ -418,7 +475,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
                       display: 'inline-block',
                     }}
                   >
-                    📁 Pilih Gambar
+                    Pilih Gambar
                   </label>
                   <p
                     style={{
@@ -461,7 +518,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
                         display: 'inline-block',
                       }}
                     >
-                      🔄 Ganti Gambar
+                      Ganti Gambar
                     </label>
                     <button
                       type="button"
@@ -475,7 +532,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
                         borderRadius: '5px',
                       }}
                     >
-                      🗑️ Hapus
+                      Hapus
                     </button>
                   </div>
                   {selectedImage && (
@@ -517,11 +574,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onClose }) => {
               Batal
             </button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading
-                ? '⏳ Menyimpan...'
-                : product
-                ? '💾 Update'
-                : '➕ Tambah'}
+              {loading ? 'Menyimpan...' : product ? 'Update' : 'Tambah'}
             </button>
           </div>
         </form>

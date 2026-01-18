@@ -139,7 +139,7 @@ const ProductList: React.FC = () => {
     <div className="products-container">
       <div className="products-header">
         <div>
-          <h1>📦 Manajemen Produk</h1>
+          <h1>Manajemen Produk</h1>
           <p className="subtitle">Kelola produk percetakan</p>
         </div>
         <button className="btn-add" onClick={handleAdd}>
@@ -152,7 +152,7 @@ const ProductList: React.FC = () => {
         <input
           type="text"
           className="search-input"
-          placeholder="🔍 Cari produk atau kategori..."
+          placeholder="Cari produk atau kategori..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -160,7 +160,7 @@ const ProductList: React.FC = () => {
 
       {/* Product Table */}
       {loading ? (
-        <div className="loading">⏳ Memuat data...</div>
+        <div className="loading">Memuat data...</div>
       ) : (
         <div className="table-wrapper">
           <table className="products-table">
