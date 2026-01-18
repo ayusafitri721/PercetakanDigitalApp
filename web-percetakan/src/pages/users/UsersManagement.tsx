@@ -7,6 +7,7 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  User,
 } from 'lucide-react';
 import UserForm from './UserForm';
 import UserDelete from './UserDelete';
@@ -172,7 +173,24 @@ const UsersManagement: React.FC = () => {
                   <td>#{user.id_user}</td>
                   <td>
                     <div className="user-cell">
-                      <div className="user-avatar">{user.nama.charAt(0)}</div>
+                      <div
+                        className="user-avatar"
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background:
+                            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                        }}
+                      >
+                        <User size={20} />
+                      </div>
                       <span>{user.nama}</span>
                     </div>
                   </td>
@@ -211,15 +229,51 @@ const UsersManagement: React.FC = () => {
                         className="btn-icon btn-edit"
                         onClick={() => handleEdit(user)}
                         title="Edit"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.backgroundColor = '#eff6ff';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={18} />
                       </button>
                       <button
                         className="btn-icon btn-delete"
                         onClick={() => handleDelete(user)}
                         title="Hapus"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.backgroundColor = '#fef2f2';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
