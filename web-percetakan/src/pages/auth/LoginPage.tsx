@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import './LoginPage.css';
 
 // GANTI IP INI dengan IP komputer kamu!
@@ -68,6 +69,14 @@ const LoginPage: React.FC = () => {
           setError(
             'Akses ditolak. Hanya admin, kasir, dan operator yang bisa login.',
           );
+
+          // SweetAlert2 untuk role tidak valid
+          await Swal.fire({
+            icon: 'error',
+            title: 'Akses Ditolak',
+            text: 'Hanya admin, kasir, dan operator yang bisa login.',
+            confirmButtonColor: '#3085d6',
+          });
           return;
         }
 
@@ -76,7 +85,15 @@ const LoginPage: React.FC = () => {
         localStorage.setItem('user', JSON.stringify(userData));
 
         console.log('Login success!');
-        alert(`Login berhasil! Welcome ${userData?.nama}`);
+
+        // SweetAlert2 untuk login berhasil
+        await Swal.fire({
+          icon: 'success',
+          title: 'Login Berhasil!',
+          text: `Selamat datang, ${userData?.nama}`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
 
         // ✅ REDIRECT BERDASARKAN ROLE
         if (userRole === 'kasir') {
@@ -92,18 +109,38 @@ const LoginPage: React.FC = () => {
       } else {
         console.log('Login failed - success is false');
         setError(response.data.message || 'Login gagal');
+
+        // SweetAlert2 untuk login gagal
+        await Swal.fire({
+          icon: 'error',
+          title: 'Login Gagal',
+          text: response.data.message || 'Login gagal',
+          confirmButtonColor: '#3085d6',
+        });
       }
     } catch (err: any) {
       console.error('=== LOGIN ERROR ===');
       console.error('Error:', err);
 
+      let errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+
       if (err.response) {
-        setError(err.response.data?.message || 'Email atau password salah');
+        errorMessage =
+          err.response.data?.message || 'Email atau password salah';
       } else if (err.request) {
-        setError('Tidak dapat terhubung ke server. Pastikan API berjalan.');
-      } else {
-        setError('Terjadi kesalahan. Silakan coba lagi.');
+        errorMessage =
+          'Tidak dapat terhubung ke server. Pastikan API berjalan.';
       }
+
+      setError(errorMessage);
+
+      // SweetAlert2 untuk error
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: errorMessage,
+        confirmButtonColor: '#3085d6',
+      });
     } finally {
       setLoading(false);
     }
