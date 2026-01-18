@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 import { API_BASE_URL } from '../../config';
 
@@ -19,6 +20,26 @@ const UserDelete: React.FC<UserDeleteProps> = ({ user, onClose }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
+    // Konfirmasi dengan SweetAlert2
+    const result = await Swal.fire({
+      title: 'Hapus User?',
+      html: `
+        Apakah Anda yakin ingin menghapus user <strong>${user.nama}</strong>?<br>
+        <span style="color: #d33; font-size: 14px;">Aksi ini akan menonaktifkan user dari sistem.</span>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -45,7 +66,14 @@ const UserDelete: React.FC<UserDeleteProps> = ({ user, onClose }) => {
       console.log('Delete Response:', response.data);
 
       if (response.data.status === 'success') {
-        alert('User berhasil dihapus!');
+        // SweetAlert2 untuk delete berhasil
+        await Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dihapus!',
+          text: 'User berhasil dihapus dari sistem.',
+          timer: 1500,
+          showConfirmButton: false,
+        });
 
         // PENTING: Tutup modal dulu, baru reload
         onClose(true);
@@ -55,7 +83,13 @@ const UserDelete: React.FC<UserDeleteProps> = ({ user, onClose }) => {
           window.location.reload();
         }, 300);
       } else {
-        alert(response.data.message || 'Gagal menghapus user');
+        // SweetAlert2 untuk delete gagal
+        await Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menghapus',
+          text: response.data.message || 'Gagal menghapus user',
+          confirmButtonColor: '#3085d6',
+        });
         onClose(false);
       }
     } catch (error: any) {
@@ -65,7 +99,14 @@ const UserDelete: React.FC<UserDeleteProps> = ({ user, onClose }) => {
       const errorMsg =
         error.response?.data?.message ||
         'Terjadi kesalahan saat menghapus user';
-      alert(errorMsg);
+
+      // SweetAlert2 untuk error
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: errorMsg,
+        confirmButtonColor: '#3085d6',
+      });
       onClose(false);
     } finally {
       setLoading(false);

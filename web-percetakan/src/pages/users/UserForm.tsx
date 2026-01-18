@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 import { API_BASE_URL } from '../../config';
 
@@ -84,6 +85,13 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose }) => {
     e.preventDefault();
 
     if (!validate()) {
+      // SweetAlert2 untuk validasi error
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Validasi Gagal',
+        text: 'Mohon lengkapi semua field yang wajib diisi dengan benar.',
+        confirmButtonColor: '#3085d6',
+      });
       return;
     }
 
@@ -121,10 +129,23 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose }) => {
         console.log('Update Response:', response.data);
 
         if (response.data.status === 'success') {
-          alert('User berhasil diupdate!');
+          // SweetAlert2 untuk update berhasil
+          await Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'User berhasil diupdate!',
+            timer: 1500,
+            showConfirmButton: false,
+          });
           onClose(true);
         } else {
-          alert(response.data.message || 'Gagal update user');
+          // SweetAlert2 untuk update gagal
+          await Swal.fire({
+            icon: 'error',
+            title: 'Gagal Update',
+            text: response.data.message || 'Gagal update user',
+            confirmButtonColor: '#3085d6',
+          });
         }
       } else {
         // Create new user
@@ -149,10 +170,23 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose }) => {
         console.log('Create Response:', response.data);
 
         if (response.data.status === 'success') {
-          alert('User berhasil ditambahkan!');
+          // SweetAlert2 untuk create berhasil
+          await Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'User berhasil ditambahkan!',
+            timer: 1500,
+            showConfirmButton: false,
+          });
           onClose(true);
         } else {
-          alert(response.data.message || 'Gagal menambahkan user');
+          // SweetAlert2 untuk create gagal
+          await Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menambahkan',
+            text: response.data.message || 'Gagal menambahkan user',
+            confirmButtonColor: '#3085d6',
+          });
         }
       }
     } catch (error: any) {
@@ -162,7 +196,14 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose }) => {
       const errorMsg =
         error.response?.data?.message ||
         'Terjadi kesalahan saat menambahkan user';
-      alert(errorMsg);
+
+      // SweetAlert2 untuk error
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: errorMsg,
+        confirmButtonColor: '#3085d6',
+      });
     } finally {
       setLoading(false);
     }
