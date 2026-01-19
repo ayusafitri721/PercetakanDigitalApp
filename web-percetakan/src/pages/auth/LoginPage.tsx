@@ -206,13 +206,13 @@ const LoginPage: React.FC = () => {
               <summary>Demo Accounts</summary>
               <div className="demo-content">
                 <p>
-                  <strong>Admin:</strong> admin@percetakan.com / password
+                  <strong>Admin:</strong> admin@percetakan.com / admin1
                 </p>
                 <p>
-                  <strong>Kasir:</strong> kasir@percetakan.com / password
+                  <strong>Kasir:</strong> kasir@percetakan.com / kasir
                 </p>
                 <p>
-                  <strong>Operator:</strong> operator@percetakan.com / password
+                  <strong>Operator:</strong> operator@percetakan.com / ope
                 </p>
               </div>
             </details>
