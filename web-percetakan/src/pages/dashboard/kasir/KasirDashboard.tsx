@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   PlusCircle,
-  FileText,
+  // FileText,
   Settings,
   LogOut,
   Menu,
@@ -136,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
     { id: 'orders', label: 'Pesanan', Icon: ShoppingCart },
     { id: 'create', label: 'Buat Pesanan', Icon: PlusCircle },
-    { id: 'reports', label: 'Laporan', Icon: FileText },
+    // { id: 'reports', label: 'Laporan', Icon: FileText },
     { id: 'settings', label: 'Pengaturan', Icon: Settings },
   ];
 
@@ -610,8 +610,8 @@ const KasirDashboardWithSidebar: React.FC = () => {
         return 'Pesanan';
       case 'create':
         return 'Buat Pesanan';
-      case 'reports':
-        return 'Laporan';
+      // case 'reports':
+      //   return 'Laporan';
       case 'settings':
         return 'Pengaturan';
       default:
