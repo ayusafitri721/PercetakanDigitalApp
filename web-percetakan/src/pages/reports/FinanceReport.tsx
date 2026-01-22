@@ -285,7 +285,7 @@ const FinanceReport: React.FC = () => {
           onClick={fetchFinanceData}
           style={{
             padding: '10px 20px',
-            backgroundColor: '#4CAF50',
+            backgroundColor: '#4988C4',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
@@ -293,7 +293,7 @@ const FinanceReport: React.FC = () => {
             fontWeight: '500',
           }}
         >
-          🔄 Refresh Data
+          Refresh Data
         </button>
       </div>
 
@@ -404,7 +404,7 @@ const FinanceReport: React.FC = () => {
                   marginBottom: '10px',
                 }}
               >
-                <span style={{ fontSize: '32px' }}>💰</span>
+                {/* <span style={{ fontSize: '32px' }}>💰</span> */}
                 <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   Total Pemasukan (Lunas)
                 </h3>
@@ -442,7 +442,7 @@ const FinanceReport: React.FC = () => {
                   marginBottom: '10px',
                 }}
               >
-                <span style={{ fontSize: '32px' }}>⏳</span>
+                {/* <span style={{ fontSize: '32px' }}>⏳</span> */}
                 <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   Pending Payment
                 </h3>
@@ -480,7 +480,7 @@ const FinanceReport: React.FC = () => {
                   marginBottom: '10px',
                 }}
               >
-                <span style={{ fontSize: '32px' }}>📊</span>
+                {/* <span style={{ fontSize: '32px' }}>📊</span> */}
                 <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   Rata-rata Transaksi
                 </h3>
@@ -516,7 +516,7 @@ const FinanceReport: React.FC = () => {
                   marginBottom: '10px',
                 }}
               >
-                <span style={{ fontSize: '32px' }}>📈</span>
+                {/* <span style={{ fontSize: '32px' }}>📈</span> */}
                 <h3 style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   Total Transaksi
                 </h3>

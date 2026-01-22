@@ -394,7 +394,7 @@ const OrdersList: React.FC = () => {
                         onClick={() => handleViewDetail(order)}
                         title="Lihat Detail"
                       >
-                        👁️ Detail
+                        Detail
                       </button>
                     </td>
                   </tr>
