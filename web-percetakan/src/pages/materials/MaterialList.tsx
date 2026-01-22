@@ -177,14 +177,46 @@ const MaterialList: React.FC = () => {
 
   return (
     <div className="materials-container">
-      <div className="materials-header">
-        <div>
+      <div
+        className="materials-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
           <h1>Manajemen Stok Bahan</h1>
           <p className="subtitle">Kelola stok bahan cetak</p>
         </div>
-        <button className="btn-add" onClick={handleAdd}>
-          + Tambah Bahan
-        </button>
+        <div
+          className="header-actions"
+          style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}
+        >
+          {/* Peringatan stok ditempatkan di sebelah tombol Tambah Bahan */}
+          {!error && lowStockCount > 0 && (
+            <div
+              className="alert alert-warning header-alert"
+              style={{ margin: 0, padding: '8px 12px', display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                  fill="#ED8936"
+                />
+              </svg>
+              <span style={{ marginLeft: 8 }}>
+                <strong>Peringatan!</strong> Ada {lowStockCount} bahan dengan stok
+                rendah
+              </span>
+            </div>
+          )}
+
+          <button className="btn-add" onClick={handleAdd}>
+            + Tambah Bahan
+          </button>
+        </div>
       </div>
 
       {/* Error Alert dengan tombol retry */}
@@ -214,21 +246,7 @@ const MaterialList: React.FC = () => {
         </div>
       )}
 
-      {/* Alert Low Stock */}
-      {!error && lowStockCount > 0 && (
-        <div className="alert alert-warning">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-              fill="#ED8936"
-            />
-          </svg>
-          <span>
-            <strong>Peringatan!</strong> Ada {lowStockCount} bahan dengan stok
-            rendah
-          </span>
-        </div>
-      )}
+      {/* low-stock alert moved into header */}
 
       {/* Search & Filter */}
       <div className="filter-section">

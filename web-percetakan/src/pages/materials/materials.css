@@ -23,17 +23,24 @@
   flex-shrink: 0;
 }
 
+.materials-header {
+  margin-bottom: 18px;
+}
+
 .filter-section {
+  /* Search on top, controls below */
   display: flex;
-  gap: 16px;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
   margin-bottom: 24px;
-  flex-wrap: wrap;
 }
 
 .filter-buttons {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .filter-btn {

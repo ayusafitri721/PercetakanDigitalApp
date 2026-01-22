@@ -9,6 +9,7 @@ import {
   ScrollView,
   StatusBar,
   Alert,
+  Platform,
 } from 'react-native';
 
 interface DashboardScreenProps {
@@ -30,15 +31,38 @@ export default function DashboardScreen({
   userData,
   onLogout,
 }: DashboardScreenProps) {
-  const handleLogout = () => {
-    Alert.alert('Konfirmasi Logout', 'Apakah Anda yakin ingin keluar?', [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: onLogout,
-      },
-    ]);
+  const handleLogout = async () => {
+    // On web, use SweetAlert2 if available (dynamic import). On native, fall back to Alert.
+    if (Platform.OS === 'web') {
+      try {
+        const SwalModule = await import(/* webpackChunkName: "swal" */ 'sweetalert2');
+        const Swal = SwalModule.default || SwalModule;
+        const result = await Swal.fire({
+          title: 'Konfirmasi Logout',
+          text: 'Apakah Anda yakin ingin keluar?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Logout',
+          cancelButtonText: 'Batal',
+          reverseButtons: true,
+        });
+
+        if (result.isConfirmed) {
+          onLogout();
+        }
+      } catch (err) {
+        // If sweetalert2 isn't available or import fails, fallback to native alert
+        Alert.alert('Konfirmasi Logout', 'Apakah Anda yakin ingin keluar?', [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Logout', style: 'destructive', onPress: onLogout },
+        ]);
+      }
+    } else {
+      Alert.alert('Konfirmasi Logout', 'Apakah Anda yakin ingin keluar?', [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: onLogout },
+      ]);
+    }
   };
 
   if (!userData) {
